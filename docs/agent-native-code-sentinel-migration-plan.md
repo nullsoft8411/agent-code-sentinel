@@ -625,16 +625,35 @@ Current local progress:
   through trend-mcp schemas. state_approval_record persists explicit approval
   evidence; state_task_execution_result applies the approved task result and
   records validation/session/task status. Local Runtime tests and trend-mcp
-  state-tool listing smoke are passing. The next open step is the managed
-  Slack/Studio E2E using these two tools.
+  state-tool listing smoke are passing. The managed Slack/Studio E2E using
+  these two tools is now proven by
+  `runs/workspace-agents/code-sentinel/code-sentinel-task-exec-result-mcp-e2e-20260607c`.
+  That run returned `status=task_execution_result_mcp_e2e_passed`,
+  `clone_head=751b8c3`, `clone_ref=origin/main`,
+  `approval_recorded=true`, `task_execution_status=passed`,
+  `task_status_after_execution=completed`, `approval_enforced=true`,
+  `validation_attempts_count=1`, `execution_sessions_count=2`,
+  `selected_task_for_agent_takeover_after_execution=null`,
+  `lock_released=true`, `write_actions=[]` and
+  `unapproved_actions=[]`. The original harness evaluation falsely flagged
+  the task/run id text as an `sk-` shaped secret; after the evaluator boundary
+  was corrected, the same live Slack response evaluates as pass with no
+  findings.
+- Next open implementation slice: create the bounded-edit E2E contract where
+  the managed Agent selects a real pending task, inspects the affected file from
+  the cloned/target repository, performs only an explicitly approved minimal
+  write, runs validation, then records task_execution_result and audit evidence.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
 
 ### 6.5 QA Review Findings Integrated Into This Plan
 
-These findings are the current QA/review result and must drive the next
-implementation tasks.
+These findings are retained as historical QA/review guardrails. Items that are
+now implemented in section 6.1 and section 6.4 are no longer current blockers,
+but they remain regression checks: the runtime must not fall back to docs-only
+claims, missing task creation, summary-only QA gates, or bootstrap-only MCP
+state.
 
 #### High: Autonomous work logic exists as plan, not runtime
 

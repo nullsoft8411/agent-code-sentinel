@@ -528,6 +528,129 @@ def test_mcp_state_records_approved_task_execution_result(tmp_path: Path) -> Non
     assert report_payload["selected_task_for_agent_takeover"] is None
 
 
+def test_mcp_state_task_execution_result_accepts_static_readback_diff_validation(tmp_path: Path) -> None:
+    db_path = tmp_path / "state.db"
+    seed_project(db_path)
+    run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_run_start",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-static-validation", "latest_ref": "main@static"}),
+    )
+    run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_scan_job_create",
+        "--payload-json",
+        json.dumps(
+            {
+                "id": "scan-static-validation",
+                "project_id": "proj-devopshub",
+                "run_id": "run-static-validation",
+                "scanner_name": "agent_analysis",
+                "scan_type": "agent_context",
+                "status": "completed",
+            }
+        ),
+    )
+    run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_scan_finding_upsert",
+        "--payload-json",
+        json.dumps(
+            {
+                "id": "finding-static-validation",
+                "project_id": "proj-devopshub",
+                "run_id": "run-static-validation",
+                "scan_job_id": "scan-static-validation",
+                "scanner_name": "agent_analysis",
+                "rule_id": "bounded_edit_proof",
+                "signature": "finding:static-validation",
+                "severity": "medium",
+                "title": "Bounded edit proof missing",
+                "file_path": "docs/bounded-edit-e2e-proof.md",
+                "line_number": 1,
+            }
+        ),
+    )
+    create_tasks = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_tasks_create_from_findings",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-static-validation"}),
+    )
+    task_id = parse_json(create_tasks)["created_tasks"][0]["id"]
+    run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_approval_record",
+        "--payload-json",
+        json.dumps(
+            {
+                "id": "approval-static-validation",
+                "run_id": "run-static-validation",
+                "target_project": "nullsoft8411/devopshub",
+                "branch": "code-sentinel/static-validation",
+                "allowed_paths": ["docs/bounded-edit-e2e-proof.md"],
+                "allowed_actions": ["file_write"],
+                "approved_by": "operator",
+                "approval_evidence": "explicit per-run MCP static validation test approval",
+            }
+        ),
+    )
+
+    result = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_task_execution_result",
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-static-validation",
+                "write_request": {
+                    "target_project": "nullsoft8411/devopshub",
+                    "branch": "code-sentinel/static-validation",
+                    "path": "docs/bounded-edit-e2e-proof.md",
+                    "action": "file_write",
+                },
+                "task_execution_result": {
+                    "task_id": task_id,
+                    "files_modified": ["docs/bounded-edit-e2e-proof.md"],
+                    "validation_result": {
+                        "gate": "task_validation",
+                        "command": "read_file + git_diff approved file",
+                        "exit_code": 0,
+                        "stdout": "readback and diff inspected",
+                    },
+                },
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 0, result.stderr
+    assert payload["status"] == "passed"
+    assert payload["task"]["status"] == "completed"
+    assert payload["validation_result"]["validation"]["command"] == "read_file + git_diff approved file"
+    assert payload["execution_session"]["files_modified"] == ["docs/bounded-edit-e2e-proof.md"]
+
+
 def test_mcp_state_expanded_tools_accept_nested_payload_wrapper(tmp_path: Path) -> None:
     db_path = tmp_path / "state.db"
     seed_project(db_path)

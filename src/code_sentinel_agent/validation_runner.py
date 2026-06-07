@@ -17,6 +17,7 @@ ALLOWED_COMMAND_PREFIXES = (
     "npm run build",
     "go test",
     "go vet",
+    "read_file + git_diff",
 )
 
 
