@@ -57,6 +57,13 @@ Evaluate persisted QA gate state:
 PYTHONPATH=src python3 -m code_sentinel_agent.cli qa-gates --db /tmp/runtime.db --run-id run-1
 ```
 
+Process a validation result into QA gate state, findings, tasks and the next
+Agent takeover task:
+
+```bash
+PYTHONPATH=src python3 -m code_sentinel_agent.cli qg-workflow --db /tmp/runtime.db --payload-json '{"project_id":"proj-1","run_id":"run-1","gate":"validation","command":"pytest tests -q","exit_code":1,"stderr":"src/app.py:1: AssertionError"}'
+```
+
 Create tasks and subtasks from open findings:
 
 ```bash

@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 
 from .db import connect
+from .qg_workflow import selected_task_for_agent_takeover
 
 
 def report(db_path: str | Path, run_id: str) -> tuple[int, dict]:
@@ -46,9 +47,13 @@ def report(db_path: str | Path, run_id: str) -> tuple[int, dict]:
             "target": row["target"],
         },
         "counts": counts,
+        "selected_task_for_agent_takeover": selected_task_for_agent_takeover(
+            db_path,
+            project_id=row["project_id"],
+            run_id=row["run_id"],
+        ),
     }
 
 
 def count(conn: sqlite3.Connection, table: str, run_id: str) -> int:
     return int(conn.execute(f"select count(*) from {table} where run_id = ?", (run_id,)).fetchone()[0])
-

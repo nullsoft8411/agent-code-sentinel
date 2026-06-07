@@ -12,6 +12,7 @@ from .db import initialize_database
 from .memory import memory_delta
 from .mcp_state import call_tool
 from .preflight import preflight
+from .qg_workflow import process_quality_gate_payload
 from .qa_gates import qa_gates
 from .reports import report
 from .task_creation import create_tasks_from_findings, update_task_status
@@ -79,6 +80,10 @@ def main(argv: list[str] | None = None) -> int:
     task_status.add_argument("--task-id", required=True)
     task_status.add_argument("--status", required=True)
 
+    qg_workflow = subparsers.add_parser("qg-workflow")
+    qg_workflow.add_argument("--db", required=True)
+    qg_workflow.add_argument("--payload-json", required=True)
+
     args = parser.parse_args(argv)
 
     if args.command == "db" and args.db_command == "init":
@@ -143,6 +148,13 @@ def main(argv: list[str] | None = None) -> int:
         return emit(code, payload)
     if args.command == "task-status":
         code, payload = update_task_status(args.db, task_id=args.task_id, status=args.status)
+        return emit(code, payload)
+    if args.command == "qg-workflow":
+        try:
+            payload_json = json.loads(args.payload_json)
+        except json.JSONDecodeError as exc:
+            return emit(2, {"status": "blocked", "blocker_code": "INVALID_JSON_PAYLOAD", "reason": str(exc)})
+        code, payload = process_quality_gate_payload(args.db, payload_json)
         return emit(code, payload)
 
     return emit(2, {"status": "blocked", "blocker_code": "UNKNOWN_COMMAND"})
