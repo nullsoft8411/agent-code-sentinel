@@ -248,9 +248,10 @@ Aktuelle Fähigkeit:
 | Scanner plugins | domain/scanning/plugins | Keine portable plugin registry im Agent-Repo |
 | QG test runner | qg_test_runner.py | Noch kein echter command runner fuer agent-native checks |
 
-### 5.3 Bewusst nicht 1:1 migrieren
+### 5.3 Alte Runtime-Schichten nicht 1:1 migrieren, Funktionalität trotzdem migrieren
 
-Diese Teile bleiben reference_only oder MCP/external:
+Diese Teile werden nicht als Infrastruktur in den Agent kopiert, weil der
+Workspace Agent sie nicht braucht:
 
 - FastAPI Produkt-API
 - React Admin UI
@@ -264,7 +265,8 @@ Diese Teile bleiben reference_only oder MCP/external:
 - raw secrets/env/auth implementations
 - GitHub App Installation internals
 
-Sie werden aber als Arbeitsprinzipien migriert:
+Ihre Funktionalität und Arbeitsprinzipien werden trotzdem migriert und an die
+Agent-Umgebung angepasst:
 
 - Scope/Tenant Safety -> project/workspace policy
 - Budget Guard -> run budget/status policy
@@ -272,6 +274,9 @@ Sie werden aber als Arbeitsprinzipien migriert:
 - tmux sessions -> agent_execution_sessions/artifacts
 - API audit -> audit_events
 - GitHub App -> MCP/GitHub connector contracts
+- FastAPI orchestration -> CLI/script contracts plus Agent Studio/Slack surface
+- PostgreSQL state semantics -> SQLite/MCP shared state schema
+- Claude/tmux task execution -> Workspace Agent task takeover and agent-native execution sessions
 
 Zusatzregel: Der alte ClaudeExecutor wird nicht als Runtime kopiert. Seine
 Aufgaben werden aufgeteilt in agent_analysis.py, agent_execution.py,
@@ -921,9 +926,13 @@ Blocker C: Write Policy
 
 Write-Actions sind noch nicht Teil der Migration. Vor jeder File-/Branch-/Commit-/PR-Aktion braucht es approval records und Slack/Studio prompt contract.
 
-Blocker D: Full SaaS features
+Blocker D: Full SaaS runtime layers
 
-Tenant, RBAC, Billing, Stripe, FastAPI, UI, Kubernetes und Redis werden nicht in den Agent portiert. Nur ihre Arbeitsprinzipien werden in lightweight policy/state übersetzt.
+Tenant, RBAC, Billing, Stripe, FastAPI, UI, Kubernetes und Redis werden nicht als
+SaaS-Infrastruktur in den Agent portiert. Ihre funktionale Code-Sentinel-Logik
+wird jedoch in agent-passende Bausteine übersetzt: scope/write policy,
+approval/audit, run limits, shared state, CLI/script contracts, Agent
+Studio/Slack-Oberfläche, Findings, Tasks, QA Gates und autonome Next-Step-State.
 
 ## 13. Definition of Done fuer die vollständige Migration
 

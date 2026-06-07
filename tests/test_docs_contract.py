@@ -77,6 +77,9 @@ def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     assert "QA gate failure creates findings and tasks" in plan
     assert "selected_task_for_agent_takeover" in plan
     assert "The task is not delegated to Claude, tmux, Claude CLI, or any external AI executor" in plan
+    assert "Infrastructure is not ported 1:1, but Code Sentinel's functional workweise is migrated" in plan
+    assert "PostgreSQL persistence semantics become SQLite and MCP shared-state schema" in plan
+    assert "Claude/tmux execution becomes Workspace Agent task takeover" in plan
 
 
 def test_target_runtime_has_no_external_ai_executor_code() -> None:

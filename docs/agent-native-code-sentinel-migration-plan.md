@@ -485,9 +485,10 @@ Acceptance:
 - Slack test proves the Agent uses MCP clone/state plus its own Python execution.
 - Response includes findings/tasks/session evidence.
 
-## 6. Non-Goals
+## 6. Runtime Layers Not Ported, Functionality Still Ported
 
-These are not migration targets:
+These old product/runtime layers are not migration targets because the Workspace
+Agent does not need them as infrastructure:
 
 - external Claude CLI execution
 - tmux as execution runtime
@@ -501,7 +502,23 @@ These are not migration targets:
 - Stripe/billing
 - Kubernetes deployment
 
-These remain source references for state, safety and workflow design only.
+This does not mean their Code Sentinel functionality is dropped. The functional
+workweise is still migrated and adapted:
+
+- API orchestration becomes CLI/script contracts plus Agent Studio/Slack
+  instructions.
+- PostgreSQL persistence semantics become SQLite and MCP shared-state schema.
+- Redis stream delivery becomes state_events, locks, run lifecycle and
+  next_autonomous_step.
+- Tenant/RBAC safety becomes project/workspace scope policy, write approval and
+  audit gates.
+- Budget guard becomes attempt limits, write limits, validation gates and
+  blocker states.
+- Claude/tmux execution becomes Workspace Agent task takeover, agent-native
+  analysis, fix planning, execution sessions and validation evidence.
+- SaaS audit logs become audit_events and final JSON reports.
+
+Contract statement: Infrastructure is not ported 1:1, but Code Sentinel's functional workweise is migrated into the Workspace Agent runtime.
 
 ## 7. Definition Of Done
 
