@@ -705,10 +705,22 @@ Current local progress:
   returned `STATE_RUN_CYCLE_TOOL_UNAVAILABLE`: the Agent cloned the repo at
   `clone_head=79692eb` and saw existing state tools, but did not yet see
   `state_run_cycle`, so it correctly returned blocked without faking evidence.
+- After the connector was refreshed in Agent Studio, a second direct-tool Slack
+  run `runs/workspace-agents/code-sentinel/code-sentinel-2026-06-07T13-25-08-997Z`
+  still returned `STATE_RUN_CYCLE_TOOL_UNAVAILABLE`. A wrapper fallback run
+  `runs/workspace-agents/code-sentinel/code-sentinel-2026-06-07T13-27-13-319Z`
+  also returned `APPROVED_TOOL_UNAVAILABLE`: the Agent could use
+  `clone_repository`, `state_project_get`, `state_memory_get` and
+  `state_report_get`, but neither direct `state_run_cycle` nor wrapper
+  `code_sentinel_state` was callable in the Slack tool snapshot. No write
+  actions were performed and no E2E success was claimed.
 - Next open implementation slice: refresh/reconnect the unpublished MCPc
-  connector so ChatGPT sees `state_run_cycle`, then rerun
-  `workflows/code-sentinel-run-cycle-review-mcp-e2e.json` and require pass
-  evidence before marking the managed MCP/Slack E2E complete.
+  connector in a way that updates the Slack Agent tool snapshot, then rerun
+  `workflows/code-sentinel-run-cycle-review-mcp-e2e.json`. If the direct tool
+  remains unavailable, rerun
+  `workflows/code-sentinel-run-cycle-review-wrapper-e2e.json` only after
+  `code_sentinel_state` is callable again. Require pass evidence before marking
+  the managed MCP/Slack E2E complete.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
