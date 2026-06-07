@@ -680,6 +680,18 @@ Current local progress:
 - Next open implementation slice: broaden the real project-improvement cycle so
   the managed Agent derives those QA review outcomes from actual repository
   analysis during task takeover, not from an isolated QA-outcome E2E fixture.
+- Local task-takeover QA review derivation is now implemented in
+  `improvement_work.py`. When `run-cycle` selects a task with a readable
+  affected file, the runtime reads the file, records a source snapshot, derives
+  `reuse`, `duplicate_code`, `dead_code` and `unused_code` review outcomes from
+  that repository evidence, persists them through `qa_gate_results`, and exposes
+  them through both `improvement_work_package.qa_review_outcomes` and
+  `report.qa_review_outcomes`. Focused and full local tests pass, including the
+  task-takeover E2E in `tests/test_autonomous_cycle.py`.
+- Next open implementation slice: expose and prove this task-takeover
+  `run-cycle` path through MCP/Slack so the managed Agent can trigger the same
+  repo-analysis-derived QA outcomes from its cloned workspace instead of only
+  through local CLI execution.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.

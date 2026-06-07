@@ -6,6 +6,7 @@ from typing import Any
 
 from .db import connect
 from .file_inventory import sha256_file
+from .qa_gates import REQUIRED_REVIEW_OUTCOMES
 from .task_workflow import assign_task_to_agent
 
 
@@ -31,6 +32,13 @@ def prepare_improvement_work_package(
     scan_finding = _scan_finding(db_path, task["finding_id"])
     file_evidence = _file_evidence(project_path, task.get("affected_file"))
     validation_commands = _candidate_validation_commands(project_path)
+    qa_review_outcomes = _derive_and_persist_review_outcomes(
+        db_path,
+        run_id=run_id,
+        task=task,
+        file_evidence=file_evidence,
+        validation_commands=validation_commands,
+    )
     approval_required = bool(task.get("affected_file"))
     return 0, {
         "status": "assigned_to_agent",
@@ -41,6 +49,7 @@ def prepare_improvement_work_package(
         "scan_finding": scan_finding,
         "required_context_files": [task["affected_file"]] if task.get("affected_file") else [],
         "file_evidence": file_evidence,
+        "qa_review_outcomes": qa_review_outcomes,
         "proposed_fix_plan": {
             "status": "needs_agent_analysis",
             "summary": "Inspect the affected file, create a bounded fix plan, request write approval, then validate.",
@@ -109,11 +118,13 @@ def _file_evidence(project_path: str | None, affected_file: str | None) -> dict[
         return {"status": "blocked", "blocker_code": "AFFECTED_FILE_OUTSIDE_PROJECT", "path": affected_file}
     if not path.exists() or not path.is_file():
         return {"status": "not_available", "reason": "affected file is not readable", "path": affected_file}
+    source_snapshot = _source_snapshot(path)
     return {
         "status": "passed",
         "path": affected_file,
         "bytes": path.stat().st_size,
         "content_sha256": sha256_file(path),
+        "source_snapshot": source_snapshot,
     }
 
 
@@ -129,3 +140,130 @@ def _candidate_validation_commands(project_path: str | None) -> list[str]:
     if (root / "go.mod").is_file():
         commands.append("go test ./...")
     return commands
+
+
+def _derive_and_persist_review_outcomes(
+    db_path: str,
+    *,
+    run_id: str,
+    task: dict[str, Any],
+    file_evidence: dict[str, Any],
+    validation_commands: list[str],
+) -> list[dict[str, Any]]:
+    outcomes = _derive_review_outcomes(
+        task=task,
+        file_evidence=file_evidence,
+        validation_commands=validation_commands,
+    )
+    with connect(db_path) as conn:
+        for outcome in outcomes:
+            conn.execute(
+                """
+                insert into qa_gate_results(gate, run_id, status, evidence, why_it_matters, next_action, id)
+                values (?, ?, ?, ?, ?, ?, ?)
+                on conflict(run_id, gate) do update set
+                  status = excluded.status,
+                  evidence = excluded.evidence,
+                  why_it_matters = excluded.why_it_matters,
+                  next_action = excluded.next_action
+                """,
+                (
+                    outcome["gate"],
+                    run_id,
+                    outcome["status"],
+                    outcome["evidence"],
+                    outcome["why_it_matters"],
+                    outcome["next_action"],
+                    f"qg-review-{run_id}-{outcome['gate']}",
+                ),
+            )
+        conn.commit()
+    return outcomes
+
+
+def _derive_review_outcomes(
+    *,
+    task: dict[str, Any],
+    file_evidence: dict[str, Any],
+    validation_commands: list[str],
+) -> list[dict[str, Any]]:
+    snapshot = file_evidence.get("source_snapshot") if isinstance(file_evidence, dict) else None
+    readable = file_evidence.get("status") == "passed" and isinstance(snapshot, dict)
+    blocker = file_evidence.get("blocker_code") or file_evidence.get("reason") or "affected file is not readable"
+    duplicate_lines = int(snapshot.get("duplicate_non_empty_lines", 0)) if readable else 0
+    dead_markers = int(snapshot.get("dead_code_markers", 0)) if readable else 0
+    unused_markers = int(snapshot.get("unused_markers", 0)) if readable else 0
+    common = {
+        "task_id": task["id"],
+        "affected_file": task.get("affected_file"),
+        "required": True,
+    }
+    review_map = {
+        "reuse": (
+            "passed" if readable else "blocking",
+            (
+                "affected file inspected; reuse decision must prefer existing local patterns; "
+                f"validation_candidates={len(validation_commands)}"
+                if readable
+                else f"reuse review blocked: {blocker}"
+            ),
+            "Reuse existing project APIs and patterns before editing the selected task file.",
+            "continue with bounded fix plan after citing reused local patterns" if readable else "provide readable affected file evidence",
+        ),
+        "duplicate_code": (
+            "passed" if readable else "blocking",
+            (
+                f"affected file duplicate scan completed; duplicate_non_empty_lines={duplicate_lines}"
+                if readable
+                else f"duplicate-code review blocked: {blocker}"
+            ),
+            "Duplicate code increases maintenance risk and must be checked before autonomous edits.",
+            "avoid introducing duplicate code in the bounded fix" if readable else "provide readable affected file evidence",
+        ),
+        "dead_code": (
+            "passed" if readable else "blocking",
+            (
+                f"affected file dead-code marker scan completed; dead_code_markers={dead_markers}"
+                if readable
+                else f"dead-code review blocked: {blocker}"
+            ),
+            "Dead code can hide stale execution paths and false completion claims.",
+            "avoid adding dead code and remove only scoped dead paths with evidence" if readable else "provide readable affected file evidence",
+        ),
+        "unused_code": (
+            "passed" if readable else "blocking",
+            (
+                f"affected file unused-code marker scan completed; unused_markers={unused_markers}"
+                if readable
+                else f"unused-code review blocked: {blocker}"
+            ),
+            "Unused code should not be introduced by the Workspace Agent task takeover.",
+            "keep the bounded fix limited to used code paths" if readable else "provide readable affected file evidence",
+        ),
+    }
+    return [
+        {
+            **common,
+            "gate": gate,
+            "status": review_map[gate][0],
+            "evidence": review_map[gate][1],
+            "why_it_matters": review_map[gate][2],
+            "next_action": review_map[gate][3],
+        }
+        for gate in REQUIRED_REVIEW_OUTCOMES
+    ]
+
+
+def _source_snapshot(path: Path) -> dict[str, Any]:
+    text = path.read_text(encoding="utf-8", errors="replace")[:262144]
+    lines = text.splitlines()
+    non_empty = [line.strip() for line in lines if line.strip()]
+    duplicate_non_empty_lines = len(non_empty) - len(set(non_empty))
+    lowered = text.lower()
+    return {
+        "line_count": len(lines),
+        "non_empty_line_count": len(non_empty),
+        "duplicate_non_empty_lines": duplicate_non_empty_lines,
+        "dead_code_markers": lowered.count("dead code") + lowered.count("unreachable"),
+        "unused_markers": lowered.count("unused"),
+    }

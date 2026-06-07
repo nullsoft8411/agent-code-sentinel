@@ -397,8 +397,29 @@ def test_run_cycle_work_package_includes_readable_file_evidence_and_validation_c
     assert package["file_evidence"]["status"] == "passed"
     assert package["file_evidence"]["path"] == "src/cycle_project/app.py"
     assert package["file_evidence"]["content_sha256"]
+    assert package["file_evidence"]["source_snapshot"]["line_count"] >= 1
+    assert [item["gate"] for item in package["qa_review_outcomes"]] == [
+        "reuse",
+        "duplicate_code",
+        "dead_code",
+        "unused_code",
+    ]
+    assert [item["status"] for item in package["qa_review_outcomes"]] == [
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+    ]
     assert package["validation_commands"] == ["python3 -m pytest tests -q"]
     assert package["proposed_fix_plan"]["approval_required"] is True
+    assert payload["report"]["missing_review_outcomes"] == []
+    assert [item["status"] for item in payload["report"]["qa_review_outcomes"]] == [
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+    ]
+    assert payload["report"]["counts"]["qa_gates"] == 4
 
 
 def test_run_cycle_blocks_write_without_approval_and_releases_lock(tmp_path: Path) -> None:
