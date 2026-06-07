@@ -241,7 +241,145 @@ The Agent's response after a failed gate must include:
 6. the next validation command
 7. why the run is blocked, in_progress or completed
 
-## 4. Target Runtime Flow
+## 4. Agent Work Logic State Machine
+
+The Workspace Agent must not operate as a loose chat assistant. It must run a
+repeatable Code Sentinel work cycle with explicit states, persisted evidence and
+one selected work item at a time.
+
+### 4.1 Cycle Entry
+
+The Agent starts a cycle when one of these triggers occurs:
+
+- scheduled autonomous run
+- user asks it to continue a project
+- MCP memory says there is a next_autonomous_step
+- prior QA gate, scan, finding or task is still open
+- repository ref changed since the last memory snapshot
+
+At cycle start the Agent must:
+
+1. acquire the project lock
+2. load project state, memory, active run and prior findings/tasks
+3. refresh repository truth
+4. build project context
+5. decide whether to scan, resume a task, validate, or ask for approval
+
+Contract statement: Every autonomous cycle chooses exactly one current_focus before doing work.
+
+### 4.2 Project Context And File Analysis
+
+Before creating or executing tasks, the Agent must analyze the target project:
+
+- AGENTS.md chain and local project rules
+- README and docs that describe validation or architecture
+- package and build files
+- test, lint, typecheck and CI configuration
+- git status, branch, diff and latest ref
+- relevant source files around changed or suspicious areas
+- existing findings, tasks, subtasks and QA gate history
+
+The Agent must use this context to decide:
+
+- which files are relevant
+- which checks are available
+- which findings are new or duplicates
+- which existing task should continue
+- which validation command proves progress
+- whether a write is allowed or blocked by policy
+
+Contract statement: The Agent analyzes files before creating fix plans or claiming project improvement.
+
+### 4.3 Work Queue Selection
+
+The Agent pulls work from shared state in this priority order:
+
+1. blocking QA gate task that has not been handled
+2. failed validation task with clear evidence
+3. in_progress subtask assigned to workspace_agent
+4. pending subtask under an active parent task
+5. pending standalone task
+6. high severity new finding that needs task creation
+7. stale project memory requiring rescan
+8. improvement scan when no blocking work exists
+
+The selected work item becomes selected_task_for_agent_takeover and must be
+recorded in the run report.
+
+Contract statement: The Agent pulls the next task or subtask from shared state instead of inventing unrelated work.
+
+### 4.4 Task Execution By The Agent
+
+For the selected task or subtask, the Agent must:
+
+1. load task, finding, file and prior validation evidence
+2. inspect the affected files
+3. create an agent-native fix plan
+4. check approval before writes
+5. perform allowed edits or return a blocked approval request
+6. run the narrowest validation command
+7. update task/subtask status from evidence
+8. update parent task progress when a subtask completes
+9. persist execution session, audit event and next_autonomous_step
+
+Allowed task statuses:
+
+- pending
+- assigned_to_agent
+- in_progress
+- blocked_approval_required
+- blocked_validation_unavailable
+- failed_validation
+- completed
+- cancelled
+
+The Agent must not mark a task completed unless validation evidence proves the
+task condition is fixed or the task is explicitly non-code/static-only.
+
+Contract statement: The Workspace Agent is the task executor and must persist task status after every attempt.
+
+### 4.5 Project Improvement Mode
+
+When there are no blocking QA gates and no pending tasks, the Agent may improve
+the project only through the same controlled pipeline:
+
+1. run project context refresh
+2. run static/file analysis
+3. create findings for real issues
+4. create tasks/subtasks from those findings
+5. select the highest priority task
+6. execute through approval and validation gates
+
+Improvement work must not bypass findings, tasks, approval, validation, or
+audit. It is still Code Sentinel work, not ad-hoc refactoring.
+
+Contract statement: Project improvement happens through findings and tasks, never as untracked edits.
+
+### 4.6 Cycle Exit
+
+The Agent exits the cycle with one of these statuses:
+
+- completed: selected task is validated and no immediate follow-up remains
+- in_progress: selected task was advanced and next_autonomous_step is known
+- blocked: approval, lock, repo access, validation tool, or policy blocks work
+- static_only: execution is unavailable and only analysis/reporting was possible
+
+Every exit must include:
+
+- run_id
+- project_id
+- current_focus
+- selected_task_for_agent_takeover when applicable
+- findings_created
+- tasks_created
+- validation_evidence
+- write_actions
+- blocker_code when blocked
+- next_autonomous_step
+
+Contract statement: Every cycle exits with persisted state and a concrete next_autonomous_step.
+
+## 5. Target Runtime Flow
 
 One autonomous cycle must follow this order:
 
@@ -268,7 +406,7 @@ One autonomous cycle must follow this order:
 18. Emit JSON report with status, evidence, next_autonomous_step and blockers.
 19. Release project lock.
 
-## 5. Implementation Phases
+## 6. Implementation Phases
 
 ### Phase AN-0: Contract Freeze
 
@@ -435,7 +573,10 @@ Tasks:
    approval, validation, report and lock release.
 2. Add resume-cycle behavior for stale memory, fresh memory and concurrent lock
    blockers.
-3. Add tests for successful cycle, blocked write cycle and validation-failed
+3. Add work queue selection in priority order.
+4. Add selected_task_for_agent_takeover to run reports.
+5. Add improvement mode that still goes through findings/tasks.
+6. Add tests for successful cycle, blocked write cycle and validation-failed
    cycle.
 
 Acceptance:
@@ -443,6 +584,8 @@ Acceptance:
 - The Agent can continue work from shared state without losing prior findings.
 - It does not start a second writer when a lock is held.
 - It emits next_autonomous_step rather than stopping at analysis.
+- It pulls exactly one next task/subtask from shared state.
+- It never performs untracked improvement edits.
 
 ### Phase AN-8: MCP State Expansion
 
@@ -485,7 +628,7 @@ Acceptance:
 - Slack test proves the Agent uses MCP clone/state plus its own Python execution.
 - Response includes findings/tasks/session evidence.
 
-## 6. Runtime Layers Not Ported, Functionality Still Ported
+## 7. Runtime Layers Not Ported, Functionality Still Ported
 
 These old product/runtime layers are not migration targets because the Workspace
 Agent does not need them as infrastructure:
@@ -520,7 +663,7 @@ workweise is still migrated and adapted:
 
 Contract statement: Infrastructure is not ported 1:1, but Code Sentinel's functional workweise is migrated into the Workspace Agent runtime.
 
-## 7. Definition Of Done
+## 8. Definition Of Done
 
 The migration is not complete until:
 
@@ -536,4 +679,7 @@ The migration is not complete until:
 9. QA gates include reuse, duplicate code, dead code and unused code outcomes.
 10. Failed QA gates create findings/tasks and the selected task is taken over by
     the Workspace Agent.
-11. No final response claims completion without runtime evidence.
+11. Agent work cycles pull one task/subtask, analyze files, execute through
+    approval and validation, then persist next_autonomous_step.
+12. Project improvement work always goes through findings/tasks and audit.
+13. No final response claims completion without runtime evidence.

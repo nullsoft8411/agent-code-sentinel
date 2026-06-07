@@ -774,19 +774,28 @@ Tasks:
    - acquire lock
    - load memory
    - project context
+   - analyze files
    - scan/preflight
    - create tasks
+   - pull selected task/subtask from shared state
+   - assign task takeover to workspace_agent
    - qa gates
    - approval check
+   - execute selected task via Workspace Agent
+   - update task/subtask/parent state
    - report next step
 3. Keine long-running daemon Annahme.
-4. Tests fuer resume, blocker, retry boundary.
+4. Improvement mode darf nur ueber findings/tasks laufen, nie als untracked refactor.
+5. Tests fuer resume, blocker, retry boundary, selected task takeover und improvement mode.
 
 Acceptance:
 
 - Ein Lauf erzeugt deterministischen JSON Report.
+- Der Agent zieht genau einen naechsten Task/Subtask aus shared state.
+- Der Agent analysiert relevante Dateien, bevor er einen Fix-Plan erstellt.
 - Bei fehlender approval: PR-ready plan, keine Writes.
 - Bei validiertem blocker: status blocked mit next_action.
+- Projektverbesserung erzeugt Findings/Tasks und bleibt auditierbar.
 
 ### Phase M8: PR/Git State Without Product GitHub App
 

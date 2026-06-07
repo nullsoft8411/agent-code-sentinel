@@ -80,6 +80,11 @@ def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     assert "Infrastructure is not ported 1:1, but Code Sentinel's functional workweise is migrated" in plan
     assert "PostgreSQL persistence semantics become SQLite and MCP shared-state schema" in plan
     assert "Claude/tmux execution becomes Workspace Agent task takeover" in plan
+    assert "Agent Work Logic State Machine" in plan
+    assert "Every autonomous cycle chooses exactly one current_focus" in plan
+    assert "The Agent pulls the next task or subtask from shared state" in plan
+    assert "Project improvement happens through findings and tasks, never as untracked edits" in plan
+    assert "Every cycle exits with persisted state and a concrete next_autonomous_step" in plan
 
 
 def test_target_runtime_has_no_external_ai_executor_code() -> None:
