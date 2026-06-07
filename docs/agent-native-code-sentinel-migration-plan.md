@@ -643,6 +643,25 @@ Current local progress:
   the managed Agent selects a real pending task, inspects the affected file from
   the cloned/target repository, performs only an explicitly approved minimal
   write, runs validation, then records task_execution_result and audit evidence.
+- Bounded-edit managed Slack/Studio E2E is now proven by
+  `runs/workspace-agents/code-sentinel/code-sentinel-bounded-edit-agent-e2e-20260607b`.
+  The managed Agent cloned `nullsoft8411/agent-code-sentinel` at
+  `clone_head=ee23f47`, created branch
+  `code-sentinel/bounded-edit-e2e-20260607b`, wrote only
+  `docs/bounded-edit-e2e-proof-b.md`, committed `40e62b6`, pushed the
+  branch, opened PR `https://github.com/nullsoft8411/agent-code-sentinel/pull/2`,
+  recorded approval, called `state_task_execution_result`, completed the task,
+  recorded one validation attempt, recorded two execution sessions, released the
+  lock and returned `status=bounded_edit_agent_e2e_passed` with
+  `unapproved_actions=[]`.
+- The previous bounded-edit attempt
+  `runs/workspace-agents/code-sentinel/code-sentinel-bounded-edit-agent-e2e-20260607a`
+  created PR `https://github.com/nullsoft8411/agent-code-sentinel/pull/1`
+  but correctly blocked task completion with
+  `VALIDATION_COMMAND_NOT_ALLOWED`. That blocker was resolved by allowing the
+  narrow static validation prefix `read_file + git_diff` in the runtime
+  validation allowlist and by proving the adapter path before rerunning the
+  managed E2E.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
