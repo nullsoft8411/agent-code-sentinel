@@ -94,6 +94,25 @@ def test_mcp_state_lock_blocks_parallel_run_until_release(tmp_path: Path) -> Non
     assert code == 0
     assert retry_lock["lock"]["run_id"] == "run-2"
 
+    code, retry_same_lock_after_release = call_tool(
+        db_path,
+        "state_lock_release",
+        {"project_id": "proj-devopshub", "run_id": "run-2", "owner": "agent-b"},
+    )
+    assert code == 0
+    assert retry_same_lock_after_release["lock_released"] is True
+
+    code, reacquired_same_lock = call_tool(
+        db_path,
+        "state_lock_acquire",
+        {"project_id": "proj-devopshub", "run_id": "run-2", "owner": "agent-b"},
+    )
+    assert code == 0
+    assert reacquired_same_lock["lock_acquired"] is True
+    assert reacquired_same_lock["lock"]["run_id"] == "run-2"
+    assert reacquired_same_lock["lock"]["status"] == "active"
+    assert reacquired_same_lock["lock"]["released_at"] is None
+
 
 def test_mcp_state_run_start_and_append_event(tmp_path: Path) -> None:
     db_path = tmp_path / "state.db"

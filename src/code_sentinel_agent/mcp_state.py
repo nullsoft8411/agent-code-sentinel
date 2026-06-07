@@ -308,10 +308,16 @@ def state_lock_acquire(
 
         conn.execute(
             """
-            insert into state_locks(id, project_id, run_id, owner, status, acquired_at, expires_at)
-            values (?, ?, ?, ?, 'active', ?, ?)
+            insert into state_locks(id, project_id, run_id, owner, status, acquired_at, expires_at, released_at, updated_at)
+            values (?, ?, ?, ?, 'active', ?, ?, null, ?)
+            on conflict(id) do update set
+              status = 'active',
+              acquired_at = excluded.acquired_at,
+              expires_at = excluded.expires_at,
+              released_at = null,
+              updated_at = excluded.updated_at
             """,
-            (lock_id, project_id, run_id, owner, format_dt(now), format_dt(expires_at)),
+            (lock_id, project_id, run_id, owner, format_dt(now), format_dt(expires_at), format_dt(now)),
         )
         conn.commit()
         lock = active_lock(conn, project_id)
