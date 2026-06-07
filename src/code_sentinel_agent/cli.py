@@ -1,0 +1,121 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+
+from .approvals import approval_check
+from .check_detection import detect_checks
+from .cycle import resume_cycle
+from .db import initialize_database
+from .memory import memory_delta
+from .mcp_state import call_tool
+from .preflight import preflight
+from .qa_gates import qa_gates
+from .reports import report
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="cs-agent")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    db_parser = subparsers.add_parser("db")
+    db_subparsers = db_parser.add_subparsers(dest="db_command", required=True)
+    db_init = db_subparsers.add_parser("init")
+    db_init.add_argument("--db", required=True)
+
+    detect = subparsers.add_parser("detect-checks")
+    detect.add_argument("--path", required=True)
+
+    preflight_parser = subparsers.add_parser("preflight")
+    preflight_parser.add_argument("--project", required=True)
+
+    qa = subparsers.add_parser("qa-gates")
+    qa.add_argument("--db", required=True)
+    qa.add_argument("--run-id", required=True)
+
+    memory = subparsers.add_parser("memory-delta")
+    memory.add_argument("--db", required=True)
+    memory.add_argument("--project-id", required=True)
+
+    report_parser = subparsers.add_parser("report")
+    report_parser.add_argument("--db", required=True)
+    report_parser.add_argument("--run-id", required=True)
+
+    approval_parser = subparsers.add_parser("approval-check")
+    approval_parser.add_argument("--db", required=True)
+    approval_parser.add_argument("--run-id", required=True)
+    approval_parser.add_argument("--target-project", required=True)
+    approval_parser.add_argument("--branch", required=True)
+    approval_parser.add_argument("--path", required=True)
+    approval_parser.add_argument("--action", required=True)
+
+    resume = subparsers.add_parser("resume-cycle")
+    resume.add_argument("--db", required=True)
+    resume.add_argument("--project-id", required=True)
+    resume.add_argument("--run-id", required=True)
+    resume.add_argument("--latest-ref", required=True)
+
+    mcp_state = subparsers.add_parser("mcp-state")
+    mcp_state.add_argument("--db", required=True)
+    mcp_state.add_argument("--tool", required=True)
+    mcp_state.add_argument("--payload-json", default="{}")
+
+    args = parser.parse_args(argv)
+
+    if args.command == "db" and args.db_command == "init":
+        initialize_database(args.db)
+        return emit(0, {"status": "passed", "db": args.db})
+    if args.command == "detect-checks":
+        return emit(0, detect_checks(args.path))
+    if args.command == "preflight":
+        code, payload = preflight(args.project)
+        return emit(code, payload)
+    if args.command == "qa-gates":
+        code, payload = qa_gates(args.db, args.run_id)
+        return emit(code, payload)
+    if args.command == "memory-delta":
+        code, payload = memory_delta(args.db, args.project_id)
+        return emit(code, payload)
+    if args.command == "report":
+        code, payload = report(args.db, args.run_id)
+        return emit(code, payload)
+    if args.command == "approval-check":
+        code, payload = approval_check(
+            args.db,
+            run_id=args.run_id,
+            target_project=args.target_project,
+            branch=args.branch,
+            path=args.path,
+            action=args.action,
+        )
+        return emit(code, payload)
+    if args.command == "resume-cycle":
+        code, payload = resume_cycle(
+            args.db,
+            project_id=args.project_id,
+            run_id=args.run_id,
+            latest_ref=args.latest_ref,
+        )
+        return emit(code, payload)
+    if args.command == "mcp-state":
+        try:
+            payload_json = json.loads(args.payload_json)
+        except json.JSONDecodeError as exc:
+            return emit(2, {"status": "blocked", "blocker_code": "INVALID_JSON_PAYLOAD", "reason": str(exc)})
+        try:
+            code, payload = call_tool(args.db, args.tool, payload_json)
+        except ValueError as exc:
+            return emit(2, {"status": "blocked", "blocker_code": "INVALID_TOOL_PAYLOAD", "reason": str(exc)})
+        return emit(code, payload)
+
+    return emit(2, {"status": "blocked", "blocker_code": "UNKNOWN_COMMAND"})
+
+
+def emit(exit_code: int, payload: dict) -> int:
+    print(json.dumps(payload, sort_keys=True))
+    return exit_code
+
+
+if __name__ == "__main__":
+    sys.exit(main())

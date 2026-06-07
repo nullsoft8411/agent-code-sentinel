@@ -1,0 +1,9 @@
+[project]
+name = "code-sentinel-agent-runtime"
+version = "0.1.0"
+description = "Local SQLite-backed runtime adapter for the Code Sentinel Workspace Agent"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
