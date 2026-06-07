@@ -388,6 +388,85 @@ def test_mcp_state_expanded_tools_persist_findings_tasks_qa_execution_audit_and_
     assert parse_json(pr_get)["pr_state"]["status"] == "draft"
 
 
+def test_mcp_state_expanded_tools_accept_nested_payload_wrapper(tmp_path: Path) -> None:
+    db_path = tmp_path / "state.db"
+    seed_project(db_path)
+    start = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_run_start",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-wrapper", "latest_ref": "main@wrapper"}),
+    )
+    assert start.returncode == 0, start.stderr
+
+    scan_job = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_scan_job_create",
+        "--payload-json",
+        json.dumps(
+            {
+                "payload": {
+                    "id": "scan-wrapper",
+                    "project_id": "proj-devopshub",
+                    "run_id": "run-wrapper",
+                    "scanner_name": "agent_analysis",
+                    "scan_type": "agent_context",
+                    "status": "completed",
+                }
+            }
+        ),
+    )
+    assert scan_job.returncode == 0, scan_job.stderr
+    assert parse_json(scan_job)["scan_job"]["id"] == "scan-wrapper"
+
+    finding = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_scan_finding_upsert",
+        "--payload-json",
+        json.dumps(
+            {
+                "payload": {
+                    "id": "finding-wrapper",
+                    "project_id": "proj-devopshub",
+                    "run_id": "run-wrapper",
+                    "scan_job_id": "scan-wrapper",
+                    "scanner_name": "agent_analysis",
+                    "rule_id": "validation_error",
+                    "signature": "finding:wrapper",
+                    "severity": "high",
+                    "title": "Validation failed",
+                    "message": "pytest failed",
+                    "file_path": "src/app.py",
+                    "line_number": 5,
+                }
+            }
+        ),
+    )
+    assert finding.returncode == 0, finding.stderr
+    assert parse_json(finding)["created"] is True
+
+    create_tasks = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_tasks_create_from_findings",
+        "--payload-json",
+        json.dumps({"payload": {"project_id": "proj-devopshub", "run_id": "run-wrapper"}}),
+    )
+    assert create_tasks.returncode == 0, create_tasks.stderr
+    assert parse_json(create_tasks)["counts"]["created_tasks"] == 1
+
+
 def test_mcp_state_postgres_dsn_blocks_until_driver_and_adapter_exist() -> None:
     backend = detect_backend("postgresql://localhost/code_sentinel")
     assert backend["type"] == "postgres"

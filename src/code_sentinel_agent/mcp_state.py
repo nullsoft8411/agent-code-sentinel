@@ -99,6 +99,7 @@ def call_tool(db_path: str | Path, tool_name: str, payload: dict[str, Any] | Non
             path=str(payload.get("path") or ""),
             sha256=payload.get("sha256"),
         )
+    payload = unwrap_tool_payload(payload)
     if tool_name == "state_scan_job_create":
         return 0, {"status": "passed", "scan_job": create_scan_job(str(db_path), scan_job_input(payload))}
     if tool_name == "state_scan_finding_upsert":
@@ -169,6 +170,13 @@ def call_tool(db_path: str | Path, tool_name: str, payload: dict[str, Any] | Non
         "tool_name": tool_name,
         "allowed_tools": ALLOWED_SQLITE_TOOLS,
     }
+
+
+def unwrap_tool_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    nested = payload.get("payload")
+    if isinstance(nested, dict) and set(payload) == {"payload"}:
+        return nested
+    return payload
 
 
 def state_project_get(db_path: str | Path, project_id: str) -> tuple[int, dict]:
