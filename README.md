@@ -23,6 +23,9 @@ write-approval checks when Codex or another approved executor runs it.
   maps the local `/home/pika/projekte/code-sentinel` SaaS runtime to the
   agent-native `agent-code-sentinel` runtime, including schema gaps, module
   gaps, MCP-state boundaries, and phased acceptance gates.
+- [Local Code Sentinel Source Inventory](docs/local-code-sentinel-source-inventory.json)
+  is generated from the local source tree and captures SQLAlchemy table coverage
+  plus runtime module coverage for migration planning.
 
 ## Command Layer
 

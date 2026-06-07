@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -15,3 +16,49 @@ def test_local_code_sentinel_migration_analysis_is_linked_and_grounded() -> None
     assert "MCP Rolle" in analysis
     assert "Phase M0" in analysis
     assert "Definition of Done" in analysis
+
+
+def test_local_code_sentinel_source_inventory_covers_core_runtime() -> None:
+    readme = (ROOT / "README.md").read_text()
+    inventory_path = ROOT / "docs/local-code-sentinel-source-inventory.json"
+    inventory = json.loads(inventory_path.read_text())
+
+    assert "docs/local-code-sentinel-source-inventory.json" in readme
+    assert inventory["source_root"] == "/home/pika/projekte/code-sentinel"
+    assert inventory["generated_by"] == "scripts/extract_local_code_sentinel_inventory.py"
+
+    tables = inventory["coverage"]["required_tables_present"]
+    for table_name in [
+        "projects",
+        "health_bot_tasks",
+        "health_bot_scan_jobs",
+        "health_bot_scan_findings",
+        "quality_gate_runs",
+        "quality_gate_fix_sessions",
+        "quality_gate_states",
+        "qg_workflows",
+        "health_bot_claude_sessions",
+        "tracked_prs",
+        "audit_logs",
+        "health_bot_state",
+    ]:
+        assert tables[table_name] is True
+
+    modules = inventory["coverage"]["required_runtime_modules_present"]
+    for module_path in [
+        "application/task_service.py",
+        "application/scanner_service.py",
+        "application/git_service.py",
+        "application/services/task_creation_service.py",
+        "application/services/scan_execution_service.py",
+        "application/services/qg_workflow_orchestrator.py",
+        "infrastructure/execution/claude_executor.py",
+        "infrastructure/execution/qg_test_runner.py",
+        "infrastructure/messaging/stream_service.py",
+        "workers/task_processing_worker.py",
+        "workers/stream_task_worker.py",
+        "workers/scan_worker.py",
+        "workers/scan_coordinator.py",
+        "workers/pr_monitor_worker.py",
+    ]:
+        assert modules[module_path] is True

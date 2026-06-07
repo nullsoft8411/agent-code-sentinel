@@ -1,0 +1,3545 @@
+{
+  "coverage": {
+    "required_runtime_modules_present": {
+      "application/git_service.py": true,
+      "application/scanner_service.py": true,
+      "application/services/qg_workflow_orchestrator.py": true,
+      "application/services/scan_execution_service.py": true,
+      "application/services/task_creation_service.py": true,
+      "application/task_service.py": true,
+      "infrastructure/execution/claude_executor.py": true,
+      "infrastructure/execution/qg_test_runner.py": true,
+      "infrastructure/messaging/stream_service.py": true,
+      "workers/pr_monitor_worker.py": true,
+      "workers/scan_coordinator.py": true,
+      "workers/scan_worker.py": true,
+      "workers/stream_task_worker.py": true,
+      "workers/task_processing_worker.py": true
+    },
+    "required_tables_present": {
+      "audit_logs": true,
+      "health_bot_claude_sessions": true,
+      "health_bot_scan_findings": true,
+      "health_bot_scan_jobs": true,
+      "health_bot_state": true,
+      "health_bot_tasks": true,
+      "projects": true,
+      "qg_workflows": true,
+      "quality_gate_fix_sessions": true,
+      "quality_gate_runs": true,
+      "quality_gate_states": true,
+      "tracked_prs": true
+    },
+    "runtime_module_count": 166,
+    "table_count": 33
+  },
+  "generated_by": "scripts/extract_local_code_sentinel_inventory.py",
+  "models": {
+    "enums": [
+      {
+        "class_name": "BudgetScopeEnum",
+        "file": "infrastructure/persistence/models/budget.py",
+        "module": "infrastructure.persistence.models.budget",
+        "values": [
+          "global",
+          "project",
+          "tenant"
+        ]
+      },
+      {
+        "class_name": "UsageCategoryEnum",
+        "file": "infrastructure/persistence/models/budget.py",
+        "module": "infrastructure.persistence.models.budget",
+        "values": [
+          "dependency_analysis",
+          "quality_gates",
+          "scanner",
+          "task"
+        ]
+      },
+      {
+        "class_name": "CompanySize",
+        "file": "infrastructure/persistence/models/contact.py",
+        "module": "infrastructure.persistence.models.contact",
+        "values": [
+          "1-10",
+          "11-50",
+          "201-500",
+          "500+",
+          "51-200"
+        ]
+      },
+      {
+        "class_name": "ContactStatus",
+        "file": "infrastructure/persistence/models/contact.py",
+        "module": "infrastructure.persistence.models.contact",
+        "values": [
+          "closed",
+          "new",
+          "read",
+          "responded"
+        ]
+      },
+      {
+        "class_name": "ContactSubject",
+        "file": "infrastructure/persistence/models/contact.py",
+        "module": "infrastructure.persistence.models.contact",
+        "values": [
+          "general",
+          "other",
+          "partnership",
+          "support"
+        ]
+      },
+      {
+        "class_name": "LeadStatus",
+        "file": "infrastructure/persistence/models/contact.py",
+        "module": "infrastructure.persistence.models.contact",
+        "values": [
+          "closed",
+          "contacted",
+          "new",
+          "qualified"
+        ]
+      },
+      {
+        "class_name": "QualityGateRunStatus",
+        "file": "infrastructure/persistence/models/quality_gate.py",
+        "module": "infrastructure.persistence.models.quality_gate",
+        "values": [
+          "error",
+          "failed",
+          "fixing",
+          "passed",
+          "pending",
+          "running"
+        ]
+      },
+      {
+        "class_name": "QualityGateType",
+        "file": "infrastructure/persistence/models/quality_gate.py",
+        "module": "infrastructure.persistence.models.quality_gate",
+        "values": [
+          "lint",
+          "type_check"
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "class_name": "ApiKeyModel",
+        "columns": [
+          "created_at",
+          "created_by",
+          "id",
+          "is_active",
+          "key_hash",
+          "key_prefix",
+          "key_type",
+          "last_used_at",
+          "last_used_ip",
+          "name",
+          "notes",
+          "project_id",
+          "rate_limit_override",
+          "revoked_at",
+          "revoked_reason",
+          "scopes",
+          "service_name",
+          "tenant_id",
+          "total_requests",
+          "updated_at",
+          "user_id"
+        ],
+        "file": "infrastructure/persistence/models/api_key.py",
+        "indexes": [
+          "idx_apikey_key_type",
+          "idx_apikey_prefix",
+          "idx_apikey_project_active",
+          "idx_apikey_service_name",
+          "idx_apikey_tenant_active",
+          "idx_apikey_type_active",
+          "idx_apikey_user_id"
+        ],
+        "module": "infrastructure.persistence.models.api_key",
+        "relationships": [
+          "project",
+          "tenant",
+          "user"
+        ],
+        "table_name": "api_keys"
+      },
+      {
+        "class_name": "AuditLog",
+        "columns": [
+          "action",
+          "correlation_id",
+          "details",
+          "id",
+          "ip_address",
+          "occurred_at",
+          "resource_id",
+          "resource_type",
+          "tenant_id",
+          "user_agent",
+          "user_id"
+        ],
+        "file": "infrastructure/persistence/models/audit_log.py",
+        "indexes": [
+          "idx_audit_resource",
+          "idx_audit_tenant_action",
+          "idx_audit_tenant_occurred",
+          "idx_audit_user"
+        ],
+        "module": "infrastructure.persistence.models.audit_log",
+        "relationships": [],
+        "table_name": "audit_logs"
+      },
+      {
+        "class_name": "BudgetLimitModel",
+        "columns": [
+          "alert_sent",
+          "alert_threshold_percent",
+          "budget_reset_at",
+          "category",
+          "created_at",
+          "current_day_spent",
+          "current_month_spent",
+          "daily_budget_usd",
+          "id",
+          "monthly_budget_usd",
+          "project_id",
+          "scope",
+          "tenant_id",
+          "updated_at"
+        ],
+        "file": "infrastructure/persistence/models/budget.py",
+        "indexes": [
+          "idx_budget_limits_category",
+          "idx_budget_limits_project",
+          "idx_budget_limits_scope",
+          "idx_budget_limits_tenant",
+          "idx_budget_limits_tenant_project",
+          "idx_budget_limits_tenant_scope"
+        ],
+        "module": "infrastructure.persistence.models.budget",
+        "relationships": [],
+        "table_name": "budget_limits"
+      },
+      {
+        "class_name": "ContactMessage",
+        "columns": [
+          "created_at",
+          "email",
+          "id",
+          "ip_address",
+          "message",
+          "name",
+          "status",
+          "subject",
+          "updated_at",
+          "user_agent"
+        ],
+        "file": "infrastructure/persistence/models/contact.py",
+        "indexes": [
+          "idx_contact_created_at",
+          "idx_contact_email",
+          "idx_contact_status"
+        ],
+        "module": "infrastructure.persistence.models.contact",
+        "relationships": [],
+        "table_name": "contact_messages"
+      },
+      {
+        "class_name": "GitHubAppInstallationModel",
+        "columns": [
+          "account_avatar_url",
+          "account_id",
+          "account_login",
+          "account_type",
+          "created_at",
+          "deleted_at",
+          "events",
+          "id",
+          "installation_id",
+          "permissions",
+          "repository_selection",
+          "suspended_at",
+          "suspended_by",
+          "tenant_id",
+          "updated_at",
+          "user_id",
+          "version"
+        ],
+        "file": "infrastructure/persistence/models/github_app_installation.py",
+        "indexes": [
+          "idx_github_installation_account",
+          "idx_github_installation_active",
+          "idx_github_installation_tenant",
+          "idx_github_installation_user"
+        ],
+        "module": "infrastructure.persistence.models.github_app_installation",
+        "relationships": [
+          "repositories",
+          "tenant",
+          "user"
+        ],
+        "table_name": "github_app_installations"
+      },
+      {
+        "class_name": "GitHubAppRepositoryModel",
+        "columns": [
+          "added_at",
+          "clone_url",
+          "created_at",
+          "default_branch",
+          "description",
+          "full_name",
+          "github_repo_id",
+          "html_url",
+          "id",
+          "installation_id",
+          "language",
+          "name",
+          "permissions",
+          "private",
+          "removed_at",
+          "updated_at",
+          "version"
+        ],
+        "file": "infrastructure/persistence/models/github_app_installation.py",
+        "indexes": [
+          "idx_github_repo_active",
+          "idx_github_repo_full_name",
+          "idx_github_repo_installation_unique",
+          "idx_github_repo_private"
+        ],
+        "module": "infrastructure.persistence.models.github_app_installation",
+        "relationships": [
+          "installation"
+        ],
+        "table_name": "github_app_repositories"
+      },
+      {
+        "class_name": "ClaudeSessionModel",
+        "columns": [
+          "claude_model",
+          "created_at",
+          "ended_at",
+          "errors_after",
+          "errors_before",
+          "estimated_cost_usd",
+          "execution_time_seconds",
+          "id",
+          "input_tokens",
+          "output_tokens",
+          "phase",
+          "project_id",
+          "run_id",
+          "session_id",
+          "started_at",
+          "status",
+          "task_id",
+          "tenant_id",
+          "tmux_session_name",
+          "triggered_by",
+          "updated_at",
+          "version"
+        ],
+        "file": "infrastructure/persistence/models/claude_session_model.py",
+        "indexes": [
+          "idx_claude_session_active",
+          "idx_claude_session_model",
+          "idx_claude_session_phase",
+          "idx_claude_session_project_status",
+          "idx_claude_session_run_id",
+          "idx_claude_session_started_at",
+          "idx_claude_session_task_id",
+          "idx_claude_session_tenant_project",
+          "idx_claude_session_tenant_status_time"
+        ],
+        "module": "infrastructure.persistence.models.claude_session_model",
+        "relationships": [
+          "project",
+          "task"
+        ],
+        "table_name": "health_bot_claude_sessions"
+      },
+      {
+        "class_name": "FileAnalysisModel",
+        "columns": [
+          "analysis_metadata",
+          "claude_session_id",
+          "cost_usd",
+          "created_at",
+          "ended_at",
+          "error_message",
+          "file_path",
+          "file_size_bytes",
+          "finding_count",
+          "id",
+          "input_tokens",
+          "output_tokens",
+          "plugin_execution_id",
+          "project_id",
+          "started_at",
+          "status",
+          "tenant_id",
+          "workflow_id"
+        ],
+        "file": "infrastructure/persistence/models/file_analysis_model.py",
+        "indexes": [
+          "idx_fa_file_path",
+          "idx_fa_pexec_status",
+          "idx_fa_plugin_execution",
+          "idx_fa_status",
+          "idx_fa_tenant_project",
+          "idx_fa_tenant_status",
+          "idx_fa_workflow"
+        ],
+        "module": "infrastructure.persistence.models.file_analysis_model",
+        "relationships": [],
+        "table_name": "health_bot_file_analyses"
+      },
+      {
+        "class_name": "FileCheckModel",
+        "columns": [
+          "audit_results",
+          "created_at",
+          "dead_code_found",
+          "dead_exports",
+          "dependency_analysis_at",
+          "dependency_analysis_completed",
+          "dependency_analysis_cost_usd",
+          "dependency_analysis_results",
+          "dependency_analysis_tokens",
+          "dependency_findings_count",
+          "duplicate_blocks",
+          "duplicate_code_found",
+          "file_hash",
+          "file_path",
+          "file_size",
+          "first_seen_at",
+          "id",
+          "issues_found",
+          "jscpd_results",
+          "last_checked_at",
+          "last_modified_at",
+          "last_task_id",
+          "next_check_at",
+          "project_id",
+          "security_issues",
+          "security_severity",
+          "skip_reason",
+          "skip_scanning",
+          "tasks_created",
+          "tenant_id",
+          "total_checks",
+          "ts_prune_results",
+          "updated_at"
+        ],
+        "file": "infrastructure/persistence/models/file_check.py",
+        "indexes": [
+          "idx_file_check_tenant_project",
+          "idx_file_dependency_analysis",
+          "idx_file_issues",
+          "idx_file_last_checked",
+          "idx_file_next_check",
+          "idx_file_skip_next"
+        ],
+        "module": "infrastructure.persistence.models.file_check",
+        "relationships": [
+          "project"
+        ],
+        "table_name": "health_bot_file_checks"
+      },
+      {
+        "class_name": "PluginExecutionModel",
+        "columns": [
+          "checks_run",
+          "created_at",
+          "ended_at",
+          "error_message",
+          "execution_id",
+          "execution_time_ms",
+          "files_scanned",
+          "id",
+          "issue_count",
+          "plugin_id",
+          "plugin_name",
+          "plugin_priority",
+          "project_id",
+          "scan_job_id",
+          "started_at",
+          "status",
+          "tenant_id",
+          "workflow_id"
+        ],
+        "file": "infrastructure/persistence/models/plugin_execution_model.py",
+        "indexes": [
+          "idx_pexec_plugin",
+          "idx_pexec_project_plugin_started",
+          "idx_pexec_project_status",
+          "idx_pexec_scan_job",
+          "idx_pexec_started_at",
+          "idx_pexec_tenant_project",
+          "idx_pexec_tenant_status",
+          "idx_pexec_workflow"
+        ],
+        "module": "infrastructure.persistence.models.plugin_execution_model",
+        "relationships": [],
+        "table_name": "health_bot_plugin_executions"
+      },
+      {
+        "class_name": "ScanFindingModel",
+        "columns": [
+          "code_snippet",
+          "column_number",
+          "created_at",
+          "extra_data",
+          "file_path",
+          "id",
+          "line_number",
+          "message",
+          "project_id",
+          "rule_id",
+          "scan_job_id",
+          "scanner_name",
+          "severity",
+          "status",
+          "suggestion",
+          "task_id",
+          "tenant_id",
+          "title"
+        ],
+        "file": "infrastructure/persistence/models/scan_finding.py",
+        "indexes": [
+          "idx_finding_created_at",
+          "idx_finding_file_path",
+          "idx_finding_project_scanner",
+          "idx_finding_project_status",
+          "idx_finding_scanner_severity",
+          "idx_finding_tenant_project",
+          "idx_finding_tenant_status"
+        ],
+        "module": "infrastructure.persistence.models.scan_finding",
+        "relationships": [
+          "project",
+          "scan_job",
+          "tenant"
+        ],
+        "table_name": "health_bot_scan_findings"
+      },
+      {
+        "class_name": "ScanJobModel",
+        "columns": [
+          "completed_at",
+          "created_at",
+          "duration_seconds",
+          "error_message",
+          "files_scanned",
+          "files_skipped",
+          "files_total",
+          "id",
+          "issues_found",
+          "project_id",
+          "scan_type",
+          "started_at",
+          "status",
+          "triggered_by",
+          "updated_at",
+          "version"
+        ],
+        "file": "infrastructure/persistence/models/scan_job.py",
+        "indexes": [
+          "idx_scan_job_project_created",
+          "idx_scan_job_project_status",
+          "idx_scan_job_status_created"
+        ],
+        "module": "infrastructure.persistence.models.scan_job",
+        "relationships": [
+          "project"
+        ],
+        "table_name": "health_bot_scan_jobs"
+      },
+      {
+        "class_name": "StateModel",
+        "columns": [
+          "budget_reset_at",
+          "created_at",
+          "current_month_spent",
+          "current_task_id",
+          "current_task_started_at",
+          "id",
+          "is_paused",
+          "is_running",
+          "last_code_scan",
+          "last_health_check",
+          "last_log_scan",
+          "last_successful_fix",
+          "max_attempts_per_task",
+          "max_concurrent_tasks",
+          "monthly_budget_usd",
+          "paused_at",
+          "paused_by",
+          "paused_reason",
+          "scan_interval_seconds",
+          "total_cost_usd",
+          "total_prs_created",
+          "total_prs_merged",
+          "total_tasks_completed",
+          "total_tasks_failed",
+          "total_tasks_processed",
+          "updated_at"
+        ],
+        "file": "infrastructure/persistence/models/state.py",
+        "indexes": [],
+        "module": "infrastructure.persistence.models.state",
+        "relationships": [],
+        "table_name": "health_bot_state"
+      },
+      {
+        "class_name": "TaskHistoryModel",
+        "columns": [
+          "from_status",
+          "history_metadata",
+          "id",
+          "reason",
+          "task_id",
+          "timestamp",
+          "to_status"
+        ],
+        "file": "infrastructure/persistence/models/task.py",
+        "indexes": [
+          "idx_history_task_timestamp"
+        ],
+        "module": "infrastructure.persistence.models.task",
+        "relationships": [
+          "task"
+        ],
+        "table_name": "health_bot_task_history"
+      },
+      {
+        "class_name": "TaskLogModel",
+        "columns": [
+          "id",
+          "level",
+          "log_metadata",
+          "message",
+          "task_id",
+          "timestamp"
+        ],
+        "file": "infrastructure/persistence/models/task.py",
+        "indexes": [
+          "idx_log_level_timestamp",
+          "idx_log_task_timestamp"
+        ],
+        "module": "infrastructure.persistence.models.task",
+        "relationships": [
+          "task"
+        ],
+        "table_name": "health_bot_task_logs"
+      },
+      {
+        "class_name": "TaskModel",
+        "columns": [
+          "actual_cost",
+          "affected_file",
+          "analysis_result",
+          "assigned_at",
+          "attempt_logs",
+          "attempts",
+          "cancel_reason",
+          "cancelled_by_pr",
+          "claude_message_id",
+          "commit_hash",
+          "completed_at",
+          "continue_session",
+          "created_at",
+          "description",
+          "description_slug",
+          "detected_at",
+          "detection_source",
+          "error_pattern",
+          "error_stack",
+          "estimated_cost",
+          "fix_branch",
+          "fix_strategy",
+          "full_conversation_log",
+          "handback_action",
+          "handed_back_at",
+          "handover_notes",
+          "human_interventions",
+          "id",
+          "implemented_fix",
+          "is_parent_task",
+          "last_attempt_at",
+          "max_attempts",
+          "merge_request_id",
+          "merge_request_url",
+          "parent_task_id",
+          "priority",
+          "project_id",
+          "rework_feedback",
+          "severity",
+          "source_file",
+          "source_line_number",
+          "started_at",
+          "status",
+          "subtask_sequence",
+          "subtasks_completed",
+          "subtasks_total",
+          "taken_over_at",
+          "taken_over_by",
+          "task_type",
+          "tenant_id",
+          "test_results",
+          "tests_passed",
+          "title",
+          "updated_at"
+        ],
+        "file": "infrastructure/persistence/models/task.py",
+        "indexes": [
+          "idx_task_fix_branch",
+          "idx_task_merge_request",
+          "idx_task_project_source_file",
+          "idx_task_project_source_status",
+          "idx_task_project_status",
+          "idx_task_severity_status",
+          "idx_task_source_file",
+          "idx_task_status_priority",
+          "idx_task_tenant_project",
+          "idx_task_tenant_status",
+          "idx_task_type_status"
+        ],
+        "module": "infrastructure.persistence.models.task",
+        "relationships": [
+          "history",
+          "logs",
+          "parent_task",
+          "project",
+          "subtasks",
+          "tracked_pr"
+        ],
+        "table_name": "health_bot_tasks"
+      },
+      {
+        "class_name": "UsageModel",
+        "columns": [
+          "analysis_category",
+          "avg_response_time",
+          "avg_tokens_per_call",
+          "created_at",
+          "date",
+          "failed_calls",
+          "id",
+          "input_tokens",
+          "model",
+          "output_tokens",
+          "project_id",
+          "successful_calls",
+          "task_breakdown",
+          "total_api_calls",
+          "total_cost_usd",
+          "total_tokens",
+          "updated_at"
+        ],
+        "file": "infrastructure/persistence/models/usage.py",
+        "indexes": [
+          "idx_usage_category",
+          "idx_usage_date",
+          "idx_usage_project_category",
+          "idx_usage_project_date"
+        ],
+        "module": "infrastructure.persistence.models.usage",
+        "relationships": [
+          "project"
+        ],
+        "table_name": "health_bot_usage"
+      },
+      {
+        "class_name": "LoggingConfig",
+        "columns": [
+          "category",
+          "created_at",
+          "description",
+          "display_order",
+          "enabled",
+          "id",
+          "level",
+          "logger_name",
+          "propagate",
+          "updated_at"
+        ],
+        "file": "infrastructure/persistence/models/logging_config.py",
+        "indexes": [
+          "ix_logging_config_category_order"
+        ],
+        "module": "infrastructure.persistence.models.logging_config",
+        "relationships": [],
+        "table_name": "logging_configs"
+      },
+      {
+        "class_name": "Project",
+        "columns": [
+          "archive_reason",
+          "archived_at",
+          "archived_by",
+          "budget_reset_at",
+          "config",
+          "created_at",
+          "current_month_spent",
+          "description",
+          "dev_branch",
+          "display_name",
+          "exclude_patterns",
+          "framework",
+          "git_mode",
+          "id",
+          "languages",
+          "last_health_check_at",
+          "last_scan_at",
+          "main_branch",
+          "monthly_budget_usd",
+          "name",
+          "project_type",
+          "quality_gate_error_count",
+          "quality_gate_last_check",
+          "quality_gate_status",
+          "repository_path",
+          "repository_url",
+          "rest_api_key",
+          "scan_enabled",
+          "scan_patterns",
+          "scheduled_deletion_at",
+          "status",
+          "tenant_id",
+          "total_cost_usd",
+          "total_prs_created",
+          "total_tasks_completed",
+          "total_tasks_created",
+          "updated_at",
+          "upload_source",
+          "webhook_url"
+        ],
+        "file": "infrastructure/persistence/models/project.py",
+        "indexes": [
+          "idx_project_status_scan",
+          "idx_project_tenant_status",
+          "idx_project_type"
+        ],
+        "module": "infrastructure.persistence.models.project",
+        "relationships": [
+          "api_keys",
+          "file_checks",
+          "tasks",
+          "tenant",
+          "tracked_prs",
+          "usage_records"
+        ],
+        "table_name": "projects"
+      },
+      {
+        "class_name": "QGWorkflowModel",
+        "columns": [
+          "base_branch",
+          "completed_at",
+          "created_at",
+          "current_phase",
+          "error_message",
+          "fix_completed",
+          "fix_error",
+          "fix_merged",
+          "fix_task_id",
+          "id",
+          "preflight_completed",
+          "preflight_error",
+          "preflight_merged",
+          "preflight_task_id",
+          "project_id",
+          "project_name",
+          "qg_check_completed",
+          "qg_check_error",
+          "qg_check_merged",
+          "qg_check_task_id",
+          "started_at",
+          "updated_at",
+          "version",
+          "work_branch"
+        ],
+        "file": "infrastructure/persistence/models/qg_workflow.py",
+        "indexes": [
+          "idx_qgwf_active",
+          "idx_qgwf_project_id",
+          "idx_qgwf_project_phase",
+          "idx_qgwf_started_at"
+        ],
+        "module": "infrastructure.persistence.models.qg_workflow",
+        "relationships": [
+          "fix_task",
+          "preflight_task",
+          "project",
+          "qg_check_task"
+        ],
+        "table_name": "qg_workflows"
+      },
+      {
+        "class_name": "QualityGateFixSession",
+        "columns": [
+          "claude_session_id",
+          "completed_at",
+          "created_at",
+          "error_message",
+          "errors_after",
+          "errors_before",
+          "execution_time_seconds",
+          "files_fixed",
+          "id",
+          "iteration",
+          "run_id",
+          "started_at",
+          "status",
+          "updated_at"
+        ],
+        "file": "infrastructure/persistence/models/quality_gate.py",
+        "indexes": [
+          "idx_qg_session_run",
+          "idx_qg_session_status"
+        ],
+        "module": "infrastructure.persistence.models.quality_gate",
+        "relationships": [
+          "run"
+        ],
+        "table_name": "quality_gate_fix_sessions"
+      },
+      {
+        "class_name": "QualityGateRun",
+        "columns": [
+          "attempt_number",
+          "branch_name",
+          "completed_at",
+          "created_at",
+          "error_count",
+          "error_message",
+          "escalation_count",
+          "estimated_cost",
+          "execution_time_seconds",
+          "files_affected",
+          "files_fixed",
+          "fix_branch",
+          "gate_type",
+          "id",
+          "initial_complexity",
+          "model_used",
+          "output_file",
+          "pr_number",
+          "pr_url",
+          "project_id",
+          "raw_output",
+          "started_at",
+          "status",
+          "total_fix_iterations",
+          "updated_at",
+          "warning_count",
+          "workflow_id"
+        ],
+        "file": "infrastructure/persistence/models/quality_gate.py",
+        "indexes": [
+          "idx_qg_run_gate_type",
+          "idx_qg_run_pr_number",
+          "idx_qg_run_project_status",
+          "idx_qg_run_started"
+        ],
+        "module": "infrastructure.persistence.models.quality_gate",
+        "relationships": [
+          "fix_sessions"
+        ],
+        "table_name": "quality_gate_runs"
+      },
+      {
+        "class_name": "QualityGateState",
+        "columns": [
+          "auto_fix_enabled",
+          "auto_merge_enabled",
+          "blocked_at",
+          "blocked_reason",
+          "check_interval_seconds",
+          "created_at",
+          "current_fix_gate",
+          "current_lint_run_id",
+          "current_type_run_id",
+          "is_fixing",
+          "last_lint_check",
+          "last_successful_lint",
+          "last_successful_type_check",
+          "last_type_check",
+          "lint_error_count",
+          "lint_status",
+          "lint_warning_count",
+          "max_fix_attempts",
+          "project_id",
+          "scanner_blocked",
+          "tasks_blocked",
+          "type_check_status",
+          "type_error_count",
+          "updated_at"
+        ],
+        "file": "infrastructure/persistence/models/quality_gate.py",
+        "indexes": [
+          "idx_qg_state_blocked",
+          "idx_qg_state_fixing"
+        ],
+        "module": "infrastructure.persistence.models.quality_gate",
+        "relationships": [],
+        "table_name": "quality_gate_states"
+      },
+      {
+        "class_name": "SalesLead",
+        "columns": [
+          "company_name",
+          "company_size",
+          "contact_name",
+          "created_at",
+          "email",
+          "id",
+          "ip_address",
+          "message",
+          "phone",
+          "status",
+          "updated_at",
+          "user_agent"
+        ],
+        "file": "infrastructure/persistence/models/contact.py",
+        "indexes": [
+          "idx_lead_company",
+          "idx_lead_created_at",
+          "idx_lead_email",
+          "idx_lead_status"
+        ],
+        "module": "infrastructure.persistence.models.contact",
+        "relationships": [],
+        "table_name": "sales_leads"
+      },
+      {
+        "class_name": "ServiceAccountModel",
+        "columns": [
+          "created_at",
+          "created_by_user_id",
+          "description",
+          "id",
+          "key_rotation_days",
+          "last_used_at",
+          "name",
+          "owned_by_team",
+          "scopes",
+          "status",
+          "updated_at",
+          "version"
+        ],
+        "file": "infrastructure/persistence/models/service_account.py",
+        "indexes": [
+          "idx_svc_account_created_by",
+          "idx_svc_account_last_used",
+          "idx_svc_account_rotation",
+          "idx_svc_account_status",
+          "idx_svc_account_team"
+        ],
+        "module": "infrastructure.persistence.models.service_account",
+        "relationships": [
+          "creator"
+        ],
+        "table_name": "service_accounts"
+      },
+      {
+        "class_name": "TenantInvitationModel",
+        "columns": [
+          "accepted_at",
+          "accepted_by_user_id",
+          "created_at",
+          "email",
+          "expires_at",
+          "id",
+          "invited_by_user_id",
+          "inviter_name",
+          "personal_message",
+          "revoke_reason",
+          "revoked_at",
+          "revoked_by_user_id",
+          "role",
+          "status",
+          "tenant_id",
+          "tenant_name",
+          "token",
+          "updated_at",
+          "version"
+        ],
+        "file": "infrastructure/persistence/models/invitation.py",
+        "indexes": [
+          "idx_invitation_email_tenant",
+          "idx_invitation_pending_expiry"
+        ],
+        "module": "infrastructure.persistence.models.invitation",
+        "relationships": [
+          "tenant"
+        ],
+        "table_name": "tenant_invitations"
+      },
+      {
+        "class_name": "TenantUsageRecord",
+        "columns": [
+          "api_calls",
+          "created_at",
+          "estimated_cost_usd",
+          "id",
+          "period",
+          "projects_count",
+          "stripe_reported",
+          "stripe_reported_at",
+          "tasks_completed",
+          "tasks_created",
+          "tasks_failed",
+          "tenant_id",
+          "tokens_input",
+          "tokens_output",
+          "tokens_total",
+          "updated_at",
+          "users_count"
+        ],
+        "file": "infrastructure/persistence/models/tenant.py",
+        "indexes": [
+          "idx_usage_stripe_pending",
+          "idx_usage_tenant_period"
+        ],
+        "module": "infrastructure.persistence.models.tenant",
+        "relationships": [
+          "tenant"
+        ],
+        "table_name": "tenant_usage_records"
+      },
+      {
+        "class_name": "TenantModel",
+        "columns": [
+          "billing_email",
+          "created_at",
+          "id",
+          "max_projects",
+          "max_tasks_per_month",
+          "max_users",
+          "name",
+          "plan",
+          "settings",
+          "slug",
+          "status",
+          "stripe_customer_id",
+          "stripe_subscription_id",
+          "suspended_at",
+          "trial_ends_at",
+          "updated_at",
+          "version"
+        ],
+        "file": "infrastructure/persistence/models/tenant.py",
+        "indexes": [
+          "idx_tenant_status_plan",
+          "idx_tenant_stripe_customer"
+        ],
+        "module": "infrastructure.persistence.models.tenant",
+        "relationships": [
+          "api_keys",
+          "github_app_installations",
+          "projects",
+          "usage_records",
+          "users",
+          "webhooks"
+        ],
+        "table_name": "tenants"
+      },
+      {
+        "class_name": "TrackedPR",
+        "columns": [
+          "approved",
+          "auto_rework_disabled_reason",
+          "auto_rework_enabled",
+          "blocking_comments_count",
+          "branch_name",
+          "changes_requested",
+          "checks_status",
+          "closed_at",
+          "created_at",
+          "error_count",
+          "feedback_count",
+          "id",
+          "last_checked_at",
+          "last_error",
+          "last_review_at",
+          "last_review_state",
+          "last_reviewer",
+          "last_rework_at",
+          "last_sync_at",
+          "max_rework_attempts",
+          "mergeable",
+          "merged_at",
+          "pr_number",
+          "pr_url",
+          "project_id",
+          "review_feedback",
+          "reviews_count",
+          "rework_count",
+          "rework_in_progress",
+          "rework_tasks_created",
+          "status",
+          "sync_successful",
+          "task_id"
+        ],
+        "file": "infrastructure/persistence/models/tracked_pr.py",
+        "indexes": [
+          "idx_tracked_pr_pr_number",
+          "idx_tracked_pr_project_status",
+          "idx_tracked_pr_status"
+        ],
+        "module": "infrastructure.persistence.models.tracked_pr",
+        "relationships": [
+          "project",
+          "task"
+        ],
+        "table_name": "tracked_prs"
+      },
+      {
+        "class_name": "UsageRecordModel",
+        "columns": [
+          "category",
+          "cost_usd",
+          "created_at",
+          "date",
+          "id",
+          "input_tokens",
+          "model",
+          "operation_id",
+          "output_tokens",
+          "project_id",
+          "tenant_id",
+          "total_tokens"
+        ],
+        "file": "infrastructure/persistence/models/budget.py",
+        "indexes": [
+          "idx_usage_records_category",
+          "idx_usage_records_date",
+          "idx_usage_records_operation",
+          "idx_usage_records_project",
+          "idx_usage_records_tenant",
+          "idx_usage_records_tenant_category",
+          "idx_usage_records_tenant_date",
+          "idx_usage_records_tenant_project_date"
+        ],
+        "module": "infrastructure.persistence.models.budget",
+        "relationships": [],
+        "table_name": "usage_records"
+      },
+      {
+        "class_name": "UserModel",
+        "columns": [
+          "avatar_url",
+          "created_at",
+          "email",
+          "email_verified_at",
+          "failed_login_attempts",
+          "id",
+          "invitation_expires_at",
+          "invitation_token",
+          "last_activity_at",
+          "last_login_at",
+          "locked_until",
+          "login_count",
+          "name",
+          "password_hash",
+          "role",
+          "sso_access_token",
+          "sso_provider",
+          "sso_refresh_token",
+          "sso_subject_id",
+          "sso_token_expires_at",
+          "status",
+          "system_role",
+          "tenant_id",
+          "timezone",
+          "updated_at",
+          "user_type"
+        ],
+        "file": "infrastructure/persistence/models/user.py",
+        "indexes": [
+          "idx_user_sso",
+          "idx_user_status_role",
+          "idx_user_type"
+        ],
+        "module": "infrastructure.persistence.models.user",
+        "relationships": [
+          "github_app_installations",
+          "tenant"
+        ],
+        "table_name": "users"
+      },
+      {
+        "class_name": "WebhookConfig",
+        "columns": [
+          "consecutive_failures",
+          "created_at",
+          "description",
+          "events",
+          "failure_count",
+          "headers",
+          "id",
+          "is_active",
+          "last_triggered_at",
+          "name",
+          "retry_count",
+          "retry_delay_seconds",
+          "secret",
+          "success_count",
+          "tenant_id",
+          "timeout_seconds",
+          "updated_at",
+          "url"
+        ],
+        "file": "infrastructure/persistence/models/webhook.py",
+        "indexes": [
+          "idx_webhook_tenant_active",
+          "idx_webhook_tenant_name"
+        ],
+        "module": "infrastructure.persistence.models.webhook",
+        "relationships": [
+          "deliveries",
+          "tenant"
+        ],
+        "table_name": "webhook_configs"
+      },
+      {
+        "class_name": "WebhookDeliveryModel",
+        "columns": [
+          "attempts",
+          "completed_at",
+          "created_at",
+          "event_id",
+          "event_type",
+          "id",
+          "max_retries",
+          "next_retry_at",
+          "payload",
+          "retry_delay_seconds",
+          "status",
+          "tenant_id",
+          "webhook_id"
+        ],
+        "file": "infrastructure/persistence/models/webhook.py",
+        "indexes": [
+          "idx_delivery_event",
+          "idx_delivery_next_retry",
+          "idx_delivery_status",
+          "idx_delivery_tenant_status",
+          "idx_delivery_webhook_status"
+        ],
+        "module": "infrastructure.persistence.models.webhook",
+        "relationships": [
+          "tenant",
+          "webhook"
+        ],
+        "table_name": "webhook_deliveries"
+      }
+    ]
+  },
+  "runtime_modules": [
+    {
+      "classes": [
+        "AuthorizationService"
+      ],
+      "file": "application/auth/authorization_service.py",
+      "functions": [],
+      "method_count": 16,
+      "module": "application.auth.authorization_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "AuthApplicationError",
+        "InsufficientPrivilegesError",
+        "InvalidPermissionCombinationError",
+        "PermissionDeniedError",
+        "RoleAssignmentError",
+        "RoleNotFoundError",
+        "UnauthorizedError"
+      ],
+      "file": "application/auth/exceptions.py",
+      "functions": [],
+      "method_count": 7,
+      "module": "application.auth.exceptions",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "RoleService"
+      ],
+      "file": "application/auth/role_service.py",
+      "functions": [],
+      "method_count": 12,
+      "module": "application.auth.role_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "SSOAuthenticationError",
+        "SSONotConfiguredError",
+        "SSOService",
+        "SSOServiceError",
+        "SSOUser"
+      ],
+      "file": "application/auth/sso_service.py",
+      "functions": [],
+      "method_count": 9,
+      "module": "application.auth.sso_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "CreateSystemUserHandler",
+        "DeactivateSystemUserHandler",
+        "IPasswordManager",
+        "UpdateSystemUserRoleHandler"
+      ],
+      "file": "application/auth/system_user_handlers.py",
+      "functions": [],
+      "method_count": 8,
+      "module": "application.auth.system_user_handlers",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "BillingPortalResult",
+        "BillingService",
+        "CheckoutSessionResult",
+        "PlanChangeResult",
+        "SubscriptionStatusResult",
+        "UsageReportResult"
+      ],
+      "file": "application/billing/billing_service.py",
+      "functions": [],
+      "method_count": 10,
+      "module": "application.billing.billing_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "Command",
+        "CommandBus",
+        "CommandError",
+        "CommandExecutionError",
+        "CommandHandlerNotFoundError",
+        "CommandResult",
+        "CommandValidationError",
+        "ICommandBus",
+        "ICommandHandler",
+        "ICommandMiddleware",
+        "IdempotencyMiddleware",
+        "LoggingMiddleware",
+        "TimingMiddleware",
+        "ValidationMiddleware"
+      ],
+      "file": "application/commands/command_bus.py",
+      "functions": [],
+      "method_count": 31,
+      "module": "application.commands.command_bus",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "CreateSystemUserCommand",
+        "DeactivateSystemUserCommand",
+        "UpdateSystemUserRoleCommand"
+      ],
+      "file": "application/commands/system_user_commands.py",
+      "functions": [],
+      "method_count": 0,
+      "module": "application.commands.system_user_commands",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "AssignTaskCommand",
+        "AssignTaskHandler",
+        "CancelTaskCommand",
+        "CancelTaskHandler",
+        "CompleteTaskCommand",
+        "CompleteTaskHandler",
+        "CreatePullRequestCommand",
+        "CreatePullRequestHandler",
+        "CreateTaskCommand",
+        "CreateTaskHandler",
+        "FailTaskCommand",
+        "FailTaskHandler",
+        "HandBackToTaskCommand",
+        "HandBackToTaskHandler",
+        "RequestHumanInterventionCommand",
+        "RequestHumanInterventionHandler",
+        "StartProcessingCommand",
+        "StartProcessingHandler"
+      ],
+      "file": "application/commands/task_commands.py",
+      "functions": [],
+      "method_count": 27,
+      "module": "application.commands.task_commands",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "DatabaseHealth",
+        "HealthCheckService",
+        "HealthStatus",
+        "SystemHealth"
+      ],
+      "file": "application/diagnostics/health_check_service.py",
+      "functions": [],
+      "method_count": 3,
+      "module": "application.diagnostics.health_check_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "BranchCreationResult",
+        "CommitResult",
+        "GitService",
+        "PRCreationResult"
+      ],
+      "file": "application/git_service.py",
+      "functions": [],
+      "method_count": 14,
+      "module": "application.git_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "IIdempotencyStore"
+      ],
+      "file": "application/ports/idempotency_store.py",
+      "functions": [],
+      "method_count": 4,
+      "module": "application.ports.idempotency_store",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "CircuitOpenError",
+        "ICircuitBreaker",
+        "NoOpCircuitBreaker",
+        "WSCloseCode"
+      ],
+      "file": "application/ports/resilience.py",
+      "functions": [],
+      "method_count": 14,
+      "module": "application.ports.resilience",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "ITaskQueryService"
+      ],
+      "file": "application/queries/interfaces.py",
+      "functions": [],
+      "method_count": 5,
+      "module": "application.queries.interfaces",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "DashboardQuery",
+        "ProjectStatsQuery",
+        "SortOrder",
+        "TaskCountQuery",
+        "TaskCountResult",
+        "TaskDetailQuery",
+        "TaskListQuery",
+        "TaskListResult",
+        "TaskSortField"
+      ],
+      "file": "application/queries/task_queries.py",
+      "functions": [],
+      "method_count": 6,
+      "module": "application.queries.task_queries",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "FileScanResult",
+        "ProjectNotFoundError",
+        "ProjectNotScannableError",
+        "ScanResult",
+        "ScanStatistics",
+        "ScannerError",
+        "ScannerService"
+      ],
+      "file": "application/scanner_service.py",
+      "functions": [],
+      "method_count": 24,
+      "module": "application.scanner_service",
+      "root": "application"
+    },
+    {
+      "classes": [],
+      "file": "application/services/__init__.py",
+      "functions": [
+        "__getattr__"
+      ],
+      "method_count": 0,
+      "module": "application.services.__init__",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "ApiKeyAlreadyRevokedError",
+        "ApiKeyNotFoundError",
+        "ApiKeyService",
+        "ApiKeyServiceError",
+        "CreateKeyResult",
+        "InvalidKeyTypeError"
+      ],
+      "file": "application/services/api_key_service.py",
+      "functions": [],
+      "method_count": 19,
+      "module": "application.services.api_key_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "ArchiveService"
+      ],
+      "file": "application/services/archive_service.py",
+      "functions": [],
+      "method_count": 8,
+      "module": "application.services.archive_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "AuditLogger"
+      ],
+      "file": "application/services/audit_logger.py",
+      "functions": [],
+      "method_count": 7,
+      "module": "application.services.audit_logger",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "AuditService"
+      ],
+      "file": "application/services/audit_service.py",
+      "functions": [
+        "log_api_key_action",
+        "log_project_action",
+        "log_tenant_action",
+        "log_user_action"
+      ],
+      "method_count": 3,
+      "module": "application.services.audit_service",
+      "root": "application"
+    },
+    {
+      "classes": [],
+      "file": "application/services/budget_factory.py",
+      "functions": [
+        "_get_pricing_service_impl",
+        "create_budget_guard_service",
+        "create_budget_service_adapter",
+        "create_cost_estimation_service",
+        "create_pricing_service"
+      ],
+      "method_count": 0,
+      "module": "application.services.budget_factory",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "BudgetCheckResult",
+        "BudgetGuardService"
+      ],
+      "file": "application/services/budget_guard_service.py",
+      "functions": [],
+      "method_count": 8,
+      "module": "application.services.budget_guard_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "BudgetServiceAdapter"
+      ],
+      "file": "application/services/budget_service_adapter.py",
+      "functions": [],
+      "method_count": 5,
+      "module": "application.services.budget_service_adapter",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "CodeScannerOrchestrator",
+        "PluginScanResult",
+        "ScanOrchestrationResult"
+      ],
+      "file": "application/services/code_scanner_orchestrator.py",
+      "functions": [
+        "_get_phase_channel",
+        "get_all_active_scans",
+        "get_code_scanner_orchestrator",
+        "get_live_scan_progress",
+        "register_analysis_context",
+        "reset_code_scanner_orchestrator",
+        "unregister_analysis_context"
+      ],
+      "method_count": 16,
+      "module": "application.services.code_scanner_orchestrator",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "ConfigProvisionerService"
+      ],
+      "file": "application/services/config_provisioner_service.py",
+      "functions": [],
+      "method_count": 10,
+      "module": "application.services.config_provisioner_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "CostEstimationService"
+      ],
+      "file": "application/services/cost_estimation_service.py",
+      "functions": [],
+      "method_count": 8,
+      "module": "application.services.cost_estimation_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "DaemonClient",
+        "DaemonConnectionError"
+      ],
+      "file": "application/services/daemon_client.py",
+      "functions": [
+        "get_daemon_client",
+        "reset_daemon_client"
+      ],
+      "method_count": 6,
+      "module": "application.services.daemon_client",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "DependencyAnalysisService"
+      ],
+      "file": "application/services/dependency_analysis_service.py",
+      "functions": [],
+      "method_count": 8,
+      "module": "application.services.dependency_analysis_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "GitHubAppAPIError",
+        "GitHubAppConfig",
+        "GitHubAppError",
+        "GitHubAppJWTError",
+        "GitHubAppNotConfiguredError",
+        "GitHubAppService",
+        "GitHubAppState",
+        "GitHubAppStateExpiredError",
+        "GitHubAppStateInvalidError",
+        "GitHubAppTokenError",
+        "GitHubAppWebhookError",
+        "GitHubInstallationInfo",
+        "GitHubRepository"
+      ],
+      "file": "application/services/github_app_service.py",
+      "functions": [],
+      "method_count": 30,
+      "module": "application.services.github_app_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "ModelSelector"
+      ],
+      "file": "application/services/model_selector.py",
+      "functions": [],
+      "method_count": 4,
+      "module": "application.services.model_selector",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "Notification",
+        "NotificationService"
+      ],
+      "file": "application/services/notification_service.py",
+      "functions": [
+        "get_notification_service"
+      ],
+      "method_count": 13,
+      "module": "application.services.notification_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "OAuthConfig",
+        "OAuthProviderNotConfiguredError",
+        "OAuthResult",
+        "OAuthService",
+        "OAuthServiceError",
+        "OAuthStateInvalidError",
+        "OAuthTokenExchangeError",
+        "OAuthUserInfoError"
+      ],
+      "file": "application/services/oauth_service.py",
+      "functions": [],
+      "method_count": 15,
+      "module": "application.services.oauth_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "PermissionChecker",
+        "PermissionDeniedError"
+      ],
+      "file": "application/services/permission_checker.py",
+      "functions": [],
+      "method_count": 7,
+      "module": "application.services.permission_checker",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "ScanPhaseRegistryAdapter"
+      ],
+      "file": "application/services/phase_registry_adapter.py",
+      "functions": [
+        "create_phase_registry_adapter"
+      ],
+      "method_count": 5,
+      "module": "application.services.phase_registry_adapter",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "PluginExecutorAdapter"
+      ],
+      "file": "application/services/plugin_executor_adapter.py",
+      "functions": [
+        "create_plugin_executor_adapter"
+      ],
+      "method_count": 11,
+      "module": "application.services.plugin_executor_adapter",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "ExtractResult",
+        "ProjectUploadService",
+        "UploadResult"
+      ],
+      "file": "application/services/project_upload_service.py",
+      "functions": [],
+      "method_count": 15,
+      "module": "application.services.project_upload_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "QGWorkflowLockService",
+        "WorkflowLockError",
+        "WorkflowLockTimeoutError"
+      ],
+      "file": "application/services/qg_workflow_lock_service.py",
+      "functions": [],
+      "method_count": 9,
+      "module": "application.services.qg_workflow_lock_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "PhaseRunResult",
+        "QGWorkflowOrchestrator",
+        "WorkflowStartResult"
+      ],
+      "file": "application/services/qg_workflow_orchestrator.py",
+      "functions": [],
+      "method_count": 21,
+      "module": "application.services.qg_workflow_orchestrator",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "QualityGateLifecycleService"
+      ],
+      "file": "application/services/quality_gate_lifecycle_service.py",
+      "functions": [],
+      "method_count": 7,
+      "module": "application.services.quality_gate_lifecycle_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "PhaseResult",
+        "QualityGateWorkflowService",
+        "WorkflowPhase"
+      ],
+      "file": "application/services/quality_gate_workflow_service.py",
+      "functions": [],
+      "method_count": 29,
+      "module": "application.services.quality_gate_workflow_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "QueueStateService"
+      ],
+      "file": "application/services/queue_state_service.py",
+      "functions": [],
+      "method_count": 5,
+      "module": "application.services.queue_state_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "QualityGateAuditResult",
+        "RecoveryResult",
+        "RecoveryService"
+      ],
+      "file": "application/services/recovery_service.py",
+      "functions": [
+        "create_recovery_service"
+      ],
+      "method_count": 15,
+      "module": "application.services.recovery_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "AsyncScanResult",
+        "ScanExecutionResult",
+        "ScanExecutionService",
+        "TriggerType"
+      ],
+      "file": "application/services/scan_execution_service.py",
+      "functions": [
+        "create_scan_execution_service",
+        "get_scan_type_for_trigger"
+      ],
+      "method_count": 7,
+      "module": "application.services.scan_execution_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "ScanPhaseData",
+        "ScanPhaseInfo",
+        "ScanPhaseRegistry"
+      ],
+      "file": "application/services/scan_phase_registry.py",
+      "functions": [
+        "clear_scan_phase",
+        "get_scan_phase",
+        "get_scan_phase_registry",
+        "register_scan_phase"
+      ],
+      "method_count": 10,
+      "module": "application.services.scan_phase_registry",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "CreateApiKeyForServiceAccountResult",
+        "CreateServiceAccountResult",
+        "ServiceAccountAlreadyExistsError",
+        "ServiceAccountInvalidStateError",
+        "ServiceAccountNotFoundError",
+        "ServiceAccountService",
+        "ServiceAccountServiceError"
+      ],
+      "file": "application/services/service_account_service.py",
+      "functions": [],
+      "method_count": 22,
+      "module": "application.services.service_account_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "AttachmentResult",
+        "ErrorCodes",
+        "SessionAttachmentError",
+        "SessionAttachmentService"
+      ],
+      "file": "application/services/session_attachment_service.py",
+      "functions": [
+        "get_session_attachment_service"
+      ],
+      "method_count": 11,
+      "module": "application.services.session_attachment_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "SessionInfo",
+        "SessionRegistry",
+        "SessionState"
+      ],
+      "file": "application/services/session_registry.py",
+      "functions": [
+        "get_session_registry",
+        "reset_registry"
+      ],
+      "method_count": 18,
+      "module": "application.services.session_registry",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "StatsService"
+      ],
+      "file": "application/services/stats_service.py",
+      "functions": [],
+      "method_count": 9,
+      "module": "application.services.stats_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "CreateApiKeyRequest",
+        "CreateApiKeyResult",
+        "CreateTenantRequest",
+        "CreateTenantResult",
+        "SystemAdminService"
+      ],
+      "file": "application/services/system_admin_service.py",
+      "functions": [],
+      "method_count": 14,
+      "module": "application.services.system_admin_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "Finding",
+        "GroupedFinding",
+        "IssueType",
+        "TaskCreationResult",
+        "TaskCreationService"
+      ],
+      "file": "application/services/task_creation_service.py",
+      "functions": [],
+      "method_count": 18,
+      "module": "application.services.task_creation_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "IBudgetService",
+        "IQualityGateService",
+        "IStateService",
+        "ITaskLogService",
+        "OrphanedTaskInfo",
+        "StuckTaskInfo",
+        "TaskCountsByStatus",
+        "TaskOperationResult",
+        "TaskOperationStatus",
+        "TaskService"
+      ],
+      "file": "application/task_service.py",
+      "functions": [],
+      "method_count": 57,
+      "module": "application.task_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "CancelTenantCommand",
+        "CreateTenantCommand",
+        "ReactivateTenantCommand",
+        "SuspendTenantCommand",
+        "UpdateTenantCommand",
+        "UpgradePlanCommand"
+      ],
+      "file": "application/tenant/commands.py",
+      "functions": [],
+      "method_count": 3,
+      "module": "application.tenant.commands",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "TenantCreatedResultDTO",
+        "TenantDetailDTO",
+        "TenantLimitsDTO",
+        "TenantSummaryDTO"
+      ],
+      "file": "application/tenant/dtos.py",
+      "functions": [],
+      "method_count": 15,
+      "module": "application.tenant.dtos",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "IEventBus",
+        "IResourceCountService",
+        "IStripeService",
+        "NullEventBus",
+        "NullResourceCountService",
+        "NullStripeService",
+        "TenantService"
+      ],
+      "file": "application/tenant/tenant_service.py",
+      "functions": [],
+      "method_count": 30,
+      "module": "application.tenant.tenant_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "IProjectStatsRepository",
+        "ITaskStatsRepository",
+        "ITenantStatsRepository",
+        "IUsageStatsRepository",
+        "IUserStatsRepository",
+        "SystemStatistics",
+        "TenantListStatistics",
+        "TenantStatistics",
+        "TenantStatisticsService"
+      ],
+      "file": "application/tenant/tenant_stats_service.py",
+      "functions": [],
+      "method_count": 21,
+      "module": "application.tenant.tenant_stats_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "TenantUserError",
+        "TenantUserService"
+      ],
+      "file": "application/tenant/tenant_user_service.py",
+      "functions": [],
+      "method_count": 5,
+      "module": "application.tenant.tenant_user_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "IEventPublisher",
+        "IUsageRepository",
+        "ModelPricing",
+        "NullEventPublisher",
+        "UsageService"
+      ],
+      "file": "application/tenant/usage_service.py",
+      "functions": [],
+      "method_count": 19,
+      "module": "application.tenant.usage_service",
+      "root": "application"
+    },
+    {
+      "classes": [
+        "CircuitBreaker",
+        "CircuitBreakerConfig",
+        "CircuitBreakerOpen",
+        "CircuitBreakerStats",
+        "CircuitState"
+      ],
+      "file": "infrastructure/execution/circuit_breaker.py",
+      "functions": [],
+      "method_count": 19,
+      "module": "infrastructure.execution.circuit_breaker",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ClaudeExecutor",
+        "ExecutionResult",
+        "ExecutorConfig",
+        "SecurityValidationError",
+        "TmuxSessionManager"
+      ],
+      "file": "infrastructure/execution/claude_executor.py",
+      "functions": [
+        "validate_git_branch",
+        "validate_project_path"
+      ],
+      "method_count": 22,
+      "module": "infrastructure.execution.claude_executor",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [],
+      "file": "infrastructure/execution/factory.py",
+      "functions": [
+        "create_claude_executor_with_budget"
+      ],
+      "method_count": 0,
+      "module": "infrastructure.execution.factory",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "QGTestRunner"
+      ],
+      "file": "infrastructure/execution/qg_test_runner.py",
+      "functions": [],
+      "method_count": 2,
+      "module": "infrastructure.execution.qg_test_runner",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "Workspace",
+        "WorkspaceConfig",
+        "WorkspaceError"
+      ],
+      "file": "infrastructure/execution/workspace.py",
+      "functions": [],
+      "method_count": 4,
+      "module": "infrastructure.execution.workspace",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "WorkspaceManager"
+      ],
+      "file": "infrastructure/execution/workspace_manager.py",
+      "functions": [],
+      "method_count": 16,
+      "module": "infrastructure.execution.workspace_manager",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [],
+      "file": "infrastructure/messaging/__init__.py",
+      "functions": [
+        "__getattr__"
+      ],
+      "method_count": 0,
+      "module": "infrastructure.messaging.__init__",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "EventBusStats",
+        "EventDeserializer",
+        "EventSerializer",
+        "IEventBus",
+        "IEventMiddleware",
+        "InMemoryEventBus",
+        "LoggingMiddleware",
+        "MetricsMiddleware",
+        "RedisEventBus",
+        "RetryMiddleware"
+      ],
+      "file": "infrastructure/messaging/event_bus.py",
+      "functions": [
+        "_get_handler_name"
+      ],
+      "method_count": 59,
+      "module": "infrastructure.messaging.event_bus",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "EventHandler",
+        "OnIssueDetectedHandler",
+        "OnPRCreatedHandler",
+        "OnPRMergedHandler",
+        "OnPRRejectedHandler",
+        "OnScanCompletedHandler",
+        "OnScanStartedHandler",
+        "OnTaskCompletedHandler",
+        "OnTaskCreatedHandler",
+        "OnTaskEscalatedHandler",
+        "OnTaskFailedHandler",
+        "OnTaskStartedHandler",
+        "PREventHandler",
+        "ScanEventHandler",
+        "TaskEventHandler"
+      ],
+      "file": "infrastructure/messaging/event_handlers.py",
+      "functions": [
+        "create_handler_registry",
+        "register_default_handlers"
+      ],
+      "method_count": 20,
+      "module": "infrastructure.messaging.event_handlers",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ConfigurationError",
+        "DeliveryGuarantee"
+      ],
+      "file": "infrastructure/messaging/event_router.py",
+      "functions": [
+        "get_delivery_guarantee",
+        "validate_channel_mapping"
+      ],
+      "method_count": 0,
+      "module": "infrastructure.messaging.event_router",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "IPRQueue",
+        "InMemoryPRQueue",
+        "PRCheckJob",
+        "PRCheckPriority",
+        "PRCheckStatus",
+        "PRCheckType",
+        "PRQueueConfig",
+        "PRQueueStats",
+        "PRStatusResult",
+        "RedisPRQueue"
+      ],
+      "file": "infrastructure/messaging/pr_queue.py",
+      "functions": [
+        "create_pr_queue"
+      ],
+      "method_count": 26,
+      "module": "infrastructure.messaging.pr_queue",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "InMemoryIdempotencyStore",
+        "RedisIdempotencyStore"
+      ],
+      "file": "infrastructure/messaging/redis_idempotency_store.py",
+      "functions": [],
+      "method_count": 11,
+      "module": "infrastructure.messaging.redis_idempotency_store",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "IScanQueue",
+        "InMemoryScanQueue",
+        "RedisScanQueue",
+        "ScanJob",
+        "ScanPriority",
+        "ScanQueueConfig",
+        "ScanQueueStats",
+        "ScanResult",
+        "ScanStatus",
+        "ScanType"
+      ],
+      "file": "infrastructure/messaging/scan_queue.py",
+      "functions": [
+        "create_scan_queue"
+      ],
+      "method_count": 33,
+      "module": "infrastructure.messaging.scan_queue",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "PhaseConfig",
+        "PhaseDoneHandler",
+        "PhaseHandler",
+        "PreflightDoneHandler",
+        "PreflightHandler",
+        "ProjectEventsHandler",
+        "QGCheckDoneHandler",
+        "QGCheckHandler",
+        "ScanCompleteHandler",
+        "ScanStartHandler",
+        "ScannerDoneHandler",
+        "ScannerHandler",
+        "SignalContext",
+        "SignalHandler",
+        "SignalHandlerRegistry",
+        "TaskReworkHandler"
+      ],
+      "file": "infrastructure/messaging/signal_handlers.py",
+      "functions": [
+        "create_signal_handler_registry",
+        "discover_handlers",
+        "get_registered_handler_classes",
+        "handles"
+      ],
+      "method_count": 65,
+      "module": "infrastructure.messaging.signal_handlers",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "RedisSignalService"
+      ],
+      "file": "infrastructure/messaging/signal_service.py",
+      "functions": [
+        "get_signal_service",
+        "publish_dead_letter",
+        "publish_preflight",
+        "publish_preflight_done",
+        "publish_project_event",
+        "publish_qg_check",
+        "publish_qg_check_done",
+        "publish_qg_workflow_signal",
+        "publish_scan_complete",
+        "publish_scan_start",
+        "publish_scanner_done",
+        "publish_scanner_signal",
+        "publish_task_rework_signal"
+      ],
+      "method_count": 25,
+      "module": "infrastructure.messaging.signal_service",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ConsumerStats",
+        "RedisStreamService",
+        "StreamConfig",
+        "StreamMessage",
+        "StreamStats"
+      ],
+      "file": "infrastructure/messaging/stream_service.py",
+      "functions": [
+        "_from_redis_key",
+        "_to_redis_key",
+        "get_stream_service"
+      ],
+      "method_count": 44,
+      "module": "infrastructure.messaging.stream_service",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ApiKeyRepository"
+      ],
+      "file": "infrastructure/persistence/api_key_repository.py",
+      "functions": [],
+      "method_count": 20,
+      "module": "infrastructure.persistence.api_key_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ArchiveRepository"
+      ],
+      "file": "infrastructure/persistence/archive_repository.py",
+      "functions": [],
+      "method_count": 16,
+      "module": "infrastructure.persistence.archive_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "AuditRepository",
+        "InMemoryAuditRepository"
+      ],
+      "file": "infrastructure/persistence/audit_repository.py",
+      "functions": [],
+      "method_count": 28,
+      "module": "infrastructure.persistence.audit_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "Base"
+      ],
+      "file": "infrastructure/persistence/base.py",
+      "functions": [],
+      "method_count": 0,
+      "module": "infrastructure.persistence.base",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "BillingRepository"
+      ],
+      "file": "infrastructure/persistence/billing_repository.py",
+      "functions": [],
+      "method_count": 12,
+      "module": "infrastructure.persistence.billing_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ClaudeSessionRepository"
+      ],
+      "file": "infrastructure/persistence/claude_session_repository.py",
+      "functions": [],
+      "method_count": 21,
+      "module": "infrastructure.persistence.claude_session_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ContactRepository"
+      ],
+      "file": "infrastructure/persistence/contact_repository.py",
+      "functions": [],
+      "method_count": 13,
+      "module": "infrastructure.persistence.contact_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "DefaultAggregateFactory",
+        "EventReplayService",
+        "IAggregateFactory",
+        "ICheckpointStore",
+        "ISnapshotStore",
+        "InMemoryCheckpointStore",
+        "InMemorySnapshotStore",
+        "ProjectionRebuilder",
+        "Projector",
+        "RebuildResult",
+        "ReconstructionResult",
+        "ReplayConfig",
+        "Snapshot"
+      ],
+      "file": "infrastructure/persistence/event_replay.py",
+      "functions": [],
+      "method_count": 36,
+      "module": "infrastructure.persistence.event_replay",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ConcurrencyError",
+        "EventDeserializationError",
+        "EventRegistry",
+        "EventSerializer",
+        "EventStoreEntry",
+        "EventStoreError",
+        "IEventStore",
+        "SqlEventStore",
+        "StoredEvent"
+      ],
+      "file": "infrastructure/persistence/event_store.py",
+      "functions": [],
+      "method_count": 30,
+      "module": "infrastructure.persistence.event_store",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "EventUpcaster",
+        "TaskCompletedEventV1ToV2Upcaster",
+        "TaskCreatedEventV1ToV2Upcaster",
+        "UpcastResult",
+        "UpcasterChain",
+        "UpcasterChainBrokenError",
+        "UpcasterError",
+        "UpcasterRegistry"
+      ],
+      "file": "infrastructure/persistence/event_upcaster.py",
+      "functions": [
+        "create_default_upcaster_chain",
+        "needs_upcast",
+        "upcast_with_result"
+      ],
+      "method_count": 34,
+      "module": "infrastructure.persistence.event_upcaster",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "FileAnalysisRepository"
+      ],
+      "file": "infrastructure/persistence/file_analysis_repository.py",
+      "functions": [],
+      "method_count": 15,
+      "module": "infrastructure.persistence.file_analysis_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "PersistenceError",
+        "TrackedPRRepository"
+      ],
+      "file": "infrastructure/persistence/git_repository.py",
+      "functions": [],
+      "method_count": 32,
+      "module": "infrastructure.persistence.git_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "GitHubAppInstallationRepository",
+        "GitHubAppRepositoryRepository"
+      ],
+      "file": "infrastructure/persistence/github_app_repository.py",
+      "functions": [],
+      "method_count": 33,
+      "module": "infrastructure.persistence.github_app_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "HealthRepository"
+      ],
+      "file": "infrastructure/persistence/health_repository.py",
+      "functions": [],
+      "method_count": 6,
+      "module": "infrastructure.persistence.health_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "InvitationRepository"
+      ],
+      "file": "infrastructure/persistence/invitation_repository.py",
+      "functions": [],
+      "method_count": 12,
+      "module": "infrastructure.persistence.invitation_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "LoggingConfigRepository"
+      ],
+      "file": "infrastructure/persistence/logging_config_repository.py",
+      "functions": [],
+      "method_count": 11,
+      "module": "infrastructure.persistence.logging_config_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ApiKeyModel"
+      ],
+      "file": "infrastructure/persistence/models/api_key.py",
+      "functions": [],
+      "method_count": 3,
+      "module": "infrastructure.persistence.models.api_key",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "AuditLog"
+      ],
+      "file": "infrastructure/persistence/models/audit_log.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.audit_log",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "BudgetLimitModel",
+        "BudgetScopeEnum",
+        "UsageCategoryEnum",
+        "UsageRecordModel"
+      ],
+      "file": "infrastructure/persistence/models/budget.py",
+      "functions": [],
+      "method_count": 2,
+      "module": "infrastructure.persistence.models.budget",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ClaudeSessionModel"
+      ],
+      "file": "infrastructure/persistence/models/claude_session_model.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.claude_session_model",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "CompanySize",
+        "ContactMessage",
+        "ContactStatus",
+        "ContactSubject",
+        "LeadStatus",
+        "SalesLead"
+      ],
+      "file": "infrastructure/persistence/models/contact.py",
+      "functions": [],
+      "method_count": 2,
+      "module": "infrastructure.persistence.models.contact",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "FileAnalysisModel"
+      ],
+      "file": "infrastructure/persistence/models/file_analysis_model.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.file_analysis_model",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "FileCheckModel"
+      ],
+      "file": "infrastructure/persistence/models/file_check.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.file_check",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "GitHubAppInstallationModel",
+        "GitHubAppRepositoryModel"
+      ],
+      "file": "infrastructure/persistence/models/github_app_installation.py",
+      "functions": [],
+      "method_count": 4,
+      "module": "infrastructure.persistence.models.github_app_installation",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [],
+      "file": "infrastructure/persistence/models/helpers.py",
+      "functions": [
+        "generate_cuid"
+      ],
+      "method_count": 0,
+      "module": "infrastructure.persistence.models.helpers",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TenantInvitationModel"
+      ],
+      "file": "infrastructure/persistence/models/invitation.py",
+      "functions": [],
+      "method_count": 3,
+      "module": "infrastructure.persistence.models.invitation",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "LoggingConfig"
+      ],
+      "file": "infrastructure/persistence/models/logging_config.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.logging_config",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "PluginExecutionModel"
+      ],
+      "file": "infrastructure/persistence/models/plugin_execution_model.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.plugin_execution_model",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "Project"
+      ],
+      "file": "infrastructure/persistence/models/project.py",
+      "functions": [],
+      "method_count": 5,
+      "module": "infrastructure.persistence.models.project",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "QGWorkflowModel"
+      ],
+      "file": "infrastructure/persistence/models/qg_workflow.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.qg_workflow",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "QualityGateFixSession",
+        "QualityGateRun",
+        "QualityGateRunStatus",
+        "QualityGateState",
+        "QualityGateType"
+      ],
+      "file": "infrastructure/persistence/models/quality_gate.py",
+      "functions": [],
+      "method_count": 5,
+      "module": "infrastructure.persistence.models.quality_gate",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ScanFindingModel"
+      ],
+      "file": "infrastructure/persistence/models/scan_finding.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.scan_finding",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ScanJobModel"
+      ],
+      "file": "infrastructure/persistence/models/scan_job.py",
+      "functions": [],
+      "method_count": 3,
+      "module": "infrastructure.persistence.models.scan_job",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ServiceAccountModel"
+      ],
+      "file": "infrastructure/persistence/models/service_account.py",
+      "functions": [],
+      "method_count": 4,
+      "module": "infrastructure.persistence.models.service_account",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "StateModel"
+      ],
+      "file": "infrastructure/persistence/models/state.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.state",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TaskHistoryModel",
+        "TaskLogModel",
+        "TaskModel"
+      ],
+      "file": "infrastructure/persistence/models/task.py",
+      "functions": [],
+      "method_count": 8,
+      "module": "infrastructure.persistence.models.task",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TenantModel",
+        "TenantUsageRecord"
+      ],
+      "file": "infrastructure/persistence/models/tenant.py",
+      "functions": [],
+      "method_count": 4,
+      "module": "infrastructure.persistence.models.tenant",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TrackedPR"
+      ],
+      "file": "infrastructure/persistence/models/tracked_pr.py",
+      "functions": [],
+      "method_count": 2,
+      "module": "infrastructure.persistence.models.tracked_pr",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "UsageModel"
+      ],
+      "file": "infrastructure/persistence/models/usage.py",
+      "functions": [],
+      "method_count": 1,
+      "module": "infrastructure.persistence.models.usage",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "UserModel"
+      ],
+      "file": "infrastructure/persistence/models/user.py",
+      "functions": [],
+      "method_count": 3,
+      "module": "infrastructure.persistence.models.user",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "WebhookConfig",
+        "WebhookDeliveryModel"
+      ],
+      "file": "infrastructure/persistence/models/webhook.py",
+      "functions": [],
+      "method_count": 2,
+      "module": "infrastructure.persistence.models.webhook",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "PluginExecutionRepository"
+      ],
+      "file": "infrastructure/persistence/plugin_execution_repository.py",
+      "functions": [],
+      "method_count": 13,
+      "module": "infrastructure.persistence.plugin_execution_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ProjectRepository"
+      ],
+      "file": "infrastructure/persistence/project_repository.py",
+      "functions": [],
+      "method_count": 29,
+      "module": "infrastructure.persistence.project_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ProjectStatsProjector"
+      ],
+      "file": "infrastructure/persistence/projections/project_stats_projector.py",
+      "functions": [],
+      "method_count": 20,
+      "module": "infrastructure.persistence.projections.project_stats_projector",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TaskDetailProjector"
+      ],
+      "file": "infrastructure/persistence/projections/task_detail_projector.py",
+      "functions": [],
+      "method_count": 20,
+      "module": "infrastructure.persistence.projections.task_detail_projector",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TaskListProjector"
+      ],
+      "file": "infrastructure/persistence/projections/task_list_projector.py",
+      "functions": [],
+      "method_count": 16,
+      "module": "infrastructure.persistence.projections.task_list_projector",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ConcurrencyError",
+        "IQGWorkflowRepository",
+        "QGWorkflowMapper",
+        "QGWorkflowRepository"
+      ],
+      "file": "infrastructure/persistence/qg_workflow_repository.py",
+      "functions": [],
+      "method_count": 14,
+      "module": "infrastructure.persistence.qg_workflow_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "IQGFixSessionRepository",
+        "IQGRunRepository",
+        "IQGStateRepository",
+        "QGFixSessionDTO",
+        "QGFixSessionRepository",
+        "QGRunDTO",
+        "QGRunRepository",
+        "QGStateDTO",
+        "QGStateRepository"
+      ],
+      "file": "infrastructure/persistence/quality_gate_repository.py",
+      "functions": [],
+      "method_count": 26,
+      "module": "infrastructure.persistence.quality_gate_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "BatchProcessor",
+        "PageInfo",
+        "PaginatedResult",
+        "PaginationHelper",
+        "QueryAnalyzer",
+        "QueryBuilder",
+        "QueryComplexity",
+        "QueryExecutor",
+        "QueryMetrics",
+        "QueryPlan"
+      ],
+      "file": "infrastructure/persistence/query_optimizer.py",
+      "functions": [],
+      "method_count": 33,
+      "module": "infrastructure.persistence.query_optimizer",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TaskQueryService"
+      ],
+      "file": "infrastructure/persistence/query_service.py",
+      "functions": [
+        "create_query_service"
+      ],
+      "method_count": 8,
+      "module": "infrastructure.persistence.query_service",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ProjectStatsView",
+        "ProjectionCheckpoint",
+        "ReadModelBase",
+        "TaskDetailView",
+        "TaskListView"
+      ],
+      "file": "infrastructure/persistence/read_models.py",
+      "functions": [
+        "utc_now"
+      ],
+      "method_count": 4,
+      "module": "infrastructure.persistence.read_models",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "RealtimeRepository"
+      ],
+      "file": "infrastructure/persistence/realtime_repository.py",
+      "functions": [],
+      "method_count": 7,
+      "module": "infrastructure.persistence.realtime_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "AsyncTenantContextManager",
+        "PostgresRLSSetup",
+        "TenantSessionManager"
+      ],
+      "file": "infrastructure/persistence/rls/postgres_rls.py",
+      "functions": [],
+      "method_count": 13,
+      "module": "infrastructure.persistence.rls.postgres_rls",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "RLSMixin"
+      ],
+      "file": "infrastructure/persistence/rls/rls_mixin.py",
+      "functions": [],
+      "method_count": 3,
+      "module": "infrastructure.persistence.rls.rls_mixin",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TenantDBMiddleware",
+        "TenantSessionContext"
+      ],
+      "file": "infrastructure/persistence/rls/session_middleware.py",
+      "functions": [
+        "configure_session_factory",
+        "get_tenant_session"
+      ],
+      "method_count": 5,
+      "module": "infrastructure.persistence.rls.session_middleware",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TenantFilter",
+        "TenantMismatchError"
+      ],
+      "file": "infrastructure/persistence/rls/tenant_filter.py",
+      "functions": [],
+      "method_count": 7,
+      "module": "infrastructure.persistence.rls.tenant_filter",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "IScanFindingRepository",
+        "ScanFindingRepository"
+      ],
+      "file": "infrastructure/persistence/scan_finding_repository.py",
+      "functions": [],
+      "method_count": 35,
+      "module": "infrastructure.persistence.scan_finding_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ScanJobRepository"
+      ],
+      "file": "infrastructure/persistence/scan_job_repository.py",
+      "functions": [],
+      "method_count": 15,
+      "module": "infrastructure.persistence.scan_job_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "FileCheckRepository"
+      ],
+      "file": "infrastructure/persistence/scanner_repository.py",
+      "functions": [],
+      "method_count": 36,
+      "module": "infrastructure.persistence.scanner_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ConcurrencyError",
+        "ServiceAccountMapper",
+        "ServiceAccountRepository"
+      ],
+      "file": "infrastructure/persistence/service_account_repository.py",
+      "functions": [],
+      "method_count": 15,
+      "module": "infrastructure.persistence.service_account_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [],
+      "file": "infrastructure/persistence/session.py",
+      "functions": [
+        "drop_db",
+        "get_async_db",
+        "get_async_db_session",
+        "get_db",
+        "get_db_session",
+        "get_db_session_ctx",
+        "init_db"
+      ],
+      "method_count": 0,
+      "module": "infrastructure.persistence.session",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ISnapshotStore",
+        "Snapshot",
+        "SnapshotDeserializationError",
+        "SnapshotModel",
+        "SnapshotPolicy",
+        "SnapshotSerializationError",
+        "SnapshotStoreError",
+        "SqlAlchemySnapshotStore"
+      ],
+      "file": "infrastructure/persistence/snapshot_store.py",
+      "functions": [
+        "load_with_snapshot"
+      ],
+      "method_count": 23,
+      "module": "infrastructure.persistence.snapshot_store",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "StateRepository"
+      ],
+      "file": "infrastructure/persistence/state_repository.py",
+      "functions": [],
+      "method_count": 4,
+      "module": "infrastructure.persistence.state_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "DashboardStatsRepository",
+        "ProjectStatsRepository",
+        "TaskStatsRepository",
+        "TenantStatsRepository",
+        "UsageStatsRepository",
+        "UserStatsRepository"
+      ],
+      "file": "infrastructure/persistence/stats_repository.py",
+      "functions": [],
+      "method_count": 44,
+      "module": "infrastructure.persistence.stats_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "SystemAdminRepository"
+      ],
+      "file": "infrastructure/persistence/system_admin_repository.py",
+      "functions": [],
+      "method_count": 23,
+      "module": "infrastructure.persistence.system_admin_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "SubtaskMapper",
+        "SubtaskRepository",
+        "TaskMapper",
+        "TaskRepository"
+      ],
+      "file": "infrastructure/persistence/task_repository.py",
+      "functions": [
+        "generate_cuid"
+      ],
+      "method_count": 49,
+      "module": "infrastructure.persistence.task_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "ServiceBypassContext",
+        "TenantAwareRepository",
+        "TenantContext",
+        "TenantContextNotSetError",
+        "TenantIsolationError"
+      ],
+      "file": "infrastructure/persistence/tenant_aware_repository.py",
+      "functions": [
+        "get_current_tenant_from_connection",
+        "set_tenant_context_for_connection"
+      ],
+      "method_count": 14,
+      "module": "infrastructure.persistence.tenant_aware_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "TenantRepository"
+      ],
+      "file": "infrastructure/persistence/tenant_repository.py",
+      "functions": [],
+      "method_count": 17,
+      "module": "infrastructure.persistence.tenant_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "JSONArray",
+        "JSONDict"
+      ],
+      "file": "infrastructure/persistence/types.py",
+      "functions": [],
+      "method_count": 4,
+      "module": "infrastructure.persistence.types",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "IAsyncSessionFactory",
+        "ISessionFactory",
+        "UnitOfWork"
+      ],
+      "file": "infrastructure/persistence/unit_of_work.py",
+      "functions": [
+        "create_unit_of_work"
+      ],
+      "method_count": 24,
+      "module": "infrastructure.persistence.unit_of_work",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "UserRepository"
+      ],
+      "file": "infrastructure/persistence/user_repository.py",
+      "functions": [],
+      "method_count": 23,
+      "module": "infrastructure.persistence.user_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [
+        "InMemoryWebhookRepository",
+        "WebhookRepository"
+      ],
+      "file": "infrastructure/persistence/webhook_repository.py",
+      "functions": [],
+      "method_count": 18,
+      "module": "infrastructure.persistence.webhook_repository",
+      "root": "infrastructure"
+    },
+    {
+      "classes": [],
+      "file": "workers/__init__.py",
+      "functions": [
+        "__getattr__"
+      ],
+      "method_count": 0,
+      "module": "workers.__init__",
+      "root": "workers"
+    },
+    {
+      "classes": [],
+      "file": "workers/__main__.py",
+      "functions": [
+        "fallback_main"
+      ],
+      "method_count": 0,
+      "module": "workers.__main__",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "ArchiveCleanupWorker",
+        "CleanupStats"
+      ],
+      "file": "workers/archive_cleanup_worker.py",
+      "functions": [
+        "main"
+      ],
+      "method_count": 13,
+      "module": "workers.archive_cleanup_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "CleanupConfig",
+        "CleanupMetrics",
+        "CleanupWorker",
+        "CleanupWorkerState"
+      ],
+      "file": "workers/cleanup_worker.py",
+      "functions": [
+        "create_cleanup_worker"
+      ],
+      "method_count": 13,
+      "module": "workers.cleanup_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [],
+      "file": "workers/cli/commands.py",
+      "functions": [
+        "list_workers",
+        "run_all_workers",
+        "run_pr_monitor",
+        "run_projection_worker",
+        "show_status"
+      ],
+      "method_count": 0,
+      "module": "workers.cli.commands",
+      "root": "workers"
+    },
+    {
+      "classes": [],
+      "file": "workers/cli/utils.py",
+      "functions": [
+        "create_git_service_factory",
+        "create_scanner_service_factory",
+        "create_task_service_factory",
+        "create_uow_factory",
+        "format_json",
+        "format_queue_stats",
+        "format_table",
+        "format_worker_status",
+        "setup_logging",
+        "setup_signal_handlers",
+        "validate_database_url",
+        "validate_redis_url"
+      ],
+      "method_count": 0,
+      "module": "workers.cli.utils",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "ConnectivityConfig",
+        "ConnectivityHealthWorker",
+        "ConnectivityMetrics",
+        "ConnectivityState",
+        "WorkerState"
+      ],
+      "file": "workers/connectivity_health_worker.py",
+      "functions": [],
+      "method_count": 15,
+      "module": "workers.connectivity_health_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "PRMonitorConfig",
+        "PRMonitorMetrics",
+        "PRMonitorState",
+        "PRMonitorWorker"
+      ],
+      "file": "workers/pr_monitor_worker.py",
+      "functions": [
+        "create_pr_monitor_worker"
+      ],
+      "method_count": 16,
+      "module": "workers.pr_monitor_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "PRPoller",
+        "PRPollerConfig",
+        "PRPollerMetrics"
+      ],
+      "file": "workers/pr_poller.py",
+      "functions": [
+        "create_pr_poller"
+      ],
+      "method_count": 10,
+      "module": "workers.pr_poller",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "PRTrackerConfig",
+        "PRTrackerMetrics",
+        "PRTrackerState",
+        "PRTrackerWorker"
+      ],
+      "file": "workers/pr_tracker_worker.py",
+      "functions": [
+        "create_pr_tracker_worker"
+      ],
+      "method_count": 15,
+      "module": "workers.pr_tracker_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [],
+      "file": "workers/preconditions.py",
+      "functions": [
+        "check_queue_not_paused"
+      ],
+      "method_count": 0,
+      "module": "workers.preconditions",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "ProjectionWorker",
+        "ProjectionWorkerConfig",
+        "ProjectionWorkerManager",
+        "ProjectionWorkerMetrics",
+        "ProjectionWorkerState",
+        "Projector"
+      ],
+      "file": "workers/projection_worker.py",
+      "functions": [],
+      "method_count": 23,
+      "module": "workers.projection_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "ScanCoordinator",
+        "ScanCoordinatorConfig",
+        "ScheduledScan"
+      ],
+      "file": "workers/scan_coordinator.py",
+      "functions": [],
+      "method_count": 13,
+      "module": "workers.scan_coordinator",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "ScanWorker",
+        "ScanWorkerConfig",
+        "ScanWorkerMetrics",
+        "ScanWorkerState"
+      ],
+      "file": "workers/scan_worker.py",
+      "functions": [
+        "create_scan_worker"
+      ],
+      "method_count": 17,
+      "module": "workers.scan_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "CleanupStats",
+        "SessionCleanupWorker",
+        "SessionHealthResult"
+      ],
+      "file": "workers/session_cleanup_worker.py",
+      "functions": [
+        "main"
+      ],
+      "method_count": 7,
+      "module": "workers.session_cleanup_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "SignalSubscriptionWorker",
+        "SignalSubscriptionWorkerConfig",
+        "SignalSubscriptionWorkerMetrics",
+        "SignalSubscriptionWorkerState"
+      ],
+      "file": "workers/signal_subscription_worker.py",
+      "functions": [
+        "create_scan_lifecycle_worker",
+        "create_signal_subscription_worker"
+      ],
+      "method_count": 9,
+      "module": "workers.signal_subscription_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "PermanentError",
+        "RetryableError",
+        "StreamTaskWorker"
+      ],
+      "file": "workers/stream_task_worker.py",
+      "functions": [],
+      "method_count": 7,
+      "module": "workers.stream_task_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "IPreflightPlugin",
+        "ITaskExecutor",
+        "ITestRunner",
+        "TaskProcessingWorker"
+      ],
+      "file": "workers/task_processing_worker.py",
+      "functions": [
+        "_project_type_value",
+        "create_task_processing_worker",
+        "is_connection_error"
+      ],
+      "method_count": 18,
+      "module": "workers.task_processing_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "WebhookDeliveryWorker",
+        "WebhookWorkerConfig",
+        "WebhookWorkerMetrics",
+        "WebhookWorkerState"
+      ],
+      "file": "workers/webhook_delivery_worker.py",
+      "functions": [
+        "create_webhook_worker",
+        "publish_webhook_job"
+      ],
+      "method_count": 12,
+      "module": "workers.webhook_delivery_worker",
+      "root": "workers"
+    },
+    {
+      "classes": [
+        "WorkerInfo",
+        "WorkerRegistry",
+        "WorkerStatus",
+        "WorkerType"
+      ],
+      "file": "workers/worker_registry.py",
+      "functions": [
+        "generate_worker_id"
+      ],
+      "method_count": 17,
+      "module": "workers.worker_registry",
+      "root": "workers"
+    }
+  ],
+  "source_root": "/home/pika/projekte/code-sentinel"
+}
