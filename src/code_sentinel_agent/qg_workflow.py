@@ -8,6 +8,7 @@ from typing import Any
 
 from .db import connect
 from .execution_sessions import ExecutionSessionInput, record_execution_session
+from .qa_gates import qa_review_outcomes
 from .scan_findings import ScanFindingInput, upsert_scan_finding
 from .task_creation import create_tasks_from_findings
 from .task_workflow import next_runnable_task
@@ -159,6 +160,7 @@ def process_quality_gate_payload(db_path: str | Path, payload: dict[str, Any]) -
             )
             conn.commit()
 
+    review_outcomes = qa_review_outcomes(db_path, normalized.run_id)
     status_code = 2 if normalized.status == "blocking" else 0
     return status_code, {
         "status": normalized.status,
@@ -174,6 +176,15 @@ def process_quality_gate_payload(db_path: str | Path, payload: dict[str, Any]) -
         "execution_session": session,
         "findings": created_findings,
         "task_creation": task_payload,
+        "qa_review_outcomes": {
+            "required": ["reuse", "duplicate_code", "dead_code", "unused_code"],
+            "missing_review_outcomes": [
+                item["gate"]
+                for item in review_outcomes
+                if item["status"] == "missing"
+            ],
+            "outcomes": review_outcomes,
+        },
         "selected_task_for_agent_takeover": selected_task,
         "secret_redaction_applied": normalized.secret_redaction_applied,
     }

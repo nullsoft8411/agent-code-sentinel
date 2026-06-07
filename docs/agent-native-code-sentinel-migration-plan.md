@@ -662,6 +662,16 @@ Current local progress:
   narrow static validation prefix `read_file + git_diff` in the runtime
   validation allowlist and by proving the adapter path before rerunning the
   managed E2E.
+- QA review outcomes for reuse, duplicate code, dead code and unused code are
+  now explicit runtime report fields. `qa-gates` and `report` include
+  `qa_review_outcomes` for the required gates `reuse`, `duplicate_code`,
+  `dead_code` and `unused_code`; missing outcomes are reported as `missing`
+  instead of being silently skipped. Focused CLI tests prove both the missing
+  outcome blocker and the passing case where all four outcomes are recorded.
+- Next open implementation slice: persist those QA review outcomes from managed
+  Agent runs through MCP/Slack in a real project-improvement cycle, so the
+  Workspace Agent reports reuse/dead-code/unused-code/duplicate-code evidence
+  from live repository analysis, not only local CLI state.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.

@@ -150,6 +150,12 @@ def test_qa_gates_memory_delta_and_report_read_sqlite_state(tmp_path: Path) -> N
     qa_payload = parse_json(qa)
     assert qa_payload["status"] == "blocking"
     assert qa_payload["blocking_gates"] == ["validation"]
+    assert qa_payload["missing_review_outcomes"] == [
+        "reuse",
+        "duplicate_code",
+        "dead_code",
+        "unused_code",
+    ]
     assert qa_payload["gates"][0]["evidence"] == "npm test exited 1"
 
     assert memory.returncode == 0, memory.stderr
@@ -170,3 +176,62 @@ def test_qa_gates_memory_delta_and_report_read_sqlite_state(tmp_path: Path) -> N
         "validation_attempts": 0,
         "execution_sessions": 0,
     }
+    assert [item["status"] for item in report_payload["qa_review_outcomes"]] == [
+        "missing",
+        "missing",
+        "missing",
+        "missing",
+    ]
+
+
+def test_qa_gates_pass_when_required_review_outcomes_are_recorded(tmp_path: Path) -> None:
+    db_path = tmp_path / "runtime.db"
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "insert into projects(id, target, default_branch) values (?, ?, ?)",
+            ("proj-review", "nullsoft8411/review", "main"),
+        )
+        conn.execute(
+            "insert into runs(id, project_id, status, current_focus) values (?, ?, ?, ?)",
+            ("run-review", "proj-review", "in_progress", "qa_review"),
+        )
+        for gate in ["reuse", "duplicate_code", "dead_code", "unused_code"]:
+            conn.execute(
+                """
+                insert into qa_gate_results(id, run_id, gate, status, evidence, next_action)
+                values (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    f"gate-{gate}",
+                    "run-review",
+                    gate,
+                    "passed",
+                    f"{gate} checked",
+                    "continue",
+                ),
+            )
+        conn.commit()
+
+    qa = run_cli("qa-gates", "--db", str(db_path), "--run-id", "run-review")
+    report = run_cli("report", "--db", str(db_path), "--run-id", "run-review")
+
+    assert qa.returncode == 0, qa.stderr
+    qa_payload = parse_json(qa)
+    assert qa_payload["status"] == "passed"
+    assert qa_payload["missing_review_outcomes"] == []
+    assert [item["status"] for item in qa_payload["qa_review_outcomes"]] == [
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+    ]
+
+    assert report.returncode == 0, report.stderr
+    report_payload = parse_json(report)
+    assert [item["gate"] for item in report_payload["qa_review_outcomes"]] == [
+        "reuse",
+        "duplicate_code",
+        "dead_code",
+        "unused_code",
+    ]

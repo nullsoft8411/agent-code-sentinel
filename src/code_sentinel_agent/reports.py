@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .db import connect
 from .execution_sessions import list_execution_sessions
+from .qa_gates import qa_review_outcomes
 from .qg_workflow import selected_task_for_agent_takeover
 
 
@@ -49,6 +50,7 @@ def report(db_path: str | Path, run_id: str) -> tuple[int, dict]:
             "target": row["target"],
         },
         "counts": counts,
+        "qa_review_outcomes": qa_review_outcomes(db_path, row["run_id"]),
         "execution_sessions": list_execution_sessions(db_path, run_id=row["run_id"]),
         "selected_task_for_agent_takeover": selected_task_for_agent_takeover(
             db_path,

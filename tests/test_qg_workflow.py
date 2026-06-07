@@ -49,6 +49,12 @@ def test_qg_workflow_cli_e2e_creates_findings_tasks_and_selected_takeover(tmp_pa
     assert first_payload["status"] == "blocking"
     assert first_payload["validation"]["command"] == "pytest tests/test_service.py -q"
     assert first_payload["validation"]["exit_code"] == 1
+    assert first_payload["qa_review_outcomes"]["missing_review_outcomes"] == [
+        "reuse",
+        "duplicate_code",
+        "dead_code",
+        "unused_code",
+    ]
     assert len(first_payload["findings"]) == 2
     assert first_payload["task_creation"]["counts"] == {
         "created_tasks": 3,
@@ -79,6 +85,12 @@ def test_qg_workflow_cli_e2e_creates_findings_tasks_and_selected_takeover(tmp_pa
     assert report_payload["counts"]["validation_attempts"] == 1
     assert report_payload["counts"]["execution_sessions"] == 1
     assert report_payload["selected_task_for_agent_takeover"]["id"] == selected["id"]
+    assert [item["status"] for item in report_payload["qa_review_outcomes"]] == [
+        "missing",
+        "missing",
+        "missing",
+        "missing",
+    ]
 
     with sqlite3.connect(db_path) as conn:
         rows = conn.execute(
