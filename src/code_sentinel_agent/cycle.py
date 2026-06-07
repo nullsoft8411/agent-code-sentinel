@@ -18,6 +18,7 @@ from .project_context import project_context
 from .qg_workflow import process_quality_gate_payload, selected_task_for_agent_takeover
 from .reports import report
 from .scan_jobs import ScanJobInput, create_scan_job, update_scan_job_progress
+from .task_execution import apply_task_execution_result
 
 DEFAULT_CYCLE_OWNER = "workspace-agent-cycle"
 
@@ -126,9 +127,10 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
         if start_code != 0:
             return start_code, start_payload
 
+        approval_result = None
         write_request = payload.get("write_request") if isinstance(payload.get("write_request"), dict) else None
         if write_request:
-            approval_code, approval_payload = approval_check(
+            approval_code, approval_result = approval_check(
                 db_path,
                 run_id=run_id,
                 target_project=_required_cycle_value(write_request, "target_project"),
@@ -140,16 +142,16 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
                 _update_run_blocker(
                     db_path,
                     run_id=run_id,
-                    blocker=approval_payload["blocker_code"],
-                    next_step=approval_payload["next_action"],
+                    blocker=approval_result["blocker_code"],
+                    next_step=approval_result["next_action"],
                 )
                 return approval_code, {
                     "status": "blocked",
                     "project_id": project_id,
                     "run_id": run_id,
                     "current_focus": "approval",
-                    "approval": approval_payload,
-                    "next_autonomous_step": approval_payload["next_action"],
+                    "approval": approval_result,
+                    "next_autonomous_step": approval_result["next_action"],
                     "lock_released": True,
                 }
 
@@ -184,6 +186,38 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
             }
         if improvement_work_package:
             selected_task = improvement_work_package["task"]
+
+        task_execution_payload = (
+            payload.get("task_execution_result")
+            if isinstance(payload.get("task_execution_result"), dict)
+            else None
+        )
+        task_execution_result = None
+        if task_execution_payload:
+            task_execution_code, task_execution_result = apply_task_execution_result(
+                db_path,
+                project_id=project_id,
+                run_id=run_id,
+                execution_result=task_execution_payload,
+                approval_result=approval_result,
+            )
+            if task_execution_code != 0 and task_execution_result.get("status") != "blocking":
+                _update_run_blocker(
+                    db_path,
+                    run_id=run_id,
+                    blocker=task_execution_result["blocker_code"],
+                    next_step=task_execution_result["next_action"],
+                )
+                return task_execution_code, {
+                    "status": "blocked",
+                    "project_id": project_id,
+                    "run_id": run_id,
+                    "current_focus": "task_execution",
+                    "task_execution_result": task_execution_result,
+                    "next_autonomous_step": task_execution_result["next_action"],
+                    "lock_released": True,
+                }
+            selected_task = selected_task_for_agent_takeover(db_path, project_id=project_id, run_id=run_id)
         if selected_task:
             _update_run_next_step(
                 db_path,
@@ -214,11 +248,14 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
                 script_name="run-cycle",
                 execution_method="agent_runtime_cli",
                 command="cs-agent run-cycle",
-                status="blocking" if validation_result and validation_result.get("status") == "blocking" else "passed",
+                status=_cycle_status(validation_result, task_execution_result),
                 output={
                     "latest_ref": latest_ref,
                     "selected_task_id": selected_task["id"] if selected_task else None,
                     "validation_status": validation_result.get("status") if validation_result else None,
+                    "task_execution_status": (
+                        task_execution_result.get("status") if task_execution_result else None
+                    ),
                     "project_evidence_status": project_evidence["status"],
                     "scan_job_id": project_evidence.get("scan_job", {}).get("id"),
                     "file_checks_count": project_evidence.get("file_checks_count", 0),
@@ -235,12 +272,16 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
                         "step": "improvement_work_package",
                         "status": improvement_work_package["status"] if improvement_work_package else "not_available",
                     },
+                    {
+                        "step": "task_execution_result",
+                        "status": task_execution_result["status"] if task_execution_result else "not_available",
+                    },
                     {"step": "selected_task", "status": "passed" if selected_task else "not_available"},
                 ],
                 completed_at=_utc_now(),
             ),
         )
-        status = "blocking" if validation_result and validation_result.get("status") == "blocking" else "passed"
+        status = _cycle_status(validation_result, task_execution_result)
         audit_event = append_audit_event(
             str(db_path),
             AuditEventInput(
@@ -254,6 +295,9 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
                     "selected_task_id": selected_task["id"] if selected_task else None,
                     "current_focus": "task_takeover" if selected_task else "analysis",
                     "validation_status": validation_result.get("status") if validation_result else None,
+                    "task_execution_status": (
+                        task_execution_result.get("status") if task_execution_result else None
+                    ),
                     "project_evidence_status": project_evidence["status"],
                     "scan_job_id": project_evidence.get("scan_job", {}).get("id"),
                     "file_checks_count": project_evidence.get("file_checks_count", 0),
@@ -279,6 +323,7 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
             "repository_delta": start_payload["repository_delta"],
             "selected_task_for_agent_takeover": selected_task,
             "validation_result": validation_result,
+            "task_execution_result": task_execution_result,
             "project_evidence": project_evidence,
             "improvement_work_package": improvement_work_package,
             "cycle_session": cycle_session,
@@ -304,6 +349,17 @@ def row_to_dict(row: sqlite3.Row | None) -> dict | None:
     if row is None:
         return None
     return {key: row[key] for key in row.keys()}
+
+
+def _cycle_status(
+    validation_result: dict[str, Any] | None,
+    task_execution_result: dict[str, Any] | None,
+) -> str:
+    if validation_result and validation_result.get("status") == "blocking":
+        return "blocking"
+    if task_execution_result and task_execution_result.get("status") == "blocking":
+        return "blocking"
+    return "passed"
 
 
 def _collect_project_evidence(

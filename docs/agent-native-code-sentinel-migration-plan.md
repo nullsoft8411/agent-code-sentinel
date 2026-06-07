@@ -464,6 +464,11 @@ Current agent-code-sentinel runtime already has:
   - cycle.py can now collect project-context evidence from a provided
     project_path, persist a scan_job, file_checks and plugin_executions, and
     include those ids/counts in cycle session plus audit evidence
+  - task_execution.py accepts an Agent-native task_execution_result, validates
+    the referenced task scope, requires explicit write approval for reported
+    file changes, reuses the QA-gate workflow for validation evidence, updates
+    task status to completed or failed_validation and records a task execution
+    session
   - validation-failed cycles create findings/tasks instead of false completion
   - blocked write cycles persist the approval blocker and release the lock
 - AN-8 MCP state expansion:
@@ -504,6 +509,10 @@ The Agent runtime still must implement the actual Code Sentinel work logic:
   beyond the AN-7 one-step local orchestrator: implemented for local
   project_path intake with project_context, file_inventory, scan_job,
   plugin_execution, file_check, cycle_session and audit_event persistence.
+- task_execution.py result-ingestion path for Agent-native task work: implemented
+  for approved file-change evidence, validation-result processing, task status
+  update, attempt increment on failed validation, execution-session persistence
+  and cycle audit/report output.
 - Agent Studio/Slack packaging that uses the expanded MCP-state surface from
   the managed Workspace Agent
 
@@ -546,8 +555,11 @@ work.
 
 AN-7 status: implemented locally for one-step autonomous cycle orchestration,
 lock handling, write-approval blocking, validation-failed task takeover,
-selected task reporting and cycle session evidence. It does not yet expose the
-expanded findings/tasks/QA/execution state through MCP; that remains AN-8 work.
+selected task reporting, cycle session evidence and Agent-native
+task_execution_result ingestion. The local runtime can now record an approved
+task result, route validation through QA gates and update the task to completed
+or failed_validation. This is result-ingestion evidence, not proof that the
+managed Workspace Agent has performed a real bounded repository edit end to end.
 
 AN-8 status: implemented locally for SQLite-backed MCP-state tools covering
 scan jobs, findings, tasks, QA gate processing, execution sessions, reports,
@@ -598,8 +610,13 @@ Current local progress:
   assigns the selected task to the Workspace Agent, loads compatibility finding
   and scan-finding context when available, records affected-file evidence from
   project_path, returns validation command candidates and writes session/audit
-  evidence. This is takeover/preparation evidence, not yet approved file edit
-  execution or validation-complete evidence.
+  evidence.
+- Agent-native task result ingestion is implemented locally. run-cycle now
+  accepts task_execution_result, blocks reported file changes without an
+  approved write_request, records approved file-change validation evidence,
+  persists task_execution sessions, completes successful tasks and increments
+  failed-validation attempts. This still does not prove a managed Workspace
+  Agent Slack/Studio E2E has executed a real bounded edit from the cloned repo.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.

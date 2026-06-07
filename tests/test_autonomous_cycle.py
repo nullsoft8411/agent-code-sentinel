@@ -60,6 +60,76 @@ def create_cycle_project(root: Path) -> Path:
     return project
 
 
+def seed_execution_task(db_path: Path, *, run_id: str, task_id: str = "task-exec") -> None:
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "insert into runs(id, project_id, status, current_focus) values (?, ?, ?, ?)",
+            (run_id, "proj-devopshub", "in_progress", "autonomous_cycle"),
+        )
+        conn.execute(
+            """
+            insert into findings(id, run_id, project_id, signature, category, severity, file_path, title)
+            values (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f"finding-{task_id}",
+                run_id,
+                "proj-devopshub",
+                f"finding:{task_id}",
+                "validation",
+                "high",
+                "src/app.py",
+                "Execution task finding",
+            ),
+        )
+        conn.execute(
+            """
+            insert into tasks(
+              id, finding_id, run_id, project_id, status, priority, title,
+              affected_file, task_type, task_signature
+            )
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                task_id,
+                f"finding-{task_id}",
+                run_id,
+                "proj-devopshub",
+                "assigned_to_agent",
+                90,
+                "Fix execution task",
+                "src/app.py",
+                "standalone",
+                f"standalone:finding:{task_id}",
+            ),
+        )
+        conn.commit()
+
+
+def seed_cycle_approval(db_path: Path, *, run_id: str, allowed_paths: list[str]) -> None:
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            insert into approvals(
+              id, run_id, target_project, branch, allowed_paths_json,
+              allowed_actions_json, approved_by, approval_evidence
+            )
+            values (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f"approval-{run_id}",
+                run_id,
+                "nullsoft8411/devopshub",
+                "main",
+                json.dumps(allowed_paths),
+                json.dumps(["file_write"]),
+                "operator",
+                "explicit per-run test approval",
+            ),
+        )
+        conn.commit()
+
+
 def test_resume_cycle_loads_memory_creates_run_and_emits_next_step(tmp_path: Path) -> None:
     db_path = tmp_path / "runtime.db"
     seed_cycle_state(db_path)
@@ -414,4 +484,179 @@ def test_run_cycle_validation_failure_creates_takeover_task_and_sessions(tmp_pat
             "select count(*) from state_locks where status = 'active' and released_at is null"
         ).fetchone()[0]
 
+    assert active_locks == 0
+
+
+def test_run_cycle_blocks_task_execution_result_file_change_without_approval(tmp_path: Path) -> None:
+    db_path = tmp_path / "runtime.db"
+    seed_cycle_state(db_path)
+    seed_execution_task(db_path, run_id="run-task-no-approval")
+
+    result = run_cli(
+        "run-cycle",
+        "--db",
+        str(db_path),
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-task-no-approval",
+                "latest_ref": "main@task-no-approval",
+                "task_execution_result": {
+                    "task_id": "task-exec",
+                    "files_modified": ["src/app.py"],
+                    "validation_result": {
+                        "command": "python3 -m pytest tests -q",
+                        "exit_code": 0,
+                        "stdout": "1 passed",
+                    },
+                },
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 2
+    assert payload["status"] == "blocked"
+    assert payload["current_focus"] == "task_execution"
+    assert payload["task_execution_result"]["blocker_code"] == "WRITE_APPROVAL_REQUIRED_FOR_TASK_RESULT"
+    assert payload["lock_released"] is True
+
+    with sqlite3.connect(db_path) as conn:
+        task_status = conn.execute("select status from tasks where id = ?", ("task-exec",)).fetchone()[0]
+        session_count = conn.execute(
+            "select count(*) from agent_execution_sessions where run_id = ?",
+            ("run-task-no-approval",),
+        ).fetchone()[0]
+        active_locks = conn.execute(
+            "select count(*) from state_locks where status = 'active' and released_at is null"
+        ).fetchone()[0]
+
+    assert task_status == "assigned_to_agent"
+    assert session_count == 0
+    assert active_locks == 0
+
+
+def test_run_cycle_records_approved_task_execution_result_and_completes_task(tmp_path: Path) -> None:
+    db_path = tmp_path / "runtime.db"
+    seed_cycle_state(db_path)
+    seed_execution_task(db_path, run_id="run-task-approved")
+    seed_cycle_approval(db_path, run_id="run-task-approved", allowed_paths=["src/app.py"])
+
+    result = run_cli(
+        "run-cycle",
+        "--db",
+        str(db_path),
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-task-approved",
+                "latest_ref": "main@task-approved",
+                "write_request": {
+                    "target_project": "nullsoft8411/devopshub",
+                    "branch": "main",
+                    "path": "src/app.py",
+                    "action": "file_write",
+                },
+                "task_execution_result": {
+                    "task_id": "task-exec",
+                    "execution_method": "agent_native_python",
+                    "script_name": "agent-result-ingest",
+                    "files_modified": ["src/app.py"],
+                    "validation_result": {
+                        "command": "python3 -m pytest tests -q",
+                        "exit_code": 0,
+                        "stdout": "1 passed",
+                    },
+                },
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 0, result.stderr
+    assert payload["status"] == "passed"
+    assert payload["task_execution_result"]["status"] == "passed"
+    assert payload["task_execution_result"]["task"]["status"] == "completed"
+    assert payload["task_execution_result"]["approval_enforced"] is True
+    assert payload["selected_task_for_agent_takeover"] is None
+    assert payload["report"]["counts"]["validation_attempts"] == 1
+    assert payload["report"]["counts"]["execution_sessions"] == 3
+    assert payload["cycle_session"]["output"]["task_execution_status"] == "passed"
+    assert payload["lock_released"] is True
+
+    with sqlite3.connect(db_path) as conn:
+        task_row = conn.execute(
+            "select status, attempt_count from tasks where id = ?",
+            ("task-exec",),
+        ).fetchone()
+        execution_row = conn.execute(
+            """
+            select status, files_modified_json
+            from agent_execution_sessions
+            where run_id = ? and session_type = 'task_execution'
+            """,
+            ("run-task-approved",),
+        ).fetchone()
+        active_locks = conn.execute(
+            "select count(*) from state_locks where status = 'active' and released_at is null"
+        ).fetchone()[0]
+
+    assert task_row == ("completed", 0)
+    assert json.loads(execution_row[1]) == ["src/app.py"]
+    assert execution_row[0] == "passed"
+    assert active_locks == 0
+
+
+def test_run_cycle_records_failed_task_execution_result_and_increments_attempt(tmp_path: Path) -> None:
+    db_path = tmp_path / "runtime.db"
+    seed_cycle_state(db_path)
+    seed_execution_task(db_path, run_id="run-task-failed")
+
+    result = run_cli(
+        "run-cycle",
+        "--db",
+        str(db_path),
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-task-failed",
+                "latest_ref": "main@task-failed",
+                "task_execution_result": {
+                    "task_id": "task-exec",
+                    "validation_result": {
+                        "gate": "task_validation",
+                        "command": "python3 -m pytest tests -q",
+                        "exit_code": 1,
+                        "stderr": "src/app.py:7: AssertionError: still failing",
+                    },
+                },
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 2
+    assert payload["status"] == "blocking"
+    assert payload["task_execution_result"]["status"] == "blocking"
+    assert payload["task_execution_result"]["task"]["status"] == "failed_validation"
+    assert payload["task_execution_result"]["task"]["attempt_count"] == 1
+    assert payload["cycle_session"]["output"]["task_execution_status"] == "blocking"
+    assert payload["audit_event"]["payload"]["task_execution_status"] == "blocking"
+    assert payload["report"]["counts"]["validation_attempts"] == 1
+    assert payload["report"]["counts"]["execution_sessions"] == 3
+    assert payload["lock_released"] is True
+
+    with sqlite3.connect(db_path) as conn:
+        task_row = conn.execute(
+            "select status, attempt_count from tasks where id = ?",
+            ("task-exec",),
+        ).fetchone()
+        active_locks = conn.execute(
+            "select count(*) from state_locks where status = 'active' and released_at is null"
+        ).fetchone()[0]
+
+    assert task_row == ("failed_validation", 1)
     assert active_locks == 0
