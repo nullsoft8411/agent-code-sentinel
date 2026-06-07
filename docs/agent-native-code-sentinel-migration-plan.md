@@ -406,7 +406,85 @@ One autonomous cycle must follow this order:
 18. Emit JSON report with status, evidence, next_autonomous_step and blockers.
 19. Release project lock.
 
-## 6. Implementation Phases
+## 6. Current Ist/Soll Gate
+
+This plan is the operative source of truth. Separate review documents must not
+be used as the implementation driver unless they are explicitly linked back into
+this plan.
+
+### 6.1 Ist
+
+Current agent-code-sentinel runtime already has:
+
+- local SQLite migration runner
+- basic projects, runs, memories, findings, tasks, QA gate results,
+  validation_attempts, approvals, artifacts and state_locks tables
+- MCP state bridge for project, memory, run start, lock acquire/release and
+  event append
+- basic preflight and check detection
+- QA gate summary from stored gate rows
+- approval-check guard
+- memory/resume-cycle bootstrap
+- simple report counts
+- source inventory extraction
+- docs/tests that prevent ClaudeExecutor, Claude CLI and tmux from entering
+  target runtime code
+
+### 6.2 Soll
+
+The Agent runtime still must implement the actual Code Sentinel work logic:
+
+- project_context.py for AGENTS.md chain, README/docs, configs, git truth and
+  relevant file selection
+- agent_analysis.py for Agent-created findings and fix plans
+- output_contract.py for shared JSON status, blocker, finding, task and report
+  shapes
+- scan_jobs.py and scan_findings.py for source-compatible scan state
+- plugin_executions.py and file_inventory.py for check/file evidence
+- task_creation.py for finding-to-task/subtask conversion with dedupe
+- task_workflow.py for task/subtask/parent state updates
+- validation_runner.py for command descriptors and evidence normalization
+- qg_workflow.py for QA-fail-to-finding/task behavior
+- execution_sessions.py for agent-native run evidence
+- audit_events.py for approval, write, validation and state transition audit
+- cycle.py orchestration that pulls exactly one next task/subtask, analyzes
+  files, executes through approval/validation, persists state and emits
+  next_autonomous_step
+- MCP tools for scan jobs, findings, tasks, QA gates, execution sessions, audit
+  events and PR state
+
+### 6.3 Gap Rule
+
+The migration must not be called complete while these gaps remain:
+
+1. No selected_task_for_agent_takeover in runtime reports.
+2. No executable finding-to-task/subtask pipeline.
+3. No QA-gate-failure-to-task behavior.
+4. No source-compatible scan_jobs, scan_findings or plugin_executions schema.
+5. No agent-native execution_sessions table/module.
+6. No validation_runner that records command, cwd, exit_code and summaries.
+7. No MCP state tools for findings, tasks, QA, execution and audit.
+8. No project improvement mode that goes through findings/tasks/audit.
+
+Contract statement: The current implementation is a bootstrap adapter until AN-1 through AN-8 are implemented and validated.
+
+### 6.4 Immediate Implementation Order
+
+The next implementation work must proceed in this order:
+
+1. AN-1 Agent Analysis Contract.
+2. AN-2 Source-Compatible Finding Model.
+3. AN-3 Finding To Task/Subtask Pipeline.
+4. AN-5 Quality Gate Workflow And Task Takeover.
+5. AN-6 Agent Execution Sessions.
+6. AN-7 Autonomous Cycle Orchestrator.
+7. AN-8 MCP State Expansion.
+8. AN-9 Agent Studio Packaging.
+
+Do not jump to Agent Studio packaging or MCP expansion before the local schema,
+analysis, findings and task pipeline exist.
+
+## 7. Implementation Phases
 
 ### Phase AN-0: Contract Freeze
 
@@ -628,7 +706,7 @@ Acceptance:
 - Slack test proves the Agent uses MCP clone/state plus its own Python execution.
 - Response includes findings/tasks/session evidence.
 
-## 7. Runtime Layers Not Ported, Functionality Still Ported
+## 8. Runtime Layers Not Ported, Functionality Still Ported
 
 These old product/runtime layers are not migration targets because the Workspace
 Agent does not need them as infrastructure:
@@ -663,7 +741,7 @@ workweise is still migrated and adapted:
 
 Contract statement: Infrastructure is not ported 1:1, but Code Sentinel's functional workweise is migrated into the Workspace Agent runtime.
 
-## 8. Definition Of Done
+## 9. Definition Of Done
 
 The migration is not complete until:
 
@@ -682,4 +760,6 @@ The migration is not complete until:
 11. Agent work cycles pull one task/subtask, analyze files, execute through
     approval and validation, then persist next_autonomous_step.
 12. Project improvement work always goes through findings/tasks and audit.
-13. No final response claims completion without runtime evidence.
+13. Current Ist/Soll gap rule is empty or explicitly superseded by newer
+    validated implementation evidence.
+14. No final response claims completion without runtime evidence.
