@@ -553,11 +553,12 @@ AN-8 status: implemented locally for SQLite-backed MCP-state tools covering
 scan jobs, findings, tasks, QA gate processing, execution sessions, reports,
 audit events and PR state. AN-9 foundation E2E now proves the managed
 Agent Studio/Slack agent can consume MCP DB state for project/memory plus a
-repo-based script probe; expanded findings/tasks/QA/execution tool coverage
-remains AN-9 work.
+repo-based script probe. AN-9 expanded-state E2E now proves the managed
+Workspace Agent can use the direct MCP state tools to create/read a scan job,
+finding, task, execution session, report and selected task evidence.
 
-AN-9 status: foundation E2E passed through the managed Workspace Agent. Formal
-Slack harness run
+AN-9 status: foundation and expanded-state E2E passed through the managed
+Workspace Agent. Foundation Slack harness run
 `runs/workspace-agents/code-sentinel/code-sentinel-2026-06-07T06-59-34-555Z`
 posted only the exact execution prompt, passed evaluation with no findings, and
 returned clone_head `ef9b519`, actions_used `clone_repository`,
@@ -566,26 +567,30 @@ run_command_exit_code `0`, script_execution_mode
 `python_executed_from_cloned_repo`, mcp_result_consumed `true`, and
 stdout_json.status `script_mcp_db_e2e_passed`. The earlier
 `blocked_cloned_repo_path_not_mounted_in_agent_container` conclusion is
-superseded by this run. AN-9 is not fully complete until an expanded Slack E2E
-also proves findings/tasks/session evidence through the MCP state tools.
+superseded by this run.
 
-AN-9 expanded-state E2E status: blocked in the managed Workspace Agent. Formal
-Slack harness run
-`runs/workspace-agents/code-sentinel/code-sentinel-2026-06-07T07-11-47-611Z`
-used only the exact execution prompt and returned
-`status=blocked_state_tools_unavailable`. Evidence: clone_head `ef9b519`,
-state_lock_acquire/state_run_start/state_lock_release succeeded,
-lock_acquired `true`, run_started `true`, lock_released `true`, but
-state_qa_gate_process was reported unavailable and therefore findings_count,
-tasks_count and execution_sessions_count remained `0`. Local MCP validation
-does list the expanded tools; the remaining blocker is connector/Agent exposure
-of expanded state tools, not the Python runtime schema.
+AN-9 expanded-state E2E status: passed in the managed Workspace Agent after the
+MCP direct-tool schemas were made explicit and the MCP service was rebuilt and
+restarted. Formal Slack harness run
+`runs/workspace-agents/code-sentinel/code-sentinel-2026-06-07T10-08-46-161Z`
+passed evaluation with no findings and returned
+`status=expanded_state_e2e_passed`, repository_name `agent-code-sentinel`,
+clone_head `90b3ffd`, clone_ref `origin/main`, tools
+`state_scan_job_create`, `state_scan_finding_upsert`,
+`state_tasks_create_from_findings`, `state_execution_session_record`,
+`state_tasks_list`, `state_execution_sessions_list`, `state_report_get`
+and `state_lock_release`, findings_count `1`, tasks_count `1`,
+execution_sessions_count `1`, report_counts.tasks `1`,
+selected_task_for_agent_takeover present and lock_released `true`.
 
 ### 6.4 Immediate Implementation Order
 
 The next implementation work must proceed in this order:
 
-1. AN-9 Agent Studio Packaging: expanded findings/tasks/session Slack E2E.
+1. Project improvement mode: use the proven MCP state tools plus the
+   agent-code-sentinel runtime repo to let the managed Agent select a real
+   pending task, analyze files, propose/execute an approved bounded change,
+   validate, update task state and audit the result.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
