@@ -651,6 +651,66 @@ def test_mcp_state_task_execution_result_accepts_static_readback_diff_validation
     assert payload["execution_session"]["files_modified"] == ["docs/bounded-edit-e2e-proof.md"]
 
 
+def test_mcp_state_qa_review_outcomes_round_trip_through_report(tmp_path: Path) -> None:
+    db_path = tmp_path / "state.db"
+    seed_project(db_path)
+    start = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_run_start",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-review-outcomes", "latest_ref": "main@review"}),
+    )
+    assert start.returncode == 0, start.stderr
+
+    for gate in ("reuse", "duplicate_code", "dead_code", "unused_code"):
+        result = run_cli(
+            "mcp-state",
+            "--db",
+            str(db_path),
+            "--tool",
+            "state_qa_gate_process",
+            "--payload-json",
+            json.dumps(
+                {
+                    "project_id": "proj-devopshub",
+                    "run_id": "run-review-outcomes",
+                    "gate": gate,
+                    "command": "read_file + git_diff approved file",
+                    "exit_code": 0,
+                    "stdout": f"{gate} reviewed from live repository evidence",
+                }
+            ),
+        )
+        assert result.returncode == 0, result.stderr
+        payload = parse_json(result)
+        assert payload["gate"] == gate
+        assert payload["validation"]["status"] == "passed"
+
+    report = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_report_get",
+        "--payload-json",
+        json.dumps({"run_id": "run-review-outcomes"}),
+    )
+    assert report.returncode == 0, report.stderr
+    report_payload = parse_json(report)
+    outcomes = report_payload["qa_review_outcomes"]
+    assert {outcome["gate"] for outcome in outcomes} == {
+        "reuse",
+        "duplicate_code",
+        "dead_code",
+        "unused_code",
+    }
+    assert all(outcome["status"] == "passed" for outcome in outcomes)
+    assert report_payload["missing_review_outcomes"] == []
+
+
 def test_mcp_state_expanded_tools_accept_nested_payload_wrapper(tmp_path: Path) -> None:
     db_path = tmp_path / "state.db"
     seed_project(db_path)

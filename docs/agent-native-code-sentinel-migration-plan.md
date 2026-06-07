@@ -668,10 +668,18 @@ Current local progress:
   `dead_code` and `unused_code`; missing outcomes are reported as `missing`
   instead of being silently skipped. Focused CLI tests prove both the missing
   outcome blocker and the passing case where all four outcomes are recorded.
-- Next open implementation slice: persist those QA review outcomes from managed
-  Agent runs through MCP/Slack in a real project-improvement cycle, so the
-  Workspace Agent reports reuse/dead-code/unused-code/duplicate-code evidence
-  from live repository analysis, not only local CLI state.
+- QA review outcome persistence through managed MCP/Slack is now proven by
+  `runs/workspace-agents/code-sentinel/code-sentinel-2026-06-07T13-06-48-048Z`.
+  The managed Agent cloned `nullsoft8411/agent-code-sentinel` at
+  `clone_head=162b21f`, used direct MCP state tools, called
+  `state_qa_gate_process` for `reuse`, `duplicate_code`, `dead_code` and
+  `unused_code`, read `state_report_get`, returned all four
+  `qa_review_outcomes` as `passed`, returned `missing_review_outcomes=[]`,
+  recorded `report_counts.qa_gates=4`, released the lock and completed the
+  Slack evaluator with `status=pass` and no findings.
+- Next open implementation slice: broaden the real project-improvement cycle so
+  the managed Agent derives those QA review outcomes from actual repository
+  analysis during task takeover, not from an isolated QA-outcome E2E fixture.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.

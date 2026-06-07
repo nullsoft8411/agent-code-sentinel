@@ -37,6 +37,8 @@ def report(db_path: str | Path, run_id: str) -> tuple[int, dict]:
             "execution_sessions": count(conn, "agent_execution_sessions", run_id),
         }
 
+    review_outcomes = qa_review_outcomes(db_path, row["run_id"])
+
     return 0, {
         "status": "passed",
         "run": {
@@ -50,7 +52,10 @@ def report(db_path: str | Path, run_id: str) -> tuple[int, dict]:
             "target": row["target"],
         },
         "counts": counts,
-        "qa_review_outcomes": qa_review_outcomes(db_path, row["run_id"]),
+        "qa_review_outcomes": review_outcomes,
+        "missing_review_outcomes": [
+            outcome["gate"] for outcome in review_outcomes if outcome["status"] == "missing"
+        ],
         "execution_sessions": list_execution_sessions(db_path, run_id=row["run_id"]),
         "selected_task_for_agent_takeover": selected_task_for_agent_takeover(
             db_path,
