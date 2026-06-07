@@ -10,7 +10,7 @@ from typing import Any
 
 from .approvals import approval_check, record_approval
 from .audit_events import AuditEventInput, append_audit_event, list_audit_events
-from .cycle import next_step_from_memory, row_to_dict
+from .cycle import next_step_from_memory, row_to_dict, run_autonomous_cycle
 from .db import connect, initialize_database
 from .execution_sessions import list_execution_sessions, parse_execution_session_payload, record_execution_session
 from .postgres_state import (
@@ -42,6 +42,7 @@ ALLOWED_SQLITE_TOOLS = [
     "state_lock_acquire",
     "state_lock_release",
     "state_run_start",
+    "state_run_cycle",
     "state_append_event",
     "state_scan_job_create",
     "state_scan_finding_upsert",
@@ -80,6 +81,8 @@ def call_tool(db_path: str | Path, tool_name: str, payload: dict[str, Any] | Non
             run_id=require_str(payload, "run_id"),
             latest_ref=payload.get("latest_ref"),
         )
+    if tool_name == "state_run_cycle":
+        return state_run_cycle(db_path, payload)
     if tool_name == "state_lock_acquire":
         return state_lock_acquire(
             db_path,
@@ -298,6 +301,17 @@ def state_run_start(
         "repository_delta": "repository truth must be checked before trusting memory",
         "next_autonomous_step": run["next_autonomous_step"],
     }
+
+
+def state_run_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[int, dict]:
+    try:
+        return run_autonomous_cycle(db_path, payload)
+    except ValueError as exc:
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "INVALID_CYCLE_PAYLOAD",
+            "reason": str(exc),
+        }
 
 
 def state_lock_acquire(

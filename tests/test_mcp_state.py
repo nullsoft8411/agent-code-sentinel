@@ -42,6 +42,66 @@ def seed_project(db_path: Path) -> None:
         conn.commit()
 
 
+def create_mcp_cycle_project(root: Path) -> Path:
+    project = root / "mcp-cycle-project"
+    project.mkdir()
+    (project / "pyproject.toml").write_text("[project]\nname = 'mcp-cycle-project'\n", encoding="utf-8")
+    package = project / "src" / "mcp_cycle_project"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (package / "app.py").write_text("def main():\n    return 'ok'\n", encoding="utf-8")
+    tests = project / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text("from mcp_cycle_project.app import main\n\ndef test_main():\n    assert main() == 'ok'\n", encoding="utf-8")
+    return project
+
+
+def seed_takeover_task(db_path: Path, *, run_id: str, affected_file: str) -> None:
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "insert into runs(id, project_id, status, current_focus) values (?, ?, ?, ?)",
+            (run_id, "proj-devopshub", "in_progress", "autonomous_cycle"),
+        )
+        conn.execute(
+            """
+            insert into findings(id, run_id, project_id, signature, category, severity, file_path, title)
+            values (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f"finding-{run_id}",
+                run_id,
+                "proj-devopshub",
+                f"finding:{run_id}",
+                "validation",
+                "high",
+                affected_file,
+                "MCP run-cycle task finding",
+            ),
+        )
+        conn.execute(
+            """
+            insert into tasks(
+              id, finding_id, run_id, project_id, status, priority, title,
+              affected_file, task_type, task_signature
+            )
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f"task-{run_id}",
+                f"finding-{run_id}",
+                run_id,
+                "proj-devopshub",
+                "pending",
+                50,
+                "Fix MCP run-cycle task",
+                affected_file,
+                "standalone",
+                f"standalone:finding:{run_id}",
+            ),
+        )
+        conn.commit()
+
+
 def test_mcp_state_reads_project_and_memory(tmp_path: Path) -> None:
     db_path = tmp_path / "state.db"
     seed_project(db_path)
@@ -709,6 +769,57 @@ def test_mcp_state_qa_review_outcomes_round_trip_through_report(tmp_path: Path) 
     }
     assert all(outcome["status"] == "passed" for outcome in outcomes)
     assert report_payload["missing_review_outcomes"] == []
+
+
+def test_mcp_state_run_cycle_derives_review_outcomes_from_task_takeover(tmp_path: Path) -> None:
+    db_path = tmp_path / "state.db"
+    project_path = create_mcp_cycle_project(tmp_path)
+    seed_project(db_path)
+    seed_takeover_task(
+        db_path,
+        run_id="run-mcp-cycle-review",
+        affected_file="src/mcp_cycle_project/app.py",
+    )
+
+    result = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_run_cycle",
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-mcp-cycle-review",
+                "latest_ref": "main@mcp-cycle-review",
+                "project_path": str(project_path),
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 0, result.stderr
+    assert payload["status"] == "passed"
+    assert payload["selected_task_for_agent_takeover"]["id"] == "task-run-mcp-cycle-review"
+    package = payload["improvement_work_package"]
+    assert package["file_evidence"]["status"] == "passed"
+    assert package["file_evidence"]["source_snapshot"]["line_count"] >= 1
+    assert [item["gate"] for item in package["qa_review_outcomes"]] == [
+        "reuse",
+        "duplicate_code",
+        "dead_code",
+        "unused_code",
+    ]
+    assert payload["report"]["missing_review_outcomes"] == []
+    assert [item["status"] for item in payload["report"]["qa_review_outcomes"]] == [
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+    ]
+    assert payload["report"]["counts"]["qa_gates"] == 4
+    assert payload["lock_released"] is True
 
 
 def test_mcp_state_expanded_tools_accept_nested_payload_wrapper(tmp_path: Path) -> None:

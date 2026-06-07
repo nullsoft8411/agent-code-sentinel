@@ -692,6 +692,23 @@ Current local progress:
   `run-cycle` path through MCP/Slack so the managed Agent can trigger the same
   repo-analysis-derived QA outcomes from its cloned workspace instead of only
   through local CLI execution.
+- MCP runtime dispatch now exposes `state_run_cycle` locally. The runtime
+  `mcp-state` path calls the same `run_autonomous_cycle` implementation and a
+  focused MCP-state test proves task-takeover review derivation from a readable
+  project path. The `trend-mcp` adapter schema and direct tool registration now
+  include `state_run_cycle`; local MCP smoke lists the tool with 44 total tools
+  and no missing state tools, and authenticated live `tools/list` on the
+  restarted service reports `has_state_run_cycle=true`.
+- Managed Slack/Studio E2E is still blocked until the ChatGPT connector session
+  refreshes its approved tool snapshot. Run
+  `runs/workspace-agents/code-sentinel/code-sentinel-2026-06-07T13-21-16-711Z`
+  returned `STATE_RUN_CYCLE_TOOL_UNAVAILABLE`: the Agent cloned the repo at
+  `clone_head=79692eb` and saw existing state tools, but did not yet see
+  `state_run_cycle`, so it correctly returned blocked without faking evidence.
+- Next open implementation slice: refresh/reconnect the unpublished MCPc
+  connector so ChatGPT sees `state_run_cycle`, then rerun
+  `workflows/code-sentinel-run-cycle-review-mcp-e2e.json` and require pass
+  evidence before marking the managed MCP/Slack E2E complete.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
