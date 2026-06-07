@@ -44,6 +44,22 @@ def seed_cycle_state(db_path: Path) -> None:
         conn.commit()
 
 
+def create_cycle_project(root: Path) -> Path:
+    project = root / "cycle-project"
+    project.mkdir()
+    (project / "AGENTS.md").write_text("# Local Rules\n\nRun focused checks first.\n", encoding="utf-8")
+    (project / "README.md").write_text("# Cycle Project\n", encoding="utf-8")
+    (project / "pyproject.toml").write_text("[project]\nname = 'cycle-project'\n", encoding="utf-8")
+    package = project / "src" / "cycle_project"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (package / "app.py").write_text("def main():\n    return 'ok'\n", encoding="utf-8")
+    tests = project / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text("from cycle_project.app import main\n\ndef test_main():\n    assert main() == 'ok'\n", encoding="utf-8")
+    return project
+
+
 def test_resume_cycle_loads_memory_creates_run_and_emits_next_step(tmp_path: Path) -> None:
     db_path = tmp_path / "runtime.db"
     seed_cycle_state(db_path)
@@ -146,6 +162,8 @@ def test_run_cycle_selects_existing_task_and_releases_lock(tmp_path: Path) -> No
     assert payload["status"] == "passed"
     assert payload["selected_task_for_agent_takeover"]["id"] == "task-cycle"
     assert payload["cycle_session"]["session_type"] == "autonomous_cycle"
+    assert payload["audit_event"]["event_type"] == "autonomous_cycle"
+    assert payload["audit_event"]["payload"]["selected_task_id"] == "task-cycle"
     assert payload["report"]["counts"]["execution_sessions"] == 1
     assert payload["lock_released"] is True
 
@@ -161,6 +179,70 @@ def test_run_cycle_selects_existing_task_and_releases_lock(tmp_path: Path) -> No
     assert active_locks == 0
     assert run_row[0] == "task_takeover"
     assert "task-cycle" in run_row[1]
+
+
+def test_run_cycle_collects_project_scan_file_plugin_and_audit_evidence(tmp_path: Path) -> None:
+    db_path = tmp_path / "runtime.db"
+    project_path = create_cycle_project(tmp_path)
+    seed_cycle_state(db_path)
+
+    result = run_cli(
+        "run-cycle",
+        "--db",
+        str(db_path),
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-project-evidence",
+                "latest_ref": "main@project-evidence",
+                "project_path": str(project_path),
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 0, result.stderr
+    assert payload["status"] == "passed"
+    assert payload["project_evidence"]["status"] == "passed"
+    assert payload["project_evidence"]["project_context"]["project_rules"]["agents_md_count"] >= 1
+    assert payload["project_evidence"]["file_checks_count"] >= 4
+    assert payload["project_evidence"]["scan_job"]["status"] == "completed"
+    assert payload["project_evidence"]["scan_job"]["files_scanned"] == payload["project_evidence"]["file_checks_count"]
+    assert {item["plugin_name"] for item in payload["project_evidence"]["plugin_executions"]} == {
+        "file_inventory",
+        "project_context",
+    }
+    assert payload["cycle_session"]["output"]["project_evidence_status"] == "passed"
+    assert payload["audit_event"]["payload"]["project_evidence_status"] == "passed"
+    assert payload["audit_event"]["payload"]["scan_job_id"] == payload["project_evidence"]["scan_job"]["id"]
+    assert payload["lock_released"] is True
+
+    with sqlite3.connect(db_path) as conn:
+        scan_row = conn.execute(
+            "select status, files_scanned from scan_jobs where run_id = ?",
+            ("run-project-evidence",),
+        ).fetchone()
+        file_checks = conn.execute(
+            "select count(*) from file_checks where run_id = ?",
+            ("run-project-evidence",),
+        ).fetchone()[0]
+        plugin_executions = conn.execute(
+            "select count(*) from plugin_executions where run_id = ?",
+            ("run-project-evidence",),
+        ).fetchone()[0]
+        audit_count = conn.execute(
+            "select count(*) from audit_events where run_id = ?",
+            ("run-project-evidence",),
+        ).fetchone()[0]
+        active_locks = conn.execute(
+            "select count(*) from state_locks where status = 'active' and released_at is null"
+        ).fetchone()[0]
+
+    assert scan_row == ("completed", file_checks)
+    assert plugin_executions == 2
+    assert audit_count == 1
+    assert active_locks == 0
 
 
 def test_run_cycle_blocks_write_without_approval_and_releases_lock(tmp_path: Path) -> None:
@@ -237,6 +319,8 @@ def test_run_cycle_validation_failure_creates_takeover_task_and_sessions(tmp_pat
     assert payload["report"]["counts"]["tasks"] == 1
     assert payload["report"]["counts"]["validation_attempts"] == 1
     assert payload["report"]["counts"]["execution_sessions"] == 2
+    assert payload["audit_event"]["summary"] == "Cycle exited with status blocking"
+    assert payload["audit_event"]["payload"]["validation_status"] == "blocking"
     assert payload["lock_released"] is True
 
     with sqlite3.connect(db_path) as conn:

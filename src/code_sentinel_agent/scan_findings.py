@@ -1,22 +1,11 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from typing import Any
 
 from .db import connect
-
-
-@dataclass(frozen=True)
-class ScanJobInput:
-    id: str
-    project_id: str
-    run_id: str | None
-    scanner_name: str
-    scan_type: str
-    status: str = "running"
-    target_ref: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+from .db_rows import json_object, sqlite_row_to_dict, sqlite_table_columns
+from .scan_jobs import ScanJobInput, create_scan_job
 
 
 @dataclass(frozen=True)
@@ -40,43 +29,15 @@ class ScanFindingInput:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def create_scan_job(db_path: str, job: ScanJobInput) -> dict[str, Any]:
-    with connect(db_path) as conn:
-        conn.execute(
-            """
-            insert into scan_jobs(
-              id, run_id, project_id, scanner_name, scan_type, status,
-              target_ref, metadata_json
-            )
-            values (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                job.id,
-                job.run_id,
-                job.project_id,
-                job.scanner_name,
-                job.scan_type,
-                job.status,
-                job.target_ref,
-                _json(job.metadata),
-            ),
-        )
-        conn.commit()
-        return _row_to_dict(
-            conn.execute("select * from scan_jobs where id = ?", (job.id,)).fetchone(),
-            [column[1] for column in conn.execute("pragma table_info(scan_jobs)").fetchall()],
-        )
-
-
 def upsert_scan_finding(db_path: str, finding: ScanFindingInput) -> dict[str, Any]:
     with connect(db_path) as conn:
         existing = conn.execute(
             "select * from scan_findings where project_id = ? and signature = ?",
             (finding.project_id, finding.signature),
         ).fetchone()
-        scan_columns = [column[1] for column in conn.execute("pragma table_info(scan_findings)").fetchall()]
+        scan_columns = sqlite_table_columns(conn, "scan_findings")
         if existing:
-            return {"created": False, "finding": _row_to_dict(existing, scan_columns)}
+            return {"created": False, "finding": sqlite_row_to_dict(existing, scan_columns)}
 
         compatibility_finding_id = f"compat-{finding.id}"
         conn.execute(
@@ -129,18 +90,18 @@ def upsert_scan_finding(db_path: str, finding: ScanFindingInput) -> dict[str, An
                 finding.suggestion,
                 finding.evidence,
                 finding.signature,
-                _json(finding.metadata),
+                json_object(finding.metadata),
             ),
         )
         _refresh_scan_job_count(conn, finding.scan_job_id)
         conn.commit()
         row = conn.execute("select * from scan_findings where id = ?", (finding.id,)).fetchone()
-        return {"created": True, "finding": _row_to_dict(row, scan_columns)}
+        return {"created": True, "finding": sqlite_row_to_dict(row, scan_columns)}
 
 
 def list_scan_findings(db_path: str, *, project_id: str, run_id: str | None = None) -> list[dict[str, Any]]:
     with connect(db_path) as conn:
-        columns = [column[1] for column in conn.execute("pragma table_info(scan_findings)").fetchall()]
+        columns = sqlite_table_columns(conn, "scan_findings")
         if run_id:
             rows = conn.execute(
                 """
@@ -159,7 +120,7 @@ def list_scan_findings(db_path: str, *, project_id: str, run_id: str | None = No
                 """,
                 (project_id,),
             ).fetchall()
-        return [_row_to_dict(row, columns) for row in rows]
+        return [sqlite_row_to_dict(row, columns) for row in rows]
 
 
 def update_scan_finding_status(
@@ -219,11 +180,3 @@ def _required_run_id(run_id: str | None) -> str:
     if not run_id:
         raise ValueError("run_id is required for compatibility findings")
     return run_id
-
-
-def _json(value: dict[str, Any]) -> str:
-    return json.dumps(value, sort_keys=True)
-
-
-def _row_to_dict(row: Any, columns: list[str]) -> dict[str, Any]:
-    return dict(zip(columns, row, strict=True))

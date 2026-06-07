@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -7,10 +8,15 @@ from pathlib import Path
 from typing import Any
 
 from .approvals import approval_check
+from .audit_events import AuditEventInput, append_audit_event
 from .db import connect
 from .execution_sessions import ExecutionSessionInput, record_execution_session
+from .file_inventory import FileCheckInput, build_file_inventory, record_file_check
+from .plugin_executions import PluginExecutionInput, record_plugin_execution
+from .project_context import project_context
 from .qg_workflow import process_quality_gate_payload, selected_task_for_agent_takeover
 from .reports import report
+from .scan_jobs import ScanJobInput, create_scan_job, update_scan_job_progress
 
 DEFAULT_CYCLE_OWNER = "workspace-agent-cycle"
 
@@ -154,6 +160,14 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
             if validation_code != 0 and validation_result.get("status") != "blocking":
                 return validation_code, validation_result
 
+        project_evidence = _collect_project_evidence(
+            db_path,
+            payload,
+            project_id=project_id,
+            run_id=run_id,
+            latest_ref=latest_ref,
+        )
+
         selected_task = selected_task_for_agent_takeover(db_path, project_id=project_id, run_id=run_id)
         if selected_task:
             _update_run_next_step(
@@ -186,20 +200,46 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
                     "latest_ref": latest_ref,
                     "selected_task_id": selected_task["id"] if selected_task else None,
                     "validation_status": validation_result.get("status") if validation_result else None,
+                    "project_evidence_status": project_evidence["status"],
+                    "scan_job_id": project_evidence.get("scan_job", {}).get("id"),
+                    "file_checks_count": project_evidence.get("file_checks_count", 0),
                 },
                 files_modified=[],
                 attempt_log=[
                     {"step": "lock_acquired", "status": "passed"},
                     {"step": "run_state_loaded", "status": "passed"},
+                    {"step": "project_evidence", "status": project_evidence["status"]},
                     {"step": "selected_task", "status": "passed" if selected_task else "not_available"},
                 ],
                 completed_at=_utc_now(),
             ),
         )
+        status = "blocking" if validation_result and validation_result.get("status") == "blocking" else "passed"
+        audit_event = append_audit_event(
+            str(db_path),
+            AuditEventInput(
+                id=f"audit-cycle-{run_id}",
+                project_id=project_id,
+                run_id=run_id,
+                event_type="autonomous_cycle",
+                summary=f"Cycle exited with status {status}",
+                payload={
+                    "latest_ref": latest_ref,
+                    "selected_task_id": selected_task["id"] if selected_task else None,
+                    "current_focus": "task_takeover" if selected_task else "analysis",
+                    "validation_status": validation_result.get("status") if validation_result else None,
+                    "project_evidence_status": project_evidence["status"],
+                    "scan_job_id": project_evidence.get("scan_job", {}).get("id"),
+                    "file_checks_count": project_evidence.get("file_checks_count", 0),
+                    "plugin_execution_ids": [
+                        item["id"] for item in project_evidence.get("plugin_executions", [])
+                    ],
+                },
+            ),
+        )
         report_code, report_payload = report(db_path, run_id)
         if report_code != 0:
             return report_code, report_payload
-        status = "blocking" if validation_result and validation_result.get("status") == "blocking" else "passed"
         return (2 if status == "blocking" else 0), {
             "status": status,
             "project_id": project_id,
@@ -210,7 +250,9 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
             "repository_delta": start_payload["repository_delta"],
             "selected_task_for_agent_takeover": selected_task,
             "validation_result": validation_result,
+            "project_evidence": project_evidence,
             "cycle_session": cycle_session,
+            "audit_event": audit_event,
             "report": report_payload,
             "next_autonomous_step": report_payload["run"]["next_autonomous_step"],
             "lock_released": True,
@@ -232,6 +274,159 @@ def row_to_dict(row: sqlite3.Row | None) -> dict | None:
     if row is None:
         return None
     return {key: row[key] for key in row.keys()}
+
+
+def _collect_project_evidence(
+    db_path: str | Path,
+    payload: dict[str, Any],
+    *,
+    project_id: str,
+    run_id: str,
+    latest_ref: str,
+) -> dict[str, Any]:
+    project_path = str(payload.get("project_path") or "").strip()
+    if not project_path:
+        return {"status": "not_requested", "project_path": None, "file_checks_count": 0}
+
+    db_path_text = str(db_path)
+    scan_job = _ensure_cycle_scan_job(
+        db_path_text,
+        project_id=project_id,
+        run_id=run_id,
+        latest_ref=latest_ref,
+        project_path=project_path,
+    )
+    context_code, context_payload = project_context(project_path)
+    context_execution = record_plugin_execution(
+        db_path_text,
+        PluginExecutionInput(
+            id=_stable_id("plugin", run_id, "project_context"),
+            project_id=project_id,
+            run_id=run_id,
+            scan_job_id=scan_job["id"],
+            plugin_name="project_context",
+            status="passed" if context_code == 0 else "blocking",
+            exit_code=context_code,
+            stdout_summary=context_payload.get("status"),
+            stderr_summary=context_payload.get("blocker_code"),
+            metadata={"source": "autonomous_cycle"},
+        ),
+    )
+
+    inventory_code, inventory_payload = build_file_inventory(project_path)
+    inventory_execution = record_plugin_execution(
+        db_path_text,
+        PluginExecutionInput(
+            id=_stable_id("plugin", run_id, "file_inventory"),
+            project_id=project_id,
+            run_id=run_id,
+            scan_job_id=scan_job["id"],
+            plugin_name="file_inventory",
+            status="passed" if inventory_code == 0 else "blocking",
+            exit_code=inventory_code,
+            stdout_summary=inventory_payload.get("status"),
+            stderr_summary=inventory_payload.get("blocker_code"),
+            metadata={"source": "autonomous_cycle"},
+        ),
+    )
+
+    if context_code != 0 or inventory_code != 0:
+        blocker = context_payload.get("blocker_code") or inventory_payload.get("blocker_code") or "PROJECT_EVIDENCE_BLOCKED"
+        scan_job = update_scan_job_progress(
+            db_path_text,
+            scan_job_id=scan_job["id"],
+            status="failed",
+            error_message=str(blocker),
+        )
+        return {
+            "status": "blocking",
+            "blocker_code": blocker,
+            "project_path": project_path,
+            "project_context": context_payload,
+            "file_inventory": inventory_payload,
+            "scan_job": scan_job,
+            "plugin_executions": [context_execution, inventory_execution],
+            "file_checks_count": 0,
+        }
+
+    file_checks_count = 0
+    for file_record in inventory_payload["files"]:
+        record_file_check(
+            db_path_text,
+            FileCheckInput(
+                id=_stable_id("file-check", run_id, scan_job["id"], file_record["path"]),
+                project_id=project_id,
+                run_id=run_id,
+                scan_job_id=scan_job["id"],
+                file_path=file_record["path"],
+                content_sha256=file_record.get("content_sha256"),
+                language=file_record.get("language"),
+                status="passed",
+                checks=[{"name": "inventory", "status": "passed"}],
+                metadata={"bytes": file_record.get("bytes"), "source": "autonomous_cycle"},
+            ),
+        )
+        file_checks_count += 1
+
+    scan_job = update_scan_job_progress(
+        db_path_text,
+        scan_job_id=scan_job["id"],
+        status="completed",
+        files_total=file_checks_count + int(inventory_payload.get("skipped_count") or 0),
+        files_scanned=file_checks_count,
+        files_skipped=int(inventory_payload.get("skipped_count") or 0),
+    )
+    return {
+        "status": "passed",
+        "project_path": project_path,
+        "project_context": {
+            "context_summary": context_payload["context_summary"],
+            "project_rules": context_payload["project_rules"],
+            "check_detection": context_payload["check_detection"],
+            "git_truth": context_payload["git_truth"],
+            "next_autonomous_step": context_payload["next_autonomous_step"],
+        },
+        "file_inventory": {
+            "status": inventory_payload["status"],
+            "files_count": file_checks_count,
+            "skipped_count": inventory_payload["skipped_count"],
+        },
+        "scan_job": scan_job,
+        "plugin_executions": [context_execution, inventory_execution],
+        "file_checks_count": file_checks_count,
+    }
+
+
+def _ensure_cycle_scan_job(
+    db_path: str,
+    *,
+    project_id: str,
+    run_id: str,
+    latest_ref: str,
+    project_path: str,
+) -> dict[str, Any]:
+    scan_job_id = _stable_id("scan", run_id, project_path)
+    try:
+        return create_scan_job(
+            db_path,
+            ScanJobInput(
+                id=scan_job_id,
+                project_id=project_id,
+                run_id=run_id,
+                scanner_name="agent_autonomous_cycle",
+                scan_type="project_context",
+                status="running",
+                target_ref=latest_ref,
+                metadata={"project_path": project_path, "source": "run-cycle"},
+            ),
+        )
+    except sqlite3.IntegrityError:
+        return update_scan_job_progress(db_path, scan_job_id=scan_job_id, status="running")
+
+
+def _stable_id(prefix: str, *parts: object) -> str:
+    digest = hashlib.sha256(":".join(str(part) for part in parts).encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}-{digest}"
 
 
 def _acquire_cycle_lock(

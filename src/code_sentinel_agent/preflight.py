@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .check_detection import detect_checks
+from .project_context import project_context
 
 
 def preflight(project: str) -> tuple[int, dict]:
@@ -23,6 +24,7 @@ def preflight(project: str) -> tuple[int, dict]:
         }
 
     detection = detect_checks(path)
+    context_code, context = project_context(path)
     return 0, {
         "status": "passed",
         "target_project": str(path.resolve()),
@@ -31,5 +33,5 @@ def preflight(project: str) -> tuple[int, dict]:
             "agents_md": "present" if (path / "AGENTS.md").exists() else "missing",
         },
         "check_detection": detection,
+        "project_context": context if context_code == 0 else None,
     }
-

@@ -10,6 +10,7 @@ from .db import connect
 from .execution_sessions import ExecutionSessionInput, record_execution_session
 from .scan_findings import ScanFindingInput, upsert_scan_finding
 from .task_creation import create_tasks_from_findings
+from .task_workflow import next_runnable_task
 from .validation_runner import ValidationResult, normalize_validation_payload
 
 
@@ -184,38 +185,7 @@ def selected_task_for_agent_takeover(
     project_id: str,
     run_id: str,
 ) -> dict[str, Any] | None:
-    with connect(db_path) as conn:
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            """
-            select * from tasks
-            where project_id = ?
-              and run_id = ?
-              and status in ('pending', 'in_progress')
-              and task_type != 'parent'
-            order by priority desc, created_at, subtask_order
-            limit 1
-            """,
-            (project_id, run_id),
-        ).fetchone()
-        return _takeover_task_payload(row) if row else None
-
-
-def _takeover_task_payload(row: sqlite3.Row) -> dict[str, Any]:
-    return {
-        "id": row["id"],
-        "finding_id": row["finding_id"],
-        "run_id": row["run_id"],
-        "project_id": row["project_id"],
-        "parent_task_id": row["parent_task_id"],
-        "status": row["status"],
-        "priority": row["priority"],
-        "title": row["title"],
-        "affected_file": row["affected_file"],
-        "task_type": row["task_type"],
-        "task_signature": row["task_signature"],
-        "subtask_order": row["subtask_order"],
-    }
+    return next_runnable_task(str(db_path), project_id=project_id, run_id=run_id)
 
 
 def _finding_signature(result: ValidationResult, finding: dict[str, Any]) -> str:

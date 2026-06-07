@@ -179,7 +179,10 @@ def test_task_status_updates_parent_progress(tmp_path: Path) -> None:
         ).fetchone()
 
     assert parent[0] == "completed"
-    assert parent[1] == '{"blocked_subtasks": 0, "completed_subtasks": 2, "total_subtasks": 2}'
+    assert parent[1] == (
+        '{"blocked_subtasks": 0, "completed_subtasks": 2, '
+        '"failed_subtasks": 0, "total_subtasks": 2}'
+    )
 
 
 def test_create_tasks_blocks_when_subtask_limit_exceeded(tmp_path: Path) -> None:

@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from .audit_events import AuditEventInput, append_audit_event, list_audit_events
 from .cycle import next_step_from_memory, row_to_dict
 from .db import connect, initialize_database
 from .execution_sessions import list_execution_sessions, parse_execution_session_payload, record_execution_session
@@ -28,7 +29,8 @@ from .scan_findings import (
     update_scan_finding_status,
     upsert_scan_finding,
 )
-from .task_creation import create_tasks_from_findings, update_task_status
+from .task_creation import create_tasks_from_findings
+from .task_workflow import update_task_status
 
 
 DEFAULT_OWNER = "workspace-agent"
@@ -414,48 +416,19 @@ def state_scan_finding_status_update(db_path: str | Path, payload: dict[str, Any
 
 
 def state_audit_event_append(db_path: str | Path, payload: dict[str, Any]) -> tuple[int, dict]:
-    project_id = require_str(payload, "project_id")
-    event_type = require_str(payload, "event_type")
-    summary = require_str(payload, "summary")
-    run_id = payload.get("run_id")
-    payload_json = json.dumps(payload.get("payload") if isinstance(payload.get("payload"), dict) else {}, sort_keys=True)
-    event_id = str(payload.get("id") or f"audit-{digest(project_id, str(run_id), event_type, summary)}")
-    with connect(db_path) as conn:
-        conn.row_factory = sqlite3.Row
-        conn.execute(
-            """
-            insert or replace into audit_events(id, run_id, project_id, event_type, summary, payload_json)
-            values (?, ?, ?, ?, ?, ?)
-            """,
-            (event_id, run_id, project_id, event_type, summary, payload_json),
-        )
-        conn.commit()
-        row = conn.execute("select * from audit_events where id = ?", (event_id,)).fetchone()
-    return 0, {"status": "passed", "audit_event": audit_event_payload(row)}
+    event = AuditEventInput(
+        id=payload.get("id") if isinstance(payload.get("id"), str) else None,
+        project_id=require_str(payload, "project_id"),
+        run_id=payload.get("run_id") if isinstance(payload.get("run_id"), str) else None,
+        event_type=require_str(payload, "event_type"),
+        summary=require_str(payload, "summary"),
+        payload=payload.get("payload") if isinstance(payload.get("payload"), dict) else {},
+    )
+    return 0, {"status": "passed", "audit_event": append_audit_event(str(db_path), event)}
 
 
 def state_audit_events_list(db_path: str | Path, *, project_id: str, run_id: str | None = None) -> tuple[int, dict]:
-    with connect(db_path) as conn:
-        conn.row_factory = sqlite3.Row
-        if run_id:
-            rows = conn.execute(
-                """
-                select * from audit_events
-                where project_id = ? and run_id = ?
-                order by created_at, id
-                """,
-                (project_id, run_id),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                """
-                select * from audit_events
-                where project_id = ?
-                order by created_at, id
-                """,
-                (project_id,),
-            ).fetchall()
-    return 0, {"status": "passed", "audit_events": [audit_event_payload(row) for row in rows]}
+    return 0, {"status": "passed", "audit_events": list_audit_events(str(db_path), project_id=project_id, run_id=run_id)}
 
 
 def state_pr_state_set(db_path: str | Path, payload: dict[str, Any]) -> tuple[int, dict]:
@@ -606,18 +579,6 @@ def task_payload(row: sqlite3.Row) -> dict:
         "task_signature": row["task_signature"],
         "subtask_order": row["subtask_order"],
         "progress": json.loads(row["progress_json"] or "{}"),
-    }
-
-
-def audit_event_payload(row: sqlite3.Row) -> dict:
-    return {
-        "id": row["id"],
-        "run_id": row["run_id"],
-        "project_id": row["project_id"],
-        "event_type": row["event_type"],
-        "summary": row["summary"],
-        "payload": json.loads(row["payload_json"] or "{}"),
-        "created_at": row["created_at"],
     }
 
 

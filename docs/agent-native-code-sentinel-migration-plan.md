@@ -461,6 +461,9 @@ Current agent-code-sentinel runtime already has:
   - cycle.py loads memory/run state, checks write approval when requested,
     processes validation results, selects the next runnable task/subtask and
     records cycle session evidence
+  - cycle.py can now collect project-context evidence from a provided
+    project_path, persist a scan_job, file_checks and plugin_executions, and
+    include those ids/counts in cycle session plus audit evidence
   - validation-failed cycles create findings/tasks instead of false completion
   - blocked write cycles persist the approval blocker and release the lock
 - AN-8 MCP state expansion:
@@ -478,18 +481,29 @@ Current agent-code-sentinel runtime already has:
 The Agent runtime still must implement the actual Code Sentinel work logic:
 
 - project_context.py for AGENTS.md chain, README/docs, configs, git truth and
-  relevant file selection
+  relevant file selection: implemented as the next runtime work-logic building
+  block and exposed through the project-context CLI plus preflight integration.
 - output_contract.py expansion for task, report and blocker shapes beyond the
   AN-1 analysis/finding contract
 - scan_jobs.py expansion for scan job status lifecycle, totals and completion
-  handling beyond the AN-2 repository bootstrap
+  handling beyond the AN-2 repository bootstrap: implemented with create,
+  progress update, get and list helpers while preserving the existing
+  scan_findings compatibility API.
 - plugin_executions.py and file_inventory.py runtime helpers for check/file
-  evidence beyond the AN-2 schema
+  evidence beyond the AN-2 schema: implemented with plugin execution records,
+  deterministic source-file inventory, content hashes and file_check
+  persistence helpers.
 - task_workflow.py expansion for richer task/subtask/parent state transitions
-  beyond the AN-3 status/progress bootstrap
-- audit_events.py expansion beyond the AN-8 MCP audit-event table helpers
+  beyond the AN-3 status/progress bootstrap: implemented with allowed task
+  statuses, assignment, next-runnable task selection, attempt counting and
+  parent progress derivation for completed, blocked and failed subtasks.
+- audit_events.py expansion beyond the AN-8 MCP audit-event table helpers:
+  implemented as a dedicated audit module with idempotent append/list helpers,
+  CLI commands, MCP-state delegation and autonomous-cycle exit evidence.
 - cycle.py expansion for broader project-context scan/improvement planning
-  beyond the AN-7 one-step local orchestrator
+  beyond the AN-7 one-step local orchestrator: implemented for local
+  project_path intake with project_context, file_inventory, scan_job,
+  plugin_execution, file_check, cycle_session and audit_event persistence.
 - Agent Studio/Slack packaging that uses the expanded MCP-state surface from
   the managed Workspace Agent
 
@@ -502,6 +516,9 @@ The migration must not be called complete while these gaps remain:
 2. Slack/Studio foundation E2E is now proven for cloning the runtime repo,
    reading MCP DB state and executing an agent-code-sentinel Python script from
    the cloned checkout. Expanded findings/tasks/session E2E remains open.
+3. Local run-cycle project evidence E2E is implemented and tested, but the
+   managed Agent still needs an Agent Studio/Slack E2E that calls it from the
+   cloned repo against MCP-provided state.
 
 Contract statement: The current implementation is a bootstrap adapter until AN-1 through AN-8 are implemented and validated.
 
