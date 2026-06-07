@@ -7,7 +7,7 @@ by the Workspace Agent through PIKA MCP and executed from the cloned checkout.
 
 This runtime is a local adapter. Agent Studio and Slack remain the human-facing
 agent surfaces; the adapter provides deterministic state, command output, and
-write-approval checks when Codex or another approved executor runs it.
+write-approval checks when the Workspace Agent runtime uses it.
 
 ## State
 

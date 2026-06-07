@@ -74,3 +74,22 @@ def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     assert "Findings can create jobs, parent tasks and subtasks" in plan
     assert "Agent-native execution sessions replace old Claude sessions" in plan
     assert "external Claude CLI execution" in plan
+    assert "QA gate failure creates findings and tasks" in plan
+    assert "selected_task_for_agent_takeover" in plan
+    assert "The task is not delegated to Claude, tmux, Claude CLI, or any external AI executor" in plan
+
+
+def test_target_runtime_has_no_external_ai_executor_code() -> None:
+    forbidden = [
+        "ClaudeExecutor",
+        "claude_executor",
+        "Claude CLI",
+        "tmux",
+    ]
+    target_files = list((ROOT / "src/code_sentinel_agent").rglob("*.py"))
+
+    assert target_files
+    for path in target_files:
+        content = path.read_text()
+        for phrase in forbidden:
+            assert phrase not in content, f"{phrase} must not exist in {path.relative_to(ROOT)}"

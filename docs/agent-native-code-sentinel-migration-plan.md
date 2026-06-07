@@ -186,7 +186,62 @@ Target replacement:
 The Agent is the intelligence layer. Python scripts provide deterministic
 state, extraction, normalization, validation and reporting.
 
-## 3. Target Runtime Flow
+## 3. QA Gate Ownership And Task Takeover
+
+The local Code Sentinel flow uses QA gates in scanner and workflow phases:
+
+- preflight and QG plugins decide whether normal analysis may continue
+- failing gates create technical evidence: command, exit code, files, error
+  summaries and issue records
+- issue records become findings
+- findings become standalone tasks or parent/subtasks
+- tasks are then processed by the old task-processing worker through a task
+  executor
+
+Target ownership is different:
+
+- QA gate execution is represented by agent-native scripts and normalized
+  results.
+- QA gate failure must create findings and tasks. It must not be reported as a
+  completed run.
+- The next runnable task is assigned back to the Workspace Agent as the current
+  autonomous work item.
+- The Agent performs the task analysis and decides the fix plan itself.
+- The Agent may request edits, command runs, commits or PRs only through the
+  explicit approval policy.
+- No external executor may be imported, wrapped, called, installed or kept as a
+  dormant target-runtime path.
+
+Contract statement: QA gate failure creates findings and tasks for the Workspace Agent to take over.
+Contract statement: The task is not delegated to Claude, tmux, Claude CLI, or any external AI executor.
+
+Target task handoff record:
+
+- task_id
+- parent_task_id
+- subtask_sequence
+- finding_ids
+- qa_gate_run_id
+- assigned_to: workspace_agent
+- takeover_reason
+- required_context_files
+- proposed_fix_plan_json
+- approval_required
+- validation_commands_json
+- status
+- next_autonomous_step
+
+The Agent's response after a failed gate must include:
+
+1. the failing gate
+2. the finding IDs or signatures
+3. the created task/subtask IDs
+4. the task selected for takeover
+5. whether write approval is required
+6. the next validation command
+7. why the run is blocked, in_progress or completed
+
+## 4. Target Runtime Flow
 
 One autonomous cycle must follow this order:
 
@@ -197,21 +252,23 @@ One autonomous cycle must follow this order:
    configs, CI configs, git status and relevant source files.
 5. Create a scan job.
 6. Run preflight and blocker gates.
-7. Run scanner plugins and command-output parsers.
-8. Let the Agent analyze the context and create additional reasoned findings.
-9. Persist scan findings.
-10. Convert findings to tasks, parent tasks and subtasks.
-11. Pick the next runnable task or subtask.
-12. Produce an agent-native fix plan.
-13. Check approval before any write, branch, commit, PR or delete.
-14. Execute allowed edits or return blocked with exact approval needed.
-15. Run validation commands.
-16. Persist QA gate results, validation attempts, execution session and audit
+7. If a QA gate fails, normalize the failure into findings.
+8. Run scanner plugins and command-output parsers for additional findings when
+   the gate state allows it.
+9. Let the Agent analyze the context and create additional reasoned findings.
+10. Persist scan findings.
+11. Convert findings to tasks, parent tasks and subtasks.
+12. Pick the next runnable task or subtask for Workspace Agent takeover.
+13. Produce an agent-native fix plan.
+14. Check approval before any write, branch, commit, PR or delete.
+15. Execute allowed edits or return blocked with exact approval needed.
+16. Run validation commands.
+17. Persist QA gate results, validation attempts, execution session and audit
     events.
-17. Emit JSON report with status, evidence, next_autonomous_step and blockers.
-18. Release project lock.
+18. Emit JSON report with status, evidence, next_autonomous_step and blockers.
+19. Release project lock.
 
-## 4. Implementation Phases
+## 5. Implementation Phases
 
 ### Phase AN-0: Contract Freeze
 
@@ -321,11 +378,11 @@ Acceptance:
 - It creates findings from available evidence and reports unavailable checks as
   blockers, not success.
 
-### Phase AN-5: Quality Gate Workflow
+### Phase AN-5: Quality Gate Workflow And Task Takeover
 
 Goal:
 
-- Port QG state machine and validation evidence.
+- Port QG state machine, validation evidence and failed-gate task takeover.
 
 Tasks:
 
@@ -333,11 +390,15 @@ Tasks:
 2. Add validation_runner.py with allowed command descriptors.
 3. Normalize lint/type/test outputs into findings and gate records.
 4. Persist gate runs, fix sessions and validation attempts.
+5. On failed gate, create findings and tasks through task_creation.py.
+6. Assign the next runnable task/subtask to the Workspace Agent, not an external
+   executor.
 
 Acceptance:
 
 - Preflight blocks unsafe work.
 - Failed validation creates findings/tasks instead of false completion.
+- Failed QA gate returns selected_task_for_agent_takeover.
 - Passed validation includes exact command and exit_code.
 
 ### Phase AN-6: Agent Execution Sessions
@@ -353,11 +414,14 @@ Tasks:
 3. Persist script name, execution method, command, output JSON, error summary,
    files_modified, started_at and completed_at.
 4. Add sanitized attempt logs.
+5. Add a guard test that target runtime code does not import or reference
+   ClaudeExecutor, Claude CLI or tmux.
 
 Acceptance:
 
 - Every agent-native analysis/fix/validation pass has a session record.
 - No Claude model, token, tmux or external-AI session field is required.
+- No dormant external-executor code exists in src/code_sentinel_agent.
 
 ### Phase AN-7: Autonomous Cycle Orchestrator
 
@@ -421,12 +485,14 @@ Acceptance:
 - Slack test proves the Agent uses MCP clone/state plus its own Python execution.
 - Response includes findings/tasks/session evidence.
 
-## 5. Non-Goals
+## 6. Non-Goals
 
 These are not migration targets:
 
 - external Claude CLI execution
 - tmux as execution runtime
+- ClaudeExecutor or any wrapper around it
+- dormant external-AI executor modules
 - Claude token/model budget as target accounting
 - FastAPI product API
 - React admin UI
@@ -437,7 +503,7 @@ These are not migration targets:
 
 These remain source references for state, safety and workflow design only.
 
-## 6. Definition Of Done
+## 7. Definition Of Done
 
 The migration is not complete until:
 
@@ -451,4 +517,6 @@ The migration is not complete until:
 7. Agent-native execution sessions replace old Claude sessions.
 8. Repeated scheduled runs continue from prior MCP state.
 9. QA gates include reuse, duplicate code, dead code and unused code outcomes.
-10. No final response claims completion without runtime evidence.
+10. Failed QA gates create findings/tasks and the selected task is taken over by
+    the Workspace Agent.
+11. No final response claims completion without runtime evidence.
