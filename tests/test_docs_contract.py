@@ -89,6 +89,10 @@ def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     assert "High: QA-gate failure does not create findings/tasks" in plan
     assert "AN-2 schema migration is a hard dependency for AN-4, AN-5, AN-6, AN-7 and" in plan
     assert "No AN phase can be marked complete from docs-only assertions" in plan
+    assert "Every AN phase requires a focused unit/integration test and a phase-specific E2E test" in plan
+    assert "Phase E2E Gate Matrix" in plan
+    assert "Slack/Studio E2E" in plan
+    assert "Every AN phase has a passing phase-specific E2E test" in plan
 
 
 def test_target_runtime_has_no_external_ai_executor_code() -> None:

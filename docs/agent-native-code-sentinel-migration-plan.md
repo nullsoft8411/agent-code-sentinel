@@ -622,9 +622,34 @@ Before claiming any phase complete, the implementation must show:
 2. implementation committed to the local runtime, not only docs
 3. pytest for the affected tests passing
 4. final_quality_report PASS for changed productive files
-5. reuse/dead-code/duplicate-code check result stated
-6. risk and rollback path stated
-7. no false complete wording if runtime evidence is missing
+5. phase-specific E2E test passing
+6. reuse/dead-code/duplicate-code check result stated
+7. risk and rollback path stated
+8. no false complete wording if runtime evidence is missing
+
+Contract statement: Every AN phase requires a focused unit/integration test and a phase-specific E2E test before it can be marked complete.
+
+### 6.7 Phase E2E Gate Matrix
+
+Each phase must include an E2E test that proves the Agent-facing behavior, not
+only an internal unit. E2E tests may be local CLI E2E, MCP-state E2E, or
+Slack/Studio E2E depending on the phase.
+
+| Phase | Required E2E proof |
+|---|---|
+| AN-1 Agent Analysis Contract | CLI E2E: pass project context JSON to analyze-context and receive normalized findings plus fix_plan JSON with no secrets. |
+| AN-2 Source-Compatible Finding Model | DB E2E: initialize DB, create scan job and scan findings, dedupe by signature, list findings by project/run. |
+| AN-3 Finding To Task/Subtask Pipeline | DB/CLI E2E: seed findings, create standalone task and parent/subtasks, rerun to prove duplicate signatures do not duplicate tasks. |
+| AN-4 ScanJob And Plugin Execution | CLI E2E: run scan on a fixture repo, persist scan_job, plugin_execution and findings, return blocker/static_only when checks are unavailable. |
+| AN-5 Quality Gate Workflow And Task Takeover | CLI E2E: seed failing QA gate or validation output, create finding/task, return selected_task_for_agent_takeover and validation evidence. |
+| AN-6 Agent Execution Sessions | CLI E2E: record an agent-native execution session with command/output JSON, status, artifacts and no external executor fields. |
+| AN-7 Autonomous Cycle Orchestrator | Local runtime E2E: start with project memory plus queued findings/tasks, acquire lock, select one task/subtask, update state and emit next_autonomous_step. |
+| AN-8 MCP State Expansion | MCP E2E: use PIKA MCP state tools to persist/read project, run, findings, tasks, QA, execution and audit state without raw SQL. |
+| AN-9 Agent Studio Packaging | Slack/Studio E2E: Agent clones repo through MCP, reads shared state, runs agent-native script, reports findings/tasks/session evidence. |
+
+E2E evidence must include command or prompt, environment surface, exit_code or
+agent response ID, stdout_json or response JSON, and the exact state mutation
+observed. If any part is unavailable, the phase is blocked, not complete.
 
 ## 7. Implementation Phases
 
@@ -670,6 +695,8 @@ Acceptance:
 - Findings contain signature, category, severity, file, line, title,
   description, source and evidence.
 - Result can be persisted without external AI references.
+- E2E: analyze-context processes a fixture context JSON and returns findings and
+  fix_plan JSON with no secret leakage.
 
 ### Phase AN-2: Source-Compatible Finding Model
 
@@ -691,6 +718,8 @@ Acceptance:
 - A scan job can create findings.
 - Duplicate findings do not create duplicate tasks.
 - Finding state can be serialized through MCP state tools later.
+- E2E: DB migration plus scan_job/scan_finding insert/list/dedupe works from a
+  fresh database.
 
 ### Phase AN-3: Finding To Task/Subtask Pipeline
 
@@ -713,6 +742,8 @@ Acceptance:
 - Multiple findings in one file create one parent and N subtasks.
 - Duplicate signatures are skipped.
 - Parent status derives from subtask state.
+- E2E: seeded findings create the expected standalone task and parent/subtasks,
+  then a rerun proves duplicates are not created.
 
 ### Phase AN-4: ScanJob And Plugin Execution
 
@@ -735,6 +766,8 @@ Acceptance:
 - It can run in static-only mode if command execution is unavailable.
 - It creates findings from available evidence and reports unavailable checks as
   blockers, not success.
+- E2E: scan on a fixture repo persists scan_job, plugin_execution and findings
+  or returns a controlled blocker/static_only result with evidence.
 
 ### Phase AN-5: Quality Gate Workflow And Task Takeover
 
@@ -758,6 +791,8 @@ Acceptance:
 - Failed validation creates findings/tasks instead of false completion.
 - Failed QA gate returns selected_task_for_agent_takeover.
 - Passed validation includes exact command and exit_code.
+- E2E: failing validation output creates a finding, task/subtask and
+  selected_task_for_agent_takeover with validation evidence.
 
 ### Phase AN-6: Agent Execution Sessions
 
@@ -780,6 +815,8 @@ Acceptance:
 - Every agent-native analysis/fix/validation pass has a session record.
 - No Claude model, token, tmux or external-AI session field is required.
 - No dormant external-executor code exists in src/code_sentinel_agent.
+- E2E: execution session record stores command/output/status/artifacts and
+  exposes no Claude/tmux/external executor fields.
 
 ### Phase AN-7: Autonomous Cycle Orchestrator
 
@@ -806,6 +843,8 @@ Acceptance:
 - It emits next_autonomous_step rather than stopping at analysis.
 - It pulls exactly one next task/subtask from shared state.
 - It never performs untracked improvement edits.
+- E2E: local autonomous cycle starts from seeded project/memory/tasks, selects
+  exactly one task/subtask, updates state and emits next_autonomous_step.
 
 ### Phase AN-8: MCP State Expansion
 
@@ -827,6 +866,8 @@ Acceptance:
 - MCP DB has enough state for repeated scheduled runs.
 - Two agent runs cannot silently fork state.
 - The Agent can read prior findings/tasks from MCP.
+- E2E: PIKA MCP state tools persist and retrieve findings, tasks, QA, execution
+  and audit state without raw SQL or generic command execution.
 
 ### Phase AN-9: Agent Studio Packaging
 
@@ -847,6 +888,8 @@ Acceptance:
 - Studio intake proves the updated instructions/files are present.
 - Slack test proves the Agent uses MCP clone/state plus its own Python execution.
 - Response includes findings/tasks/session evidence.
+- E2E: Slack/Studio run returns clone/ref, MCP state evidence, script execution
+  evidence and created/read findings/tasks/session evidence.
 
 ## 8. Runtime Layers Not Ported, Functionality Still Ported
 
@@ -904,4 +947,5 @@ The migration is not complete until:
 12. Project improvement work always goes through findings/tasks and audit.
 13. Current Ist/Soll gap rule is empty or explicitly superseded by newer
     validated implementation evidence.
-14. No final response claims completion without runtime evidence.
+14. Every AN phase has a passing phase-specific E2E test.
+15. No final response claims completion without runtime evidence.
