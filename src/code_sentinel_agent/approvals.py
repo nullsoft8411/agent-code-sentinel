@@ -8,6 +8,54 @@ from pathlib import Path
 from .db import connect
 
 
+def record_approval(
+    db_path: str | Path,
+    *,
+    approval_id: str,
+    run_id: str,
+    target_project: str,
+    branch: str | None,
+    allowed_paths: list[str],
+    allowed_actions: list[str],
+    approved_by: str,
+    approval_evidence: str,
+    expires_at: str | None = None,
+) -> dict:
+    with connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """
+            insert into approvals(
+              id, run_id, target_project, branch, allowed_paths_json,
+              allowed_actions_json, approved_by, approval_evidence, expires_at
+            )
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(id) do update set
+              target_project = excluded.target_project,
+              branch = excluded.branch,
+              allowed_paths_json = excluded.allowed_paths_json,
+              allowed_actions_json = excluded.allowed_actions_json,
+              approved_by = excluded.approved_by,
+              approval_evidence = excluded.approval_evidence,
+              expires_at = excluded.expires_at
+            """,
+            (
+                approval_id,
+                run_id,
+                target_project,
+                branch,
+                json.dumps(allowed_paths, sort_keys=True),
+                json.dumps(allowed_actions, sort_keys=True),
+                approved_by,
+                approval_evidence,
+                expires_at,
+            ),
+        )
+        conn.commit()
+        row = conn.execute("select * from approvals where id = ?", (approval_id,)).fetchone()
+    return approval_payload(row)
+
+
 def approval_check(
     db_path: str | Path,
     *,
@@ -93,4 +141,3 @@ def blocked(blocker_code: str, reason: str, approval: dict | None = None) -> tup
     if approval:
         payload["approval"] = approval
     return 2, payload
-

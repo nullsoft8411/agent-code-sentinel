@@ -388,6 +388,146 @@ def test_mcp_state_expanded_tools_persist_findings_tasks_qa_execution_audit_and_
     assert parse_json(pr_get)["pr_state"]["status"] == "draft"
 
 
+def test_mcp_state_records_approved_task_execution_result(tmp_path: Path) -> None:
+    db_path = tmp_path / "state.db"
+    seed_project(db_path)
+    run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_run_start",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-task-result", "latest_ref": "main@task-result"}),
+    )
+    run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_scan_job_create",
+        "--payload-json",
+        json.dumps(
+            {
+                "id": "scan-task-result",
+                "project_id": "proj-devopshub",
+                "run_id": "run-task-result",
+                "scanner_name": "agent_analysis",
+                "scan_type": "agent_context",
+                "status": "completed",
+            }
+        ),
+    )
+    run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_scan_finding_upsert",
+        "--payload-json",
+        json.dumps(
+            {
+                "id": "finding-task-result",
+                "project_id": "proj-devopshub",
+                "run_id": "run-task-result",
+                "scan_job_id": "scan-task-result",
+                "scanner_name": "agent_analysis",
+                "rule_id": "validation_error",
+                "signature": "finding:task-result",
+                "severity": "high",
+                "title": "Validation failed",
+                "message": "pytest failed",
+                "file_path": "src/app.py",
+                "line_number": 5,
+            }
+        ),
+    )
+    create_tasks = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_tasks_create_from_findings",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-task-result"}),
+    )
+    task_id = parse_json(create_tasks)["created_tasks"][0]["id"]
+    approval = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_approval_record",
+        "--payload-json",
+        json.dumps(
+            {
+                "id": "approval-task-result",
+                "run_id": "run-task-result",
+                "target_project": "nullsoft8411/devopshub",
+                "branch": "main",
+                "allowed_paths": ["src/app.py"],
+                "allowed_actions": ["file_write"],
+                "approved_by": "operator",
+                "approval_evidence": "explicit per-run MCP test approval",
+            }
+        ),
+    )
+    assert approval.returncode == 0, approval.stderr
+    assert parse_json(approval)["approval"]["allowed_paths"] == ["src/app.py"]
+
+    result = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_task_execution_result",
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-task-result",
+                "write_request": {
+                    "target_project": "nullsoft8411/devopshub",
+                    "branch": "main",
+                    "path": "src/app.py",
+                    "action": "file_write",
+                },
+                "task_execution_result": {
+                    "task_id": task_id,
+                    "files_modified": ["src/app.py"],
+                    "validation_result": {
+                        "gate": "task_validation",
+                        "command": "python3 -m pytest tests -q",
+                        "exit_code": 0,
+                        "stdout": "1 passed",
+                    },
+                },
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 0, result.stderr
+    assert payload["status"] == "passed"
+    assert payload["task"]["status"] == "completed"
+    assert payload["approval_enforced"] is True
+    assert payload["execution_session"]["session_type"] == "task_execution"
+
+    report = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_report_get",
+        "--payload-json",
+        json.dumps({"run_id": "run-task-result"}),
+    )
+    report_payload = parse_json(report)
+    assert report_payload["counts"]["validation_attempts"] == 1
+    assert report_payload["counts"]["execution_sessions"] == 2
+    assert report_payload["selected_task_for_agent_takeover"] is None
+
+
 def test_mcp_state_expanded_tools_accept_nested_payload_wrapper(tmp_path: Path) -> None:
     db_path = tmp_path / "state.db"
     seed_project(db_path)

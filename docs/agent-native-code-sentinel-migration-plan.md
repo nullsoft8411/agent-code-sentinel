@@ -474,6 +474,10 @@ Current agent-code-sentinel runtime already has:
 - AN-8 MCP state expansion:
   - MCP-state tools expose scan jobs, findings, tasks, QA processing, execution
     sessions, reports, audit events and PR state
+  - MCP-state now exposes state_approval_record and
+    state_task_execution_result so the managed Agent can record explicit
+    per-run approval evidence and route task result ingestion through the same
+    validation/session/task-status logic as the local runtime
   - raw SQL remains unavailable through the MCP-state dispatch
   - project locks remain the write concurrency guard for scheduled runs
 - simple report counts
@@ -617,6 +621,12 @@ Current local progress:
   persists task_execution sessions, completes successful tasks and increments
   failed-validation attempts. This still does not prove a managed Workspace
   Agent Slack/Studio E2E has executed a real bounded edit from the cloned repo.
+- MCP bridge for that result-ingestion path is implemented locally and exposed
+  through trend-mcp schemas. state_approval_record persists explicit approval
+  evidence; state_task_execution_result applies the approved task result and
+  records validation/session/task status. Local Runtime tests and trend-mcp
+  state-tool listing smoke are passing. The next open step is the managed
+  Slack/Studio E2E using these two tools.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.

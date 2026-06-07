@@ -148,6 +148,8 @@ Available MCP-state tools:
 - `state_tasks_create_from_findings`
 - `state_tasks_list`
 - `state_task_status_update`
+- `state_approval_record`
+- `state_task_execution_result`
 - `state_qa_gate_process`
 - `state_execution_session_record`
 - `state_execution_sessions_list`

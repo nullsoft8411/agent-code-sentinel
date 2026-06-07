@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from .approvals import approval_check, record_approval
 from .audit_events import AuditEventInput, append_audit_event, list_audit_events
 from .cycle import next_step_from_memory, row_to_dict
 from .db import connect, initialize_database
@@ -30,6 +31,7 @@ from .scan_findings import (
     upsert_scan_finding,
 )
 from .task_creation import create_tasks_from_findings
+from .task_execution import apply_task_execution_result
 from .task_workflow import update_task_status
 
 
@@ -48,6 +50,8 @@ ALLOWED_SQLITE_TOOLS = [
     "state_tasks_create_from_findings",
     "state_tasks_list",
     "state_task_status_update",
+    "state_approval_record",
+    "state_task_execution_result",
     "state_qa_gate_process",
     "state_execution_session_record",
     "state_execution_sessions_list",
@@ -134,6 +138,10 @@ def call_tool(db_path: str | Path, tool_name: str, payload: dict[str, Any] | Non
             task_id=require_str(payload, "task_id"),
             status=require_str(payload, "status"),
         )
+    if tool_name == "state_approval_record":
+        return state_approval_record(db_path, payload)
+    if tool_name == "state_task_execution_result":
+        return state_task_execution_result(db_path, payload)
     if tool_name == "state_qa_gate_process":
         return process_quality_gate_payload(db_path, payload)
     if tool_name == "state_execution_session_record":
@@ -423,6 +431,55 @@ def state_scan_finding_status_update(db_path: str | Path, payload: dict[str, Any
     return (0 if result["status"] == "passed" else 2), result
 
 
+def state_approval_record(db_path: str | Path, payload: dict[str, Any]) -> tuple[int, dict]:
+    run_id = require_str(payload, "run_id")
+    target_project = require_str(payload, "target_project")
+    approval = record_approval(
+        db_path,
+        approval_id=str(payload.get("id") or f"approval-{digest(run_id, target_project)}"),
+        run_id=run_id,
+        target_project=target_project,
+        branch=str(payload.get("branch") or "").strip() or None,
+        allowed_paths=require_str_list(payload, "allowed_paths"),
+        allowed_actions=require_str_list(payload, "allowed_actions"),
+        approved_by=require_str(payload, "approved_by"),
+        approval_evidence=require_str(payload, "approval_evidence"),
+        expires_at=str(payload.get("expires_at") or "").strip() or None,
+    )
+    return 0, {"status": "passed", "approval": approval}
+
+
+def state_task_execution_result(db_path: str | Path, payload: dict[str, Any]) -> tuple[int, dict]:
+    approval_result = None
+    write_request = payload.get("write_request") if isinstance(payload.get("write_request"), dict) else None
+    if write_request:
+        approval_code, approval_result = approval_check(
+            db_path,
+            run_id=require_str(payload, "run_id"),
+            target_project=require_str(write_request, "target_project"),
+            branch=require_str(write_request, "branch"),
+            path=require_str(write_request, "path"),
+            action=require_str(write_request, "action"),
+        )
+        if approval_code != 0:
+            return approval_code, approval_result
+
+    execution_payload = payload.get("task_execution_result")
+    if not isinstance(execution_payload, dict):
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "TASK_EXECUTION_RESULT_REQUIRED",
+            "next_action": "provide task_execution_result with task_id and validation_result",
+        }
+    return apply_task_execution_result(
+        db_path,
+        project_id=require_str(payload, "project_id"),
+        run_id=require_str(payload, "run_id"),
+        execution_result=execution_payload,
+        approval_result=approval_result,
+    )
+
+
 def state_audit_event_append(db_path: str | Path, payload: dict[str, Any]) -> tuple[int, dict]:
     event = AuditEventInput(
         id=payload.get("id") if isinstance(payload.get("id"), str) else None,
@@ -614,6 +671,16 @@ def require_str(payload: dict[str, Any], key: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{key} is required")
     return value.strip()
+
+
+def require_str_list(payload: dict[str, Any], key: str) -> list[str]:
+    value = payload.get(key)
+    if not isinstance(value, list):
+        raise ValueError(f"{key} must be a non-empty string list")
+    result = [str(item).strip() for item in value if str(item).strip()]
+    if not result:
+        raise ValueError(f"{key} must be a non-empty string list")
+    return result
 
 
 def detect_backend(db_path: str | Path) -> dict:
