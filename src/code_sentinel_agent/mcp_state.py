@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import sqlite3
 import importlib.util
+import hashlib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from .cycle import next_step_from_memory, row_to_dict
 from .db import connect, initialize_database
+from .execution_sessions import list_execution_sessions, parse_execution_session_payload, record_execution_session
 from .postgres_state import (
     initialize_postgres_database,
     postgres_lock_acquire,
@@ -16,9 +18,43 @@ from .postgres_state import (
     postgres_project_get,
     postgres_run_start,
 )
+from .qg_workflow import process_quality_gate_payload
+from .reports import report
+from .scan_findings import (
+    ScanFindingInput,
+    ScanJobInput,
+    create_scan_job,
+    list_scan_findings,
+    update_scan_finding_status,
+    upsert_scan_finding,
+)
+from .task_creation import create_tasks_from_findings, update_task_status
 
 
 DEFAULT_OWNER = "workspace-agent"
+ALLOWED_SQLITE_TOOLS = [
+    "state_project_get",
+    "state_memory_get",
+    "state_lock_acquire",
+    "state_lock_release",
+    "state_run_start",
+    "state_append_event",
+    "state_scan_job_create",
+    "state_scan_finding_upsert",
+    "state_scan_findings_list",
+    "state_scan_finding_status_update",
+    "state_tasks_create_from_findings",
+    "state_tasks_list",
+    "state_task_status_update",
+    "state_qa_gate_process",
+    "state_execution_session_record",
+    "state_execution_sessions_list",
+    "state_report_get",
+    "state_audit_event_append",
+    "state_audit_events_list",
+    "state_pr_state_set",
+    "state_pr_state_get",
+]
 
 
 def call_tool(db_path: str | Path, tool_name: str, payload: dict[str, Any] | None = None) -> tuple[int, dict]:
@@ -61,18 +97,75 @@ def call_tool(db_path: str | Path, tool_name: str, payload: dict[str, Any] | Non
             path=str(payload.get("path") or ""),
             sha256=payload.get("sha256"),
         )
+    if tool_name == "state_scan_job_create":
+        return 0, {"status": "passed", "scan_job": create_scan_job(str(db_path), scan_job_input(payload))}
+    if tool_name == "state_scan_finding_upsert":
+        return 0, {"status": "passed", **upsert_scan_finding(str(db_path), scan_finding_input(payload))}
+    if tool_name == "state_scan_findings_list":
+        return 0, {
+            "status": "passed",
+            "findings": list_scan_findings(
+                str(db_path),
+                project_id=require_str(payload, "project_id"),
+                run_id=payload.get("run_id"),
+            ),
+        }
+    if tool_name == "state_scan_finding_status_update":
+        return state_scan_finding_status_update(db_path, payload)
+    if tool_name == "state_tasks_create_from_findings":
+        return create_tasks_from_findings(
+            str(db_path),
+            project_id=require_str(payload, "project_id"),
+            run_id=require_str(payload, "run_id"),
+            max_subtasks_per_parent=int(payload.get("max_subtasks_per_parent") or 20),
+        )
+    if tool_name == "state_tasks_list":
+        return state_tasks_list(
+            db_path,
+            project_id=require_str(payload, "project_id"),
+            run_id=payload.get("run_id"),
+        )
+    if tool_name == "state_task_status_update":
+        return update_task_status(
+            str(db_path),
+            task_id=require_str(payload, "task_id"),
+            status=require_str(payload, "status"),
+        )
+    if tool_name == "state_qa_gate_process":
+        return process_quality_gate_payload(db_path, payload)
+    if tool_name == "state_execution_session_record":
+        return 0, {
+            "status": "passed",
+            "session": record_execution_session(str(db_path), parse_execution_session_payload(payload)),
+        }
+    if tool_name == "state_execution_sessions_list":
+        return 0, {
+            "status": "passed",
+            "execution_sessions": list_execution_sessions(db_path, run_id=require_str(payload, "run_id")),
+        }
+    if tool_name == "state_report_get":
+        return report(db_path, require_str(payload, "run_id"))
+    if tool_name == "state_audit_event_append":
+        return state_audit_event_append(db_path, payload)
+    if tool_name == "state_audit_events_list":
+        return state_audit_events_list(
+            db_path,
+            project_id=require_str(payload, "project_id"),
+            run_id=payload.get("run_id"),
+        )
+    if tool_name == "state_pr_state_set":
+        return state_pr_state_set(db_path, payload)
+    if tool_name == "state_pr_state_get":
+        return state_pr_state_get(
+            db_path,
+            project_id=require_str(payload, "project_id"),
+            branch=require_str(payload, "branch"),
+        )
     return 2, {
         "status": "blocked",
         "blocker_code": "UNKNOWN_MCP_STATE_TOOL",
         "tool_name": tool_name,
-        "allowed_tools": [
-            "state_project_get",
-            "state_memory_get",
-            "state_run_start",
-            "state_lock_acquire",
-            "state_lock_release",
-            "state_append_event",
-        ],
+        "allowed_tools": ALLOWED_SQLITE_TOOLS,
     }
 
 
@@ -280,6 +373,136 @@ def state_append_event(
     return 0, {"status": "passed", "event_appended": True, "artifact_id": artifact_id, "run_id": run_id}
 
 
+def state_tasks_list(db_path: str | Path, *, project_id: str, run_id: str | None = None) -> tuple[int, dict]:
+    with connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        if run_id:
+            rows = conn.execute(
+                """
+                select * from tasks
+                where project_id = ? and run_id = ?
+                order by priority desc, created_at, subtask_order
+                """,
+                (project_id, run_id),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                select * from tasks
+                where project_id = ?
+                order by priority desc, created_at, subtask_order
+                """,
+                (project_id,),
+            ).fetchall()
+    return 0, {"status": "passed", "tasks": [task_payload(row) for row in rows]}
+
+
+def state_scan_finding_status_update(db_path: str | Path, payload: dict[str, Any]) -> tuple[int, dict]:
+    result = update_scan_finding_status(
+        str(db_path),
+        project_id=require_str(payload, "project_id"),
+        signature=require_str(payload, "signature"),
+        status=require_str(payload, "status"),
+    )
+    return (0 if result["status"] == "passed" else 2), result
+
+
+def state_audit_event_append(db_path: str | Path, payload: dict[str, Any]) -> tuple[int, dict]:
+    project_id = require_str(payload, "project_id")
+    event_type = require_str(payload, "event_type")
+    summary = require_str(payload, "summary")
+    run_id = payload.get("run_id")
+    payload_json = json.dumps(payload.get("payload") if isinstance(payload.get("payload"), dict) else {}, sort_keys=True)
+    event_id = str(payload.get("id") or f"audit-{digest(project_id, str(run_id), event_type, summary)}")
+    with connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """
+            insert or replace into audit_events(id, run_id, project_id, event_type, summary, payload_json)
+            values (?, ?, ?, ?, ?, ?)
+            """,
+            (event_id, run_id, project_id, event_type, summary, payload_json),
+        )
+        conn.commit()
+        row = conn.execute("select * from audit_events where id = ?", (event_id,)).fetchone()
+    return 0, {"status": "passed", "audit_event": audit_event_payload(row)}
+
+
+def state_audit_events_list(db_path: str | Path, *, project_id: str, run_id: str | None = None) -> tuple[int, dict]:
+    with connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        if run_id:
+            rows = conn.execute(
+                """
+                select * from audit_events
+                where project_id = ? and run_id = ?
+                order by created_at, id
+                """,
+                (project_id, run_id),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                select * from audit_events
+                where project_id = ?
+                order by created_at, id
+                """,
+                (project_id,),
+            ).fetchall()
+    return 0, {"status": "passed", "audit_events": [audit_event_payload(row) for row in rows]}
+
+
+def state_pr_state_set(db_path: str | Path, payload: dict[str, Any]) -> tuple[int, dict]:
+    project_id = require_str(payload, "project_id")
+    branch = require_str(payload, "branch")
+    run_id = payload.get("run_id")
+    state_id = str(payload.get("id") or f"pr-{digest(project_id, branch)}")
+    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+    with connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """
+            insert into pr_states(id, project_id, run_id, branch, base_branch, status, pr_url, metadata_json)
+            values (?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(project_id, branch) do update set
+              run_id = excluded.run_id,
+              base_branch = excluded.base_branch,
+              status = excluded.status,
+              pr_url = excluded.pr_url,
+              metadata_json = excluded.metadata_json,
+              updated_at = datetime('now')
+            """,
+            (
+                state_id,
+                project_id,
+                run_id,
+                branch,
+                payload.get("base_branch"),
+                require_str(payload, "status"),
+                payload.get("pr_url"),
+                json.dumps(metadata, sort_keys=True),
+            ),
+        )
+        conn.commit()
+        row = conn.execute(
+            "select * from pr_states where project_id = ? and branch = ?",
+            (project_id, branch),
+        ).fetchone()
+    return 0, {"status": "passed", "pr_state": pr_state_payload(row)}
+
+
+def state_pr_state_get(db_path: str | Path, *, project_id: str, branch: str) -> tuple[int, dict]:
+    with connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "select * from pr_states where project_id = ? and branch = ?",
+            (project_id, branch),
+        ).fetchone()
+    if row is None:
+        return mcp_blocked("PR_STATE_NOT_FOUND", "create PR state before reading it", project_id=project_id, branch=branch)
+    return 0, {"status": "passed", "pr_state": pr_state_payload(row)}
+
+
 def active_lock(conn: sqlite3.Connection, project_id: str) -> sqlite3.Row | None:
     return conn.execute(
         """
@@ -323,6 +546,92 @@ def mcp_blocked(blocker_code: str, reason: str, **extra: Any) -> tuple[int, dict
     payload = {"status": "blocked", "blocker_code": blocker_code, "reason": reason}
     payload.update(extra)
     return 2, payload
+
+
+def scan_job_input(payload: dict[str, Any]) -> ScanJobInput:
+    return ScanJobInput(
+        id=require_str(payload, "id"),
+        project_id=require_str(payload, "project_id"),
+        run_id=payload.get("run_id"),
+        scanner_name=require_str(payload, "scanner_name"),
+        scan_type=require_str(payload, "scan_type"),
+        status=str(payload.get("status") or "running"),
+        target_ref=payload.get("target_ref"),
+        metadata=payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {},
+    )
+
+
+def scan_finding_input(payload: dict[str, Any]) -> ScanFindingInput:
+    return ScanFindingInput(
+        id=require_str(payload, "id"),
+        project_id=require_str(payload, "project_id"),
+        run_id=payload.get("run_id"),
+        scan_job_id=payload.get("scan_job_id"),
+        scanner_name=require_str(payload, "scanner_name"),
+        rule_id=require_str(payload, "rule_id"),
+        signature=require_str(payload, "signature"),
+        severity=require_str(payload, "severity"),
+        title=require_str(payload, "title"),
+        file_path=payload.get("file_path"),
+        line_number=payload.get("line_number"),
+        column_number=payload.get("column_number"),
+        status=str(payload.get("status") or "open"),
+        message=payload.get("message"),
+        suggestion=payload.get("suggestion"),
+        evidence=payload.get("evidence"),
+        metadata=payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {},
+    )
+
+
+def task_payload(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "finding_id": row["finding_id"],
+        "run_id": row["run_id"],
+        "project_id": row["project_id"],
+        "parent_task_id": row["parent_task_id"],
+        "status": row["status"],
+        "priority": row["priority"],
+        "title": row["title"],
+        "affected_file": row["affected_file"],
+        "attempt_count": row["attempt_count"],
+        "max_attempts": row["max_attempts"],
+        "task_type": row["task_type"],
+        "task_signature": row["task_signature"],
+        "subtask_order": row["subtask_order"],
+        "progress": json.loads(row["progress_json"] or "{}"),
+    }
+
+
+def audit_event_payload(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "run_id": row["run_id"],
+        "project_id": row["project_id"],
+        "event_type": row["event_type"],
+        "summary": row["summary"],
+        "payload": json.loads(row["payload_json"] or "{}"),
+        "created_at": row["created_at"],
+    }
+
+
+def pr_state_payload(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "project_id": row["project_id"],
+        "run_id": row["run_id"],
+        "branch": row["branch"],
+        "base_branch": row["base_branch"],
+        "status": row["status"],
+        "pr_url": row["pr_url"],
+        "metadata": json.loads(row["metadata_json"] or "{}"),
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def digest(*parts: str) -> str:
+    return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()[:16]
 
 
 def require_str(payload: dict[str, Any], key: str) -> str:

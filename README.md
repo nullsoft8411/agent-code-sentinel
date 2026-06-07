@@ -141,6 +141,21 @@ Available MCP-state tools:
 - `state_lock_release`
 - `state_run_start`
 - `state_append_event`
+- `state_scan_job_create`
+- `state_scan_finding_upsert`
+- `state_scan_findings_list`
+- `state_scan_finding_status_update`
+- `state_tasks_create_from_findings`
+- `state_tasks_list`
+- `state_task_status_update`
+- `state_qa_gate_process`
+- `state_execution_session_record`
+- `state_execution_sessions_list`
+- `state_report_get`
+- `state_audit_event_append`
+- `state_audit_events_list`
+- `state_pr_state_set`
+- `state_pr_state_get`
 
 Parallel run rule: every write-capable autonomous run must acquire
 `state_lock_acquire` for its project first. If another run holds the lock, the

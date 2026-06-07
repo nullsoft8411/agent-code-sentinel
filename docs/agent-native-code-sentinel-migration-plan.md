@@ -463,6 +463,11 @@ Current agent-code-sentinel runtime already has:
     records cycle session evidence
   - validation-failed cycles create findings/tasks instead of false completion
   - blocked write cycles persist the approval blocker and release the lock
+- AN-8 MCP state expansion:
+  - MCP-state tools expose scan jobs, findings, tasks, QA processing, execution
+    sessions, reports, audit events and PR state
+  - raw SQL remains unavailable through the MCP-state dispatch
+  - project locks remain the write concurrency guard for scheduled runs
 - simple report counts
 - source inventory extraction
 - docs/tests that prevent ClaudeExecutor, Claude CLI and tmux from entering
@@ -482,24 +487,20 @@ The Agent runtime still must implement the actual Code Sentinel work logic:
   evidence beyond the AN-2 schema
 - task_workflow.py expansion for richer task/subtask/parent state transitions
   beyond the AN-3 status/progress bootstrap
-- audit_events.py for approval, write, validation and state transition audit
+- audit_events.py expansion beyond the AN-8 MCP audit-event table helpers
 - cycle.py expansion for broader project-context scan/improvement planning
   beyond the AN-7 one-step local orchestrator
-- MCP tools for scan jobs, findings, tasks, QA gates, execution sessions, audit
-  events and PR state
+- Agent Studio/Slack packaging that uses the expanded MCP-state surface from
+  the managed Workspace Agent
 
 ### 6.3 Gap Rule
 
 The migration must not be called complete while these gaps remain:
 
-1. No selected_task_for_agent_takeover in runtime reports.
-2. No executable finding-to-task/subtask pipeline.
-3. No QA-gate-failure-to-task behavior.
-4. No source-compatible scan_jobs, scan_findings or plugin_executions schema.
-5. No agent-native execution_sessions table/module.
-6. No validation_runner that records command, cwd, exit_code and summaries.
-7. No MCP state tools for findings, tasks, QA, execution and audit.
-8. No project improvement mode that goes through findings/tasks/audit.
+1. No project improvement mode that goes through findings/tasks/audit in the
+   managed Agent Studio packaging.
+2. No Slack/Studio E2E proving the managed Workspace Agent clones this repo,
+   uses MCP state and runs the agent-native scripts from its environment.
 
 Contract statement: The current implementation is a bootstrap adapter until AN-1 through AN-8 are implemented and validated.
 
@@ -530,12 +531,16 @@ lock handling, write-approval blocking, validation-failed task takeover,
 selected task reporting and cycle session evidence. It does not yet expose the
 expanded findings/tasks/QA/execution state through MCP; that remains AN-8 work.
 
+AN-8 status: implemented locally for SQLite-backed MCP-state tools covering
+scan jobs, findings, tasks, QA gate processing, execution sessions, reports,
+audit events and PR state. It does not yet prove the managed Agent Studio/Slack
+agent can use these tools in its hosted environment; that remains AN-9 work.
+
 ### 6.4 Immediate Implementation Order
 
 The next implementation work must proceed in this order:
 
-1. AN-8 MCP State Expansion.
-2. AN-9 Agent Studio Packaging.
+1. AN-9 Agent Studio Packaging.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.

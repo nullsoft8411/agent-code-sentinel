@@ -146,6 +146,229 @@ def test_mcp_state_cli_dispatches_json_tool_payload(tmp_path: Path) -> None:
     assert payload["project"]["target"] == "nullsoft8411/devopshub"
 
 
+def test_mcp_state_expanded_tools_persist_findings_tasks_qa_execution_audit_and_pr(tmp_path: Path) -> None:
+    db_path = tmp_path / "state.db"
+    seed_project(db_path)
+    start = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_run_start",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-1", "latest_ref": "main@new"}),
+    )
+    assert start.returncode == 0, start.stderr
+
+    scan_job = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_scan_job_create",
+        "--payload-json",
+        json.dumps(
+            {
+                "id": "scan-job-1",
+                "project_id": "proj-devopshub",
+                "run_id": "run-1",
+                "scanner_name": "agent_analysis",
+                "scan_type": "agent_context",
+                "status": "running",
+            }
+        ),
+    )
+    assert scan_job.returncode == 0, scan_job.stderr
+
+    finding = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_scan_finding_upsert",
+        "--payload-json",
+        json.dumps(
+            {
+                "id": "scan-finding-1",
+                "project_id": "proj-devopshub",
+                "run_id": "run-1",
+                "scan_job_id": "scan-job-1",
+                "scanner_name": "agent_analysis",
+                "rule_id": "validation_error",
+                "signature": "finding:mcp-validation",
+                "severity": "high",
+                "title": "Validation failed",
+                "message": "pytest failed",
+                "file_path": "src/app.py",
+                "line_number": 5,
+            }
+        ),
+    )
+    assert finding.returncode == 0, finding.stderr
+    assert parse_json(finding)["created"] is True
+
+    create_tasks = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_tasks_create_from_findings",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-1"}),
+    )
+    assert create_tasks.returncode == 0, create_tasks.stderr
+    task_payload = parse_json(create_tasks)
+    assert task_payload["counts"]["created_tasks"] == 1
+    task_id = task_payload["created_tasks"][0]["id"]
+
+    qa = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_qa_gate_process",
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-1",
+                "gate": "validation",
+                "command": "pytest tests/test_app.py -q",
+                "exit_code": 1,
+                "stderr": "src/app.py:5: AssertionError: failed again",
+            }
+        ),
+    )
+    assert qa.returncode == 2
+    qa_payload = parse_json(qa)
+    assert qa_payload["selected_task_for_agent_takeover"]["id"] == task_id
+
+    execution = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_execution_session_record",
+        "--payload-json",
+        json.dumps(
+            {
+                "id": "session-manual",
+                "project_id": "proj-devopshub",
+                "run_id": "run-1",
+                "task_id": task_id,
+                "session_type": "analysis",
+                "script_name": "manual",
+                "execution_method": "python_executed_from_cloned_repo",
+                "command": "PYTHONPATH=src python3 -m code_sentinel_agent.cli report",
+                "status": "passed",
+                "output": {"status": "passed"},
+            }
+        ),
+    )
+    assert execution.returncode == 0, execution.stderr
+
+    audit = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_audit_event_append",
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-1",
+                "event_type": "agent_state_write",
+                "summary": "MCP state E2E wrote findings/tasks/session state",
+                "payload": {"task_id": task_id},
+            }
+        ),
+    )
+    assert audit.returncode == 0, audit.stderr
+
+    pr_state = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_pr_state_set",
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-1",
+                "branch": "code-sentinel/run-1",
+                "base_branch": "main",
+                "status": "draft",
+                "pr_url": "https://github.com/nullsoft8411/devopshub/pull/1",
+                "metadata": {"source": "mcp-e2e"},
+            }
+        ),
+    )
+    assert pr_state.returncode == 0, pr_state.stderr
+
+    findings = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_scan_findings_list",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-1"}),
+    )
+    tasks = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_tasks_list",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-1"}),
+    )
+    report = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_report_get",
+        "--payload-json",
+        json.dumps({"run_id": "run-1"}),
+    )
+    audit_list = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_audit_events_list",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "run_id": "run-1"}),
+    )
+    pr_get = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_pr_state_get",
+        "--payload-json",
+        json.dumps({"project_id": "proj-devopshub", "branch": "code-sentinel/run-1"}),
+    )
+
+    assert findings.returncode == 0, findings.stderr
+    assert len(parse_json(findings)["findings"]) == 2
+    assert tasks.returncode == 0, tasks.stderr
+    assert len(parse_json(tasks)["tasks"]) == 2
+    assert report.returncode == 0, report.stderr
+    report_payload = parse_json(report)
+    assert report_payload["counts"]["findings"] == 2
+    assert report_payload["counts"]["tasks"] == 2
+    assert report_payload["counts"]["qa_gates"] == 1
+    assert report_payload["counts"]["execution_sessions"] == 2
+    assert audit_list.returncode == 0, audit_list.stderr
+    assert parse_json(audit_list)["audit_events"][0]["event_type"] == "agent_state_write"
+    assert pr_get.returncode == 0, pr_get.stderr
+    assert parse_json(pr_get)["pr_state"]["status"] == "draft"
+
+
 def test_mcp_state_postgres_dsn_blocks_until_driver_and_adapter_exist() -> None:
     backend = detect_backend("postgresql://localhost/code_sentinel")
     assert backend["type"] == "postgres"
