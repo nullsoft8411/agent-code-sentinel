@@ -45,6 +45,12 @@ Preflight a target repository:
 PYTHONPATH=src python3 -m code_sentinel_agent.cli preflight --project /path/to/repo
 ```
 
+Analyze Agent-provided context into normalized findings and a fix plan:
+
+```bash
+PYTHONPATH=src python3 -m code_sentinel_agent.cli analyze-context --input-json '{"project_id":"proj-1","run_id":"run-1","context":{"files":[{"path":"src/app.py","content":"API_KEY=redacted-example"}]}}'
+```
+
 Evaluate persisted QA gate state:
 
 ```bash

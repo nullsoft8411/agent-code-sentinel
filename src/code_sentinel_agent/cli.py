@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 
+from .agent_analysis import analyze_context, load_analysis_payload
 from .approvals import approval_check
 from .check_detection import detect_checks
 from .cycle import resume_cycle
@@ -61,6 +62,11 @@ def main(argv: list[str] | None = None) -> int:
     mcp_state.add_argument("--tool", required=True)
     mcp_state.add_argument("--payload-json", default="{}")
 
+    analyze = subparsers.add_parser("analyze-context")
+    analyze_input = analyze.add_mutually_exclusive_group(required=True)
+    analyze_input.add_argument("--input-json")
+    analyze_input.add_argument("--input-file")
+
     args = parser.parse_args(argv)
 
     if args.command == "db" and args.db_command == "init":
@@ -107,6 +113,13 @@ def main(argv: list[str] | None = None) -> int:
             code, payload = call_tool(args.db, args.tool, payload_json)
         except ValueError as exc:
             return emit(2, {"status": "blocked", "blocker_code": "INVALID_TOOL_PAYLOAD", "reason": str(exc)})
+        return emit(code, payload)
+    if args.command == "analyze-context":
+        try:
+            payload_json = load_analysis_payload(input_json=args.input_json, input_file=args.input_file)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            return emit(2, {"status": "blocked", "blocker_code": "INVALID_ANALYSIS_INPUT", "reason": str(exc)})
+        code, payload = analyze_context(payload_json)
         return emit(code, payload)
 
     return emit(2, {"status": "blocked", "blocker_code": "UNKNOWN_COMMAND"})
