@@ -592,6 +592,15 @@ The next implementation work must proceed in this order:
    pending task, analyze files, propose/execute an approved bounded change,
    validate, update task state and audit the result.
 
+Current local progress:
+
+- Improvement work-package takeover is implemented locally. run-cycle now
+  assigns the selected task to the Workspace Agent, loads compatibility finding
+  and scan-finding context when available, records affected-file evidence from
+  project_path, returns validation command candidates and writes session/audit
+  evidence. This is takeover/preparation evidence, not yet approved file edit
+  execution or validation-complete evidence.
+
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
 

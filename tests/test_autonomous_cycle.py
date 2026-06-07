@@ -161,9 +161,17 @@ def test_run_cycle_selects_existing_task_and_releases_lock(tmp_path: Path) -> No
     assert result.returncode == 0, result.stderr
     assert payload["status"] == "passed"
     assert payload["selected_task_for_agent_takeover"]["id"] == "task-cycle"
+    assert payload["selected_task_for_agent_takeover"]["status"] == "assigned_to_agent"
+    assert payload["improvement_work_package"]["status"] == "assigned_to_agent"
+    assert payload["improvement_work_package"]["task"]["id"] == "task-cycle"
+    assert payload["improvement_work_package"]["finding"]["id"] == "finding-cycle"
+    assert payload["improvement_work_package"]["file_evidence"]["status"] == "not_available"
+    assert payload["improvement_work_package"]["approval_required"] is True
     assert payload["cycle_session"]["session_type"] == "autonomous_cycle"
+    assert payload["cycle_session"]["output"]["improvement_work_package_status"] == "assigned_to_agent"
     assert payload["audit_event"]["event_type"] == "autonomous_cycle"
     assert payload["audit_event"]["payload"]["selected_task_id"] == "task-cycle"
+    assert payload["audit_event"]["payload"]["improvement_work_package_status"] == "assigned_to_agent"
     assert payload["report"]["counts"]["execution_sessions"] == 1
     assert payload["lock_released"] is True
 
@@ -175,10 +183,12 @@ def test_run_cycle_selects_existing_task_and_releases_lock(tmp_path: Path) -> No
             "select current_focus, next_autonomous_step from runs where id = ?",
             ("run-next",),
         ).fetchone()
+        task_status = conn.execute("select status from tasks where id = ?", ("task-cycle",)).fetchone()[0]
 
     assert active_locks == 0
     assert run_row[0] == "task_takeover"
     assert "task-cycle" in run_row[1]
+    assert task_status == "assigned_to_agent"
 
 
 def test_run_cycle_collects_project_scan_file_plugin_and_audit_evidence(tmp_path: Path) -> None:
@@ -209,6 +219,7 @@ def test_run_cycle_collects_project_scan_file_plugin_and_audit_evidence(tmp_path
     assert payload["project_evidence"]["file_checks_count"] >= 4
     assert payload["project_evidence"]["scan_job"]["status"] == "completed"
     assert payload["project_evidence"]["scan_job"]["files_scanned"] == payload["project_evidence"]["file_checks_count"]
+    assert payload["improvement_work_package"] is None
     assert {item["plugin_name"] for item in payload["project_evidence"]["plugin_executions"]} == {
         "file_inventory",
         "project_context",
@@ -243,6 +254,81 @@ def test_run_cycle_collects_project_scan_file_plugin_and_audit_evidence(tmp_path
     assert plugin_executions == 2
     assert audit_count == 1
     assert active_locks == 0
+
+
+def test_run_cycle_work_package_includes_readable_file_evidence_and_validation_command(tmp_path: Path) -> None:
+    db_path = tmp_path / "runtime.db"
+    project_path = create_cycle_project(tmp_path)
+    seed_cycle_state(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "insert into runs(id, project_id, status, current_focus) values (?, ?, ?, ?)",
+            ("run-readable-file", "proj-devopshub", "in_progress", "autonomous_cycle"),
+        )
+        conn.execute(
+            """
+            insert into findings(id, run_id, project_id, signature, category, severity, file_path, title)
+            values (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "finding-readable-file",
+                "run-readable-file",
+                "proj-devopshub",
+                "finding:readable-file",
+                "validation",
+                "high",
+                "src/cycle_project/app.py",
+                "Cycle readable file task",
+            ),
+        )
+        conn.execute(
+            """
+            insert into tasks(
+              id, finding_id, run_id, project_id, status, priority, title,
+              affected_file, task_type, task_signature
+            )
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "task-readable-file",
+                "finding-readable-file",
+                "run-readable-file",
+                "proj-devopshub",
+                "pending",
+                30,
+                "Fix readable file task",
+                "src/cycle_project/app.py",
+                "standalone",
+                "standalone:finding:readable-file",
+            ),
+        )
+        conn.commit()
+
+    result = run_cli(
+        "run-cycle",
+        "--db",
+        str(db_path),
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-readable-file",
+                "latest_ref": "main@readable-file",
+                "project_path": str(project_path),
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 0, result.stderr
+    package = payload["improvement_work_package"]
+    assert package["task"]["id"] == "task-readable-file"
+    assert package["task"]["status"] == "assigned_to_agent"
+    assert package["file_evidence"]["status"] == "passed"
+    assert package["file_evidence"]["path"] == "src/cycle_project/app.py"
+    assert package["file_evidence"]["content_sha256"]
+    assert package["validation_commands"] == ["python3 -m pytest tests -q"]
+    assert package["proposed_fix_plan"]["approval_required"] is True
 
 
 def test_run_cycle_blocks_write_without_approval_and_releases_lock(tmp_path: Path) -> None:

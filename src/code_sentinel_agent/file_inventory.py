@@ -51,7 +51,7 @@ def build_file_inventory(project: str | Path, *, max_files: int = 200) -> tuple[
             {
                 "path": str(relative),
                 "bytes": path.stat().st_size,
-                "content_sha256": _sha256(path),
+                "content_sha256": sha256_file(path),
                 "language": _language(path),
             }
         )
@@ -146,7 +146,7 @@ def get_file_check(db_path: str, *, project_id: str, scan_job_id: str | None, fi
     return sqlite_row_to_dict(row, columns)
 
 
-def _sha256(path: Path) -> str:
+def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(65536), b""):

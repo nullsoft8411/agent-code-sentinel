@@ -12,6 +12,7 @@ from .audit_events import AuditEventInput, append_audit_event
 from .db import connect
 from .execution_sessions import ExecutionSessionInput, record_execution_session
 from .file_inventory import FileCheckInput, build_file_inventory, record_file_check
+from .improvement_work import prepare_improvement_work_package
 from .plugin_executions import PluginExecutionInput, record_plugin_execution
 from .project_context import project_context
 from .qg_workflow import process_quality_gate_payload, selected_task_for_agent_takeover
@@ -169,12 +170,30 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
         )
 
         selected_task = selected_task_for_agent_takeover(db_path, project_id=project_id, run_id=run_id)
+        work_package_code, improvement_work_package = prepare_improvement_work_package(
+            str(db_path),
+            project_id=project_id,
+            run_id=run_id,
+            selected_task=selected_task,
+            project_path=str(payload.get("project_path") or "").strip() or None,
+        )
+        if work_package_code != 0:
+            return work_package_code, improvement_work_package or {
+                "status": "blocked",
+                "blocker_code": "IMPROVEMENT_WORK_PACKAGE_FAILED",
+            }
+        if improvement_work_package:
+            selected_task = improvement_work_package["task"]
         if selected_task:
             _update_run_next_step(
                 db_path,
                 run_id=run_id,
                 current_focus="task_takeover",
-                next_step=f"take over {selected_task['task_type']} {selected_task['id']}: {selected_task['title']}",
+                next_step=(
+                    improvement_work_package["next_autonomous_step"]
+                    if improvement_work_package
+                    else f"take over {selected_task['task_type']} {selected_task['id']}: {selected_task['title']}"
+                ),
             )
         else:
             _update_run_next_step(
@@ -203,12 +222,19 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
                     "project_evidence_status": project_evidence["status"],
                     "scan_job_id": project_evidence.get("scan_job", {}).get("id"),
                     "file_checks_count": project_evidence.get("file_checks_count", 0),
+                    "improvement_work_package_status": (
+                        improvement_work_package.get("status") if improvement_work_package else None
+                    ),
                 },
                 files_modified=[],
                 attempt_log=[
                     {"step": "lock_acquired", "status": "passed"},
                     {"step": "run_state_loaded", "status": "passed"},
                     {"step": "project_evidence", "status": project_evidence["status"]},
+                    {
+                        "step": "improvement_work_package",
+                        "status": improvement_work_package["status"] if improvement_work_package else "not_available",
+                    },
                     {"step": "selected_task", "status": "passed" if selected_task else "not_available"},
                 ],
                 completed_at=_utc_now(),
@@ -231,6 +257,9 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
                     "project_evidence_status": project_evidence["status"],
                     "scan_job_id": project_evidence.get("scan_job", {}).get("id"),
                     "file_checks_count": project_evidence.get("file_checks_count", 0),
+                    "improvement_work_package_status": (
+                        improvement_work_package.get("status") if improvement_work_package else None
+                    ),
                     "plugin_execution_ids": [
                         item["id"] for item in project_evidence.get("plugin_executions", [])
                     ],
@@ -251,6 +280,7 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
             "selected_task_for_agent_takeover": selected_task,
             "validation_result": validation_result,
             "project_evidence": project_evidence,
+            "improvement_work_package": improvement_work_package,
             "cycle_session": cycle_session,
             "audit_event": audit_event,
             "report": report_payload,
