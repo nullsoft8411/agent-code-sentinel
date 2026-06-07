@@ -7,7 +7,7 @@ import sys
 from .agent_analysis import analyze_context, load_analysis_payload
 from .approvals import approval_check
 from .check_detection import detect_checks
-from .cycle import resume_cycle
+from .cycle import resume_cycle, run_autonomous_cycle
 from .db import initialize_database
 from .execution_sessions import parse_execution_session_payload, record_execution_session
 from .memory import memory_delta
@@ -59,6 +59,10 @@ def main(argv: list[str] | None = None) -> int:
     resume.add_argument("--project-id", required=True)
     resume.add_argument("--run-id", required=True)
     resume.add_argument("--latest-ref", required=True)
+
+    run_cycle = subparsers.add_parser("run-cycle")
+    run_cycle.add_argument("--db", required=True)
+    run_cycle.add_argument("--payload-json", required=True)
 
     mcp_state = subparsers.add_parser("mcp-state")
     mcp_state.add_argument("--db", required=True)
@@ -125,6 +129,16 @@ def main(argv: list[str] | None = None) -> int:
             run_id=args.run_id,
             latest_ref=args.latest_ref,
         )
+        return emit(code, payload)
+    if args.command == "run-cycle":
+        try:
+            payload_json = json.loads(args.payload_json)
+        except json.JSONDecodeError as exc:
+            return emit(2, {"status": "blocked", "blocker_code": "INVALID_JSON_PAYLOAD", "reason": str(exc)})
+        try:
+            code, payload = run_autonomous_cycle(args.db, payload_json)
+        except ValueError as exc:
+            return emit(2, {"status": "blocked", "blocker_code": "INVALID_CYCLE_PAYLOAD", "reason": str(exc)})
         return emit(code, payload)
     if args.command == "mcp-state":
         try:

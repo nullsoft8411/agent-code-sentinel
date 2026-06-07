@@ -110,6 +110,13 @@ python3 -m code_sentinel_agent.cli resume-cycle \
   --latest-ref main@new
 ```
 
+Run one autonomous cycle step with lock, state, task selection and optional
+validation/write evidence:
+
+```bash
+PYTHONPATH=src python3 -m code_sentinel_agent.cli run-cycle --db /tmp/runtime.db --payload-json '{"project_id":"proj-1","run_id":"run-1","latest_ref":"main@new"}'
+```
+
 Expose the same central SQLite state through MCP-style tool calls:
 
 ```bash

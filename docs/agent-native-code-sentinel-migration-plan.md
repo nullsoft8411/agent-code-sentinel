@@ -456,6 +456,13 @@ Current agent-code-sentinel runtime already has:
     sanitized output JSON, error summary, modified files and attempt log
   - qg-workflow records validation sessions automatically
   - execution-session CLI records analysis/fix/validation session evidence
+- AN-7 autonomous cycle orchestrator:
+  - run-cycle acquires/releases project state locks around one autonomous step
+  - cycle.py loads memory/run state, checks write approval when requested,
+    processes validation results, selects the next runnable task/subtask and
+    records cycle session evidence
+  - validation-failed cycles create findings/tasks instead of false completion
+  - blocked write cycles persist the approval blocker and release the lock
 - simple report counts
 - source inventory extraction
 - docs/tests that prevent ClaudeExecutor, Claude CLI and tmux from entering
@@ -476,9 +483,8 @@ The Agent runtime still must implement the actual Code Sentinel work logic:
 - task_workflow.py expansion for richer task/subtask/parent state transitions
   beyond the AN-3 status/progress bootstrap
 - audit_events.py for approval, write, validation and state transition audit
-- cycle.py orchestration that pulls exactly one next task/subtask, analyzes
-  files, executes through approval/validation, persists state and emits
-  next_autonomous_step
+- cycle.py expansion for broader project-context scan/improvement planning
+  beyond the AN-7 one-step local orchestrator
 - MCP tools for scan jobs, findings, tasks, QA gates, execution sessions, audit
   events and PR state
 
@@ -519,13 +525,17 @@ and validation-session integration. It does not yet drive the autonomous cycle
 or expose sessions through MCP shared-state tools; those remain AN-7 and AN-8
 work.
 
+AN-7 status: implemented locally for one-step autonomous cycle orchestration,
+lock handling, write-approval blocking, validation-failed task takeover,
+selected task reporting and cycle session evidence. It does not yet expose the
+expanded findings/tasks/QA/execution state through MCP; that remains AN-8 work.
+
 ### 6.4 Immediate Implementation Order
 
 The next implementation work must proceed in this order:
 
-1. AN-7 Autonomous Cycle Orchestrator.
-2. AN-8 MCP State Expansion.
-3. AN-9 Agent Studio Packaging.
+1. AN-8 MCP State Expansion.
+2. AN-9 Agent Studio Packaging.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
