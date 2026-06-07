@@ -17,6 +17,13 @@ write-approval checks when Codex or another approved executor runs it.
 - Secrets: never write secret values into SQLite, artifacts, or uploaded Agent
   Studio files. Store only source labels and blocker states.
 
+## Migration Analysis
+
+- [Local Code Sentinel Migration Analysis](docs/local-code-sentinel-migration-analysis.md)
+  maps the local `/home/pika/projekte/code-sentinel` SaaS runtime to the
+  agent-native `agent-code-sentinel` runtime, including schema gaps, module
+  gaps, MCP-state boundaries, and phased acceptance gates.
+
 ## Command Layer
 
 Run commands with the package source on `PYTHONPATH`:
