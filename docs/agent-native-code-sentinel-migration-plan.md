@@ -437,6 +437,12 @@ Current agent-code-sentinel runtime already has:
     insert/list/update by signature and duplicate suppression
   - explicit compatibility mapping from scan_findings to the existing findings
     table for current reports/tasks compatibility
+- AN-3 finding-to-task/subtask pipeline:
+  - task_creation.py groups open findings by affected file
+  - one finding creates one standalone task
+  - multiple findings in one file create one parent task with ordered subtasks
+  - task signatures prevent duplicate tasks on rerun
+  - parent progress/status derives from child subtask statuses
 - simple report counts
 - source inventory extraction
 - docs/tests that prevent ClaudeExecutor, Claude CLI and tmux from entering
@@ -454,8 +460,8 @@ The Agent runtime still must implement the actual Code Sentinel work logic:
   handling beyond the AN-2 repository bootstrap
 - plugin_executions.py and file_inventory.py runtime helpers for check/file
   evidence beyond the AN-2 schema
-- task_creation.py for finding-to-task/subtask conversion with dedupe
-- task_workflow.py for task/subtask/parent state updates
+- task_workflow.py expansion for richer task/subtask/parent state transitions
+  beyond the AN-3 status/progress bootstrap
 - validation_runner.py for command descriptors and evidence normalization
 - qg_workflow.py for QA-fail-to-finding/task behavior
 - execution_sessions.py for agent-native run evidence
@@ -489,16 +495,19 @@ AN-2 status: implemented locally for SQLite schema and repository E2E. It does
 not yet create tasks/subtasks, normalize QA-gate failures into tasks or expose
 the richer finding state through MCP; those remain AN-3, AN-5 and AN-8 work.
 
+AN-3 status: implemented locally for finding-to-task/subtask creation and
+status/progress updates. It does not yet convert failing QA gates into findings
+and selected_task_for_agent_takeover; that remains AN-5 work.
+
 ### 6.4 Immediate Implementation Order
 
 The next implementation work must proceed in this order:
 
-1. AN-3 Finding To Task/Subtask Pipeline.
-2. AN-5 Quality Gate Workflow And Task Takeover.
-3. AN-6 Agent Execution Sessions.
-4. AN-7 Autonomous Cycle Orchestrator.
-5. AN-8 MCP State Expansion.
-6. AN-9 Agent Studio Packaging.
+1. AN-5 Quality Gate Workflow And Task Takeover.
+2. AN-6 Agent Execution Sessions.
+3. AN-7 Autonomous Cycle Orchestrator.
+4. AN-8 MCP State Expansion.
+5. AN-9 Agent Studio Packaging.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.

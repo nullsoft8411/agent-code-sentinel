@@ -63,7 +63,12 @@ def test_initialize_database_is_idempotent(tmp_path: Path) -> None:
             "select version from schema_migrations order by version"
         ).fetchall()
 
-    assert versions == [("001_init",), ("002_mcp_state_locks",), ("003_scan_findings",)]
+    assert versions == [
+        ("001_init",),
+        ("002_mcp_state_locks",),
+        ("003_scan_findings",),
+        ("004_task_creation",),
+    ]
 
 
 def test_project_run_finding_task_and_gate_round_trip(tmp_path: Path) -> None:

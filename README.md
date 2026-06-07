@@ -57,6 +57,12 @@ Evaluate persisted QA gate state:
 PYTHONPATH=src python3 -m code_sentinel_agent.cli qa-gates --db /tmp/runtime.db --run-id run-1
 ```
 
+Create tasks and subtasks from open findings:
+
+```bash
+PYTHONPATH=src python3 -m code_sentinel_agent.cli create-tasks --db /tmp/runtime.db --project-id proj-1 --run-id run-1
+```
+
 Check whether a write is explicitly approved:
 
 ```bash

@@ -14,6 +14,7 @@ from .mcp_state import call_tool
 from .preflight import preflight
 from .qa_gates import qa_gates
 from .reports import report
+from .task_creation import create_tasks_from_findings, update_task_status
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -66,6 +67,17 @@ def main(argv: list[str] | None = None) -> int:
     analyze_input = analyze.add_mutually_exclusive_group(required=True)
     analyze_input.add_argument("--input-json")
     analyze_input.add_argument("--input-file")
+
+    create_tasks = subparsers.add_parser("create-tasks")
+    create_tasks.add_argument("--db", required=True)
+    create_tasks.add_argument("--project-id", required=True)
+    create_tasks.add_argument("--run-id", required=True)
+    create_tasks.add_argument("--max-subtasks-per-parent", type=int, default=20)
+
+    task_status = subparsers.add_parser("task-status")
+    task_status.add_argument("--db", required=True)
+    task_status.add_argument("--task-id", required=True)
+    task_status.add_argument("--status", required=True)
 
     args = parser.parse_args(argv)
 
@@ -120,6 +132,17 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, json.JSONDecodeError, ValueError) as exc:
             return emit(2, {"status": "blocked", "blocker_code": "INVALID_ANALYSIS_INPUT", "reason": str(exc)})
         code, payload = analyze_context(payload_json)
+        return emit(code, payload)
+    if args.command == "create-tasks":
+        code, payload = create_tasks_from_findings(
+            args.db,
+            project_id=args.project_id,
+            run_id=args.run_id,
+            max_subtasks_per_parent=args.max_subtasks_per_parent,
+        )
+        return emit(code, payload)
+    if args.command == "task-status":
+        code, payload = update_task_status(args.db, task_id=args.task_id, status=args.status)
         return emit(code, payload)
 
     return emit(2, {"status": "blocked", "blocker_code": "UNKNOWN_COMMAND"})
