@@ -77,6 +77,7 @@ def test_qg_workflow_cli_e2e_creates_findings_tasks_and_selected_takeover(tmp_pa
     assert report_payload["counts"]["tasks"] == 3
     assert report_payload["counts"]["qa_gates"] == 1
     assert report_payload["counts"]["validation_attempts"] == 1
+    assert report_payload["counts"]["execution_sessions"] == 1
     assert report_payload["selected_task_for_agent_takeover"]["id"] == selected["id"]
 
     with sqlite3.connect(db_path) as conn:

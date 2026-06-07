@@ -9,6 +9,7 @@ from .approvals import approval_check
 from .check_detection import detect_checks
 from .cycle import resume_cycle
 from .db import initialize_database
+from .execution_sessions import parse_execution_session_payload, record_execution_session
 from .memory import memory_delta
 from .mcp_state import call_tool
 from .preflight import preflight
@@ -84,6 +85,10 @@ def main(argv: list[str] | None = None) -> int:
     qg_workflow.add_argument("--db", required=True)
     qg_workflow.add_argument("--payload-json", required=True)
 
+    execution_session = subparsers.add_parser("execution-session")
+    execution_session.add_argument("--db", required=True)
+    execution_session.add_argument("--payload-json", required=True)
+
     args = parser.parse_args(argv)
 
     if args.command == "db" and args.db_command == "init":
@@ -156,6 +161,13 @@ def main(argv: list[str] | None = None) -> int:
             return emit(2, {"status": "blocked", "blocker_code": "INVALID_JSON_PAYLOAD", "reason": str(exc)})
         code, payload = process_quality_gate_payload(args.db, payload_json)
         return emit(code, payload)
+    if args.command == "execution-session":
+        try:
+            payload_json = json.loads(args.payload_json)
+            session = parse_execution_session_payload(payload_json)
+        except (json.JSONDecodeError, ValueError) as exc:
+            return emit(2, {"status": "blocked", "blocker_code": "INVALID_EXECUTION_SESSION_PAYLOAD", "reason": str(exc)})
+        return emit(0, {"status": "passed", "session": record_execution_session(args.db, session)})
 
     return emit(2, {"status": "blocked", "blocker_code": "UNKNOWN_COMMAND"})
 

@@ -450,6 +450,12 @@ Current agent-code-sentinel runtime already has:
     and AN-3 pipelines
   - qg-workflow returns selected_task_for_agent_takeover for the Workspace Agent
   - run reports include selected_task_for_agent_takeover when applicable
+- AN-6 agent execution sessions:
+  - agent_execution_sessions SQLite schema for agent-native session records
+  - execution_sessions.py persists script name, execution method, command,
+    sanitized output JSON, error summary, modified files and attempt log
+  - qg-workflow records validation sessions automatically
+  - execution-session CLI records analysis/fix/validation session evidence
 - simple report counts
 - source inventory extraction
 - docs/tests that prevent ClaudeExecutor, Claude CLI and tmux from entering
@@ -469,7 +475,6 @@ The Agent runtime still must implement the actual Code Sentinel work logic:
   evidence beyond the AN-2 schema
 - task_workflow.py expansion for richer task/subtask/parent state transitions
   beyond the AN-3 status/progress bootstrap
-- execution_sessions.py for agent-native run evidence
 - audit_events.py for approval, write, validation and state transition audit
 - cycle.py orchestration that pulls exactly one next task/subtask, analyzes
   files, executes through approval/validation, persists state and emits
@@ -509,14 +514,18 @@ QA-gate persistence, failed-gate findings/tasks and
 selected_task_for_agent_takeover. It does not yet persist full agent execution
 sessions or drive the autonomous cycle; those remain AN-6 and AN-7 work.
 
+AN-6 status: implemented locally for agent-native execution session persistence
+and validation-session integration. It does not yet drive the autonomous cycle
+or expose sessions through MCP shared-state tools; those remain AN-7 and AN-8
+work.
+
 ### 6.4 Immediate Implementation Order
 
 The next implementation work must proceed in this order:
 
-1. AN-6 Agent Execution Sessions.
-2. AN-7 Autonomous Cycle Orchestrator.
-3. AN-8 MCP State Expansion.
-4. AN-9 Agent Studio Packaging.
+1. AN-7 Autonomous Cycle Orchestrator.
+2. AN-8 MCP State Expansion.
+3. AN-9 Agent Studio Packaging.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.

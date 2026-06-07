@@ -47,6 +47,7 @@ def test_initialize_database_creates_required_tables(tmp_path: Path) -> None:
         "scan_findings",
         "plugin_executions",
         "file_checks",
+        "agent_execution_sessions",
         "state_locks",
         "schema_migrations",
     }.issubset(tables)
@@ -68,6 +69,7 @@ def test_initialize_database_is_idempotent(tmp_path: Path) -> None:
         ("002_mcp_state_locks",),
         ("003_scan_findings",),
         ("004_task_creation",),
+        ("005_execution_sessions",),
     ]
 
 

@@ -168,4 +168,5 @@ def test_qa_gates_memory_delta_and_report_read_sqlite_state(tmp_path: Path) -> N
         "tasks": 1,
         "qa_gates": 1,
         "validation_attempts": 0,
+        "execution_sessions": 0,
     }

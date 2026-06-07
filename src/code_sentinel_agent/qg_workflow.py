@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .db import connect
+from .execution_sessions import ExecutionSessionInput, record_execution_session
 from .scan_findings import ScanFindingInput, upsert_scan_finding
 from .task_creation import create_tasks_from_findings
 from .validation_runner import ValidationResult, normalize_validation_payload
@@ -78,6 +80,36 @@ def process_quality_gate_payload(db_path: str | Path, payload: dict[str, Any]) -
         )
         conn.commit()
 
+    session = record_execution_session(
+        db_path,
+        ExecutionSessionInput(
+            id=f"exec-{validation_attempt_id}",
+            run_id=normalized.run_id,
+            project_id=normalized.project_id,
+            session_type="validation",
+            script_name="qg-workflow",
+            execution_method="agent_runtime_cli",
+            command=normalized.command,
+            status=normalized.status,
+            output={
+                "gate": normalized.gate,
+                "exit_code": normalized.exit_code,
+                "stdout_summary": normalized.stdout_summary,
+                "stderr_summary": normalized.stderr_summary,
+            },
+            error_summary=normalized.stderr_summary if normalized.status == "blocking" else None,
+            files_modified=[],
+            attempt_log=[
+                {
+                    "step": "validation_result_normalized",
+                    "status": normalized.status,
+                    "evidence": normalized.evidence,
+                }
+            ],
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        ),
+    )
+
     created_findings = []
     for index, finding in enumerate(normalized.findings, start=1):
         scan_finding = ScanFindingInput(
@@ -138,6 +170,7 @@ def process_quality_gate_payload(db_path: str | Path, payload: dict[str, Any]) -
             "status": normalized.status,
             "evidence": normalized.evidence,
         },
+        "execution_session": session,
         "findings": created_findings,
         "task_creation": task_payload,
         "selected_task_for_agent_takeover": selected_task,
