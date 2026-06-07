@@ -1,0 +1,454 @@
+# Agent-Native Code Sentinel Migration Plan
+
+Status: implementation_plan
+Created: 2026-06-07
+Source runtime: /home/pika/projekte/code-sentinel
+Target runtime: /home/pika/projekte/agent-code-sentinel
+Primary actor: ChatGPT Workspace Agent
+State bridge: PIKA MCP state tools and shared DB
+
+## 1. Core Correction
+
+The local Code Sentinel source uses ClaudeExecutor, Claude sessions, tmux
+sessions, budget tracking and conversation logs as the old external-AI execution
+path. That path must not be copied as the target executor.
+
+In the Workspace Agent architecture, the Agent itself is the executor:
+
+Contract statement: The Agent itself is the executor.
+
+1. The Agent reads repository context, rules, files, prior state and command
+   output.
+2. The Agent performs the analysis that the old ClaudeExecutor delegated to an
+   external Claude CLI run.
+3. The Agent creates findings from static checks, command output, file analysis,
+   project rules and its own reasoning.
+4. The Agent converts findings into jobs, parent tasks and subtasks.
+5. The Agent decides the next autonomous step, validates it, records evidence and
+   only mutates files when an explicit approval contract allows it.
+
+Therefore, the migration target is not "copy ClaudeExecutor". The migration
+target is "replace ClaudeExecutor with an agent-native analysis and execution
+contract that preserves Code Sentinel's workflow, safety gates and state model".
+
+Contract statement: The migration target is not "copy ClaudeExecutor".
+
+## 2. Source Responsibilities To Preserve
+
+### 2.1 Finding Analysis
+
+Source evidence:
+
+- application/scanner_service.py
+- application/services/code_scanner_orchestrator.py
+- domain/scanning/plugins/builtin/qg_check_plugin.py
+- application/services/task_creation_service.py
+- infrastructure/persistence/models/scan_finding.py
+
+Preserve:
+
+- blocker-first checks before normal analysis
+- finding categories such as security, duplicate code, dead code, code quality
+  and dependency
+- file path, line, severity, title, description, rule/source, suggestion and
+  dedupe signature
+- command-output-derived findings from lint/type/test tools
+- agent-reasoned findings from project context and file analysis
+
+Do not preserve directly:
+
+- Redis-driven delivery
+- SQLAlchemy repository implementation
+- any external AI process as the analyzer
+
+Target modules:
+
+- scanner_registry.py
+- project_context.py
+- scan_jobs.py
+- scan_findings.py
+- agent_analysis.py
+- output_contract.py
+
+### 2.2 Finding To Job/Task/Subtask
+
+Source evidence:
+
+- application/services/task_creation_service.py
+- infrastructure/persistence/models/task.py
+- workers/task_processing_worker.py
+
+Preserve:
+
+- one file with one finding can become one standalone task
+- one file with multiple findings becomes one parent task and ordered subtasks
+- dedupe by deterministic signature
+- max-subtask protection
+- severity and priority propagation
+- parent status derived from subtask states
+- retry/attempt counters and blocked/failed/completed states
+
+Target modules:
+
+- task_creation.py
+- task_workflow.py
+- policy.py
+- reports.py
+
+### 2.3 ScanJob And Plugin Execution
+
+Source evidence:
+
+- application/services/scan_execution_service.py
+- infrastructure/persistence/models/scan_job.py
+- infrastructure/persistence/models/plugin_execution_model.py
+- workers/scan_worker.py
+
+Preserve:
+
+- single entrypoint for scan job creation
+- trigger to scan-type mapping
+- pending, running, completed, failed, cancelled states
+- files_total, files_scanned, files_skipped and issues_found
+- plugin/check execution records
+- scan result leads to findings and then task creation
+
+Target modules:
+
+- scan_jobs.py
+- scanner_registry.py
+- plugin_executions.py
+- file_inventory.py
+
+### 2.4 Quality Gates And Validation
+
+Source evidence:
+
+- domain/scanning/plugins/builtin/qg_check_plugin.py
+- infrastructure/execution/qg_test_runner.py
+- infrastructure/persistence/models/quality_gate.py
+- infrastructure/persistence/models/qg_workflow.py
+
+Preserve:
+
+- preflight before work
+- blocker gate before normal scan/fix
+- lint/type/test commands normalized as evidence
+- command, cwd, exit_code, stdout/stderr summaries
+- retry/fix-session lifecycle
+- no completion claim without validation evidence
+
+Target modules:
+
+- preflight.py
+- qa_gates.py
+- validation_runner.py
+- qg_workflow.py
+- execution_sessions.py
+
+### 2.5 External-AI Execution Replacement
+
+Source evidence:
+
+- infrastructure/execution/claude_executor.py
+- infrastructure/persistence/models/claude_session_model.py
+- workers/task_processing_worker.py
+
+Preserve as workflow concepts:
+
+- input task context
+- safety validation for branch/path/command
+- execution session record
+- files_modified evidence
+- output/error summaries
+- retry/circuit-breaker style blocker handling
+- conversation/attempt log as sanitized artifact concept
+
+Replace:
+
+- Claude CLI command
+- tmux session manager
+- Claude model selection
+- Claude token budget
+- Claude session store
+
+Target replacement:
+
+- agent_analysis.py: creates findings and fix plans from repo context, command
+  results and prior state.
+- agent_execution.py: records the Agent's own action plan, commands requested,
+  write approvals, command results and final task result.
+- execution_sessions.py: persists agent-native execution sessions without
+  referencing an external AI provider.
+- policy.py: enforces write scope, command scope, approval and budget-like
+  attempt limits.
+
+The Agent is the intelligence layer. Python scripts provide deterministic
+state, extraction, normalization, validation and reporting.
+
+## 3. Target Runtime Flow
+
+One autonomous cycle must follow this order:
+
+1. Acquire project lock through MCP state.
+2. Load project, memory, prior run state and latest ref.
+3. Clone or access target repo.
+4. Build project context from AGENTS.md chain, README, package files, test
+   configs, CI configs, git status and relevant source files.
+5. Create a scan job.
+6. Run preflight and blocker gates.
+7. Run scanner plugins and command-output parsers.
+8. Let the Agent analyze the context and create additional reasoned findings.
+9. Persist scan findings.
+10. Convert findings to tasks, parent tasks and subtasks.
+11. Pick the next runnable task or subtask.
+12. Produce an agent-native fix plan.
+13. Check approval before any write, branch, commit, PR or delete.
+14. Execute allowed edits or return blocked with exact approval needed.
+15. Run validation commands.
+16. Persist QA gate results, validation attempts, execution session and audit
+    events.
+17. Emit JSON report with status, evidence, next_autonomous_step and blockers.
+18. Release project lock.
+
+## 4. Implementation Phases
+
+### Phase AN-0: Contract Freeze
+
+Goal:
+
+- Make the "Agent replaces ClaudeExecutor" rule explicit and testable.
+
+Tasks:
+
+1. Keep this plan linked from README.
+2. Add docs-contract tests that require the agent-native executor replacement
+   wording.
+3. Keep claude_executor.py in the inventory only as source evidence, not as a
+   target module.
+
+Acceptance:
+
+- README links this plan.
+- Tests prove the plan states Agent-native replacement.
+- No target module is named claude_executor.py.
+
+### Phase AN-1: Agent Analysis Contract
+
+Goal:
+
+- Define how the Agent turns repo context and tool output into findings.
+
+Tasks:
+
+1. Add agent_analysis.py with dataclasses for AnalysisInput, ReasonedFinding,
+   FixPlan and AnalysisResult.
+2. Add JSON schema-like output contract in output_contract.py.
+3. Add tests for reasoned finding normalization, severity mapping and no-secret
+   output.
+4. Add CLI command analyze-context that accepts JSON input and returns JSON
+   findings/fix-plan skeletons.
+
+Acceptance:
+
+- Agent can pass context JSON into Python and receive normalized findings.
+- Findings contain signature, category, severity, file, line, title,
+  description, source and evidence.
+- Result can be persisted without external AI references.
+
+### Phase AN-2: Source-Compatible Finding Model
+
+Goal:
+
+- Port the Source ScanFindingModel semantics into SQLite/MCP-compatible state.
+
+Tasks:
+
+1. Add migration for scan_jobs, scan_findings, plugin_executions and richer
+   file_checks.
+2. Keep current findings table as compatibility layer or map it explicitly to
+   scan_findings.
+3. Add repository helpers for insert/list/update-status by signature.
+4. Add tests for duplicate signature, linked scan_job_id and linked run_id.
+
+Acceptance:
+
+- A scan job can create findings.
+- Duplicate findings do not create duplicate tasks.
+- Finding state can be serialized through MCP state tools later.
+
+### Phase AN-3: Finding To Task/Subtask Pipeline
+
+Goal:
+
+- Port the behavior of TaskCreationService without SQLAlchemy or Redis.
+
+Tasks:
+
+1. Add task_creation.py.
+2. Group findings by file.
+3. Create standalone tasks for one finding.
+4. Create parent task plus ordered subtasks for multiple findings in one file.
+5. Enforce max subtasks per parent.
+6. Add task/subtask status transitions and parent progress.
+
+Acceptance:
+
+- One finding creates one task.
+- Multiple findings in one file create one parent and N subtasks.
+- Duplicate signatures are skipped.
+- Parent status derives from subtask state.
+
+### Phase AN-4: ScanJob And Plugin Execution
+
+Goal:
+
+- Port Source scan orchestration into agent-native scripts.
+
+Tasks:
+
+1. Add scan_jobs.py with trigger-to-scan-type mapping from
+   ScanExecutionService.
+2. Add scanner_registry.py for portable checks.
+3. Add plugin_executions.py to persist check runs.
+4. Add CLI scan that creates scan_job, runs allowed scanners, persists findings
+   and returns JSON.
+
+Acceptance:
+
+- scan creates a scan job and plugin executions.
+- It can run in static-only mode if command execution is unavailable.
+- It creates findings from available evidence and reports unavailable checks as
+  blockers, not success.
+
+### Phase AN-5: Quality Gate Workflow
+
+Goal:
+
+- Port QG state machine and validation evidence.
+
+Tasks:
+
+1. Add qg_workflow.py.
+2. Add validation_runner.py with allowed command descriptors.
+3. Normalize lint/type/test outputs into findings and gate records.
+4. Persist gate runs, fix sessions and validation attempts.
+
+Acceptance:
+
+- Preflight blocks unsafe work.
+- Failed validation creates findings/tasks instead of false completion.
+- Passed validation includes exact command and exit_code.
+
+### Phase AN-6: Agent Execution Sessions
+
+Goal:
+
+- Replace Claude sessions with agent-native execution sessions.
+
+Tasks:
+
+1. Add agent_execution_sessions migration if not already present.
+2. Add execution_sessions.py.
+3. Persist script name, execution method, command, output JSON, error summary,
+   files_modified, started_at and completed_at.
+4. Add sanitized attempt logs.
+
+Acceptance:
+
+- Every agent-native analysis/fix/validation pass has a session record.
+- No Claude model, token, tmux or external-AI session field is required.
+
+### Phase AN-7: Autonomous Cycle Orchestrator
+
+Goal:
+
+- Make the Agent run the Source workweise end-to-end.
+
+Tasks:
+
+1. Extend cycle.py to drive lock, context, scan, findings, tasks, next task,
+   approval, validation, report and lock release.
+2. Add resume-cycle behavior for stale memory, fresh memory and concurrent lock
+   blockers.
+3. Add tests for successful cycle, blocked write cycle and validation-failed
+   cycle.
+
+Acceptance:
+
+- The Agent can continue work from shared state without losing prior findings.
+- It does not start a second writer when a lock is held.
+- It emits next_autonomous_step rather than stopping at analysis.
+
+### Phase AN-8: MCP State Expansion
+
+Goal:
+
+- Expose the migrated state model through PIKA MCP.
+
+Tasks:
+
+1. Add MCP tools for scan jobs, findings, tasks, QA gates, execution sessions,
+   audit events and PR state.
+2. Keep raw SQL unavailable.
+3. Preserve per-project locking.
+4. Add E2E test: Agent clones repo, reads MCP state, runs agent-native scan, and
+   writes state through MCP.
+
+Acceptance:
+
+- MCP DB has enough state for repeated scheduled runs.
+- Two agent runs cannot silently fork state.
+- The Agent can read prior findings/tasks from MCP.
+
+### Phase AN-9: Agent Studio Packaging
+
+Goal:
+
+- Put the runtime contract into the Workspace Agent surface.
+
+Tasks:
+
+1. Upload or refresh runtime docs/files in Agent Studio.
+2. Update core instructions and skills to say the Agent itself performs
+   analysis and execution decisions.
+3. Include explicit script usage contracts.
+4. Run Slack/Studio smoke against agent-native execution.
+
+Acceptance:
+
+- Studio intake proves the updated instructions/files are present.
+- Slack test proves the Agent uses MCP clone/state plus its own Python execution.
+- Response includes findings/tasks/session evidence.
+
+## 5. Non-Goals
+
+These are not migration targets:
+
+- external Claude CLI execution
+- tmux as execution runtime
+- Claude token/model budget as target accounting
+- FastAPI product API
+- React admin UI
+- Redis Streams as required queue
+- full tenant/RBAC SaaS implementation
+- Stripe/billing
+- Kubernetes deployment
+
+These remain source references for state, safety and workflow design only.
+
+## 6. Definition Of Done
+
+The migration is not complete until:
+
+1. The Agent can create findings itself from repo context, command output and
+   static/source analysis.
+2. Findings can be persisted in shared MCP-backed state.
+3. Findings can create jobs, parent tasks and subtasks.
+4. The Agent can choose and execute the next allowed autonomous task.
+5. Write actions require explicit approval and are audited.
+6. Validation evidence is persisted with command and exit_code.
+7. Agent-native execution sessions replace old Claude sessions.
+8. Repeated scheduled runs continue from prior MCP state.
+9. QA gates include reuse, duplicate code, dead code and unused code outcomes.
+10. No final response claims completion without runtime evidence.

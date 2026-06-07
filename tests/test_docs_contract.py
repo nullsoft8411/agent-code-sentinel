@@ -62,3 +62,15 @@ def test_local_code_sentinel_source_inventory_covers_core_runtime() -> None:
         "workers/pr_monitor_worker.py",
     ]:
         assert modules[module_path] is True
+
+
+def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
+    readme = (ROOT / "README.md").read_text()
+    plan = (ROOT / "docs/agent-native-code-sentinel-migration-plan.md").read_text()
+
+    assert "docs/agent-native-code-sentinel-migration-plan.md" in readme
+    assert "The Agent itself is the executor" in plan
+    assert "The migration target is not \"copy ClaudeExecutor\"" in plan
+    assert "Findings can create jobs, parent tasks and subtasks" in plan
+    assert "Agent-native execution sessions replace old Claude sessions" in plan
+    assert "external Claude CLI execution" in plan

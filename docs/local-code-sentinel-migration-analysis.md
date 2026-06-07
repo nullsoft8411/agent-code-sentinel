@@ -20,6 +20,14 @@ Das lokale Code-Sentinel-Projekt soll nicht 1:1 als SaaS in den Workspace Agent 
 
 Der erste echte Beweis ist bereits erbracht: Der Agent konnte agent-code-sentinel klonen, MCP-State lesen und scripts/agent_mcp_result_probe.py agent-nativ ausführen. Die richtige Architektur ist also nicht "MCP run_command führt alles aus", sondern "MCP liefert Repo/State, Agent führt Runtime-Scripts aus".
 
+Wichtige Migrationskorrektur: Alles, was Source-Code-Sentinel früher über
+ClaudeExecutor, Claude-Sessions oder tmux an eine externe KI delegiert hat,
+wird im Target nicht als externer Executor übernommen. Im Workspace-Agent-Ziel
+ist der Agent selbst die Analyse- und Entscheidungsinstanz. Python-Module in
+agent-code-sentinel liefern dafür deterministische Erfassung, Normalisierung,
+Persistenz, QA-Gates, Approval-Prüfung und Reporting. Der operative Plan dazu
+steht in docs/agent-native-code-sentinel-migration-plan.md.
+
 ## 2. AGENTS.md- und Regelkontext
 
 Für diese Analyse gelten:
@@ -264,6 +272,12 @@ Sie werden aber als Arbeitsprinzipien migriert:
 - tmux sessions -> agent_execution_sessions/artifacts
 - API audit -> audit_events
 - GitHub App -> MCP/GitHub connector contracts
+
+Zusatzregel: Der alte ClaudeExecutor wird nicht als Runtime kopiert. Seine
+Aufgaben werden aufgeteilt in agent_analysis.py, agent_execution.py,
+execution_sessions.py, validation_runner.py und policy.py. Der Agent erzeugt
+Findings, Fix-Pläne, Job-/Subjob-Entscheidungen und nächste Schritte selbst;
+Scripts speichern und validieren diese Ergebnisse.
 
 ## 6. Korrekte Zielarchitektur
 
@@ -923,4 +937,3 @@ Die Migration ist erst fertig, wenn alle Punkte erfüllt sind:
 6. Agent kann nach Memory/State fortsetzen, ohne alte Memory als Wahrheit zu behandeln.
 7. Jede Phase hat Tests, final_quality_report und Slack/MCP Evidence.
 8. Kein falsches Complete: vollständige Migration erst nach M0-M10 Evidence.
-

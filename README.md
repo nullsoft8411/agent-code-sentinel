@@ -26,6 +26,10 @@ write-approval checks when Codex or another approved executor runs it.
 - [Local Code Sentinel Source Inventory](docs/local-code-sentinel-source-inventory.json)
   is generated from the local source tree and captures SQLAlchemy table coverage
   plus runtime module coverage for migration planning.
+- [Agent-Native Code Sentinel Migration Plan](docs/agent-native-code-sentinel-migration-plan.md)
+  defines the required replacement for the old external Claude execution path:
+  the Workspace Agent performs analysis, finding creation, task/subtask planning,
+  validation decisions, and autonomous next-step selection itself.
 
 ## Command Layer
 
