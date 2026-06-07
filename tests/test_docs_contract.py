@@ -85,6 +85,10 @@ def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     assert "The Agent pulls the next task or subtask from shared state" in plan
     assert "Project improvement happens through findings and tasks, never as untracked edits" in plan
     assert "Every cycle exits with persisted state and a concrete next_autonomous_step" in plan
+    assert "QA Review Findings Integrated Into This Plan" in plan
+    assert "High: QA-gate failure does not create findings/tasks" in plan
+    assert "AN-2 schema migration is a hard dependency for AN-4, AN-5, AN-6, AN-7 and" in plan
+    assert "No AN phase can be marked complete from docs-only assertions" in plan
 
 
 def test_target_runtime_has_no_external_ai_executor_code() -> None:

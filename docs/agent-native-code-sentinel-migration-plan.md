@@ -484,6 +484,148 @@ The next implementation work must proceed in this order:
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
 
+### 6.5 QA Review Findings Integrated Into This Plan
+
+These findings are the current QA/review result and must drive the next
+implementation tasks.
+
+#### High: Autonomous work logic exists as plan, not runtime
+
+Ist:
+
+- cycle.py currently resumes memory, creates/loads a run and emits a preflight
+  next step.
+- It does not yet analyze files, select a task/subtask, execute the selected
+  task, validate the result or update parent/subtask state.
+
+Soll:
+
+- cycle.py must execute the Agent Work Logic State Machine from section 4:
+  acquire lock, load context, analyze files, create/update findings, select
+  exactly one task/subtask, execute through approval and validation, persist
+  execution/audit state and emit next_autonomous_step.
+
+Plan correction:
+
+- AN-7 is blocked until AN-1, AN-2, AN-3, AN-5 and AN-6 are implemented.
+- Any result that only runs resume-cycle remains bootstrap evidence, not
+  autonomous Code Sentinel evidence.
+
+#### High: Finding-to-task/subtask pipeline is missing
+
+Ist:
+
+- The schema has flat findings and minimal tasks.
+- There is no task_creation.py and no task_workflow.py.
+
+Soll:
+
+- Findings must be grouped by file.
+- One finding creates one standalone task.
+- Multiple findings in one file create one parent task and ordered subtasks.
+- Duplicate signatures are skipped.
+- Parent status derives from subtask state.
+
+Plan correction:
+
+- AN-3 must be implemented before any project improvement mode or task takeover
+  can be marked functional.
+
+#### High: QA-gate failure does not create findings/tasks
+
+Ist:
+
+- qa_gates.py currently reads stored gate rows and returns blocking gate names.
+- It does not create findings, tasks or selected_task_for_agent_takeover.
+
+Soll:
+
+- A failed QA gate must create normalized findings, convert them to tasks or
+  subtasks, select the next runnable task for Workspace Agent takeover and
+  include validation evidence.
+
+Plan correction:
+
+- AN-5 must include a QA-fail-to-finding/task test and cannot pass from a
+  summary-only gate report.
+
+#### High: Source-compatible state model is incomplete
+
+Ist:
+
+- Current SQLite schema lacks scan_jobs, scan_findings, plugin_executions,
+  file_checks, agent_execution_sessions, audit_events and PR state.
+
+Soll:
+
+- Source-compatible runtime state must exist before MCP expansion and before
+  full cycle orchestration.
+
+Plan correction:
+
+- AN-2 schema migration is a hard dependency for AN-4, AN-5, AN-6, AN-7 and
+  AN-8.
+
+#### Medium: MCP state bridge exposes only bootstrap tools
+
+Ist:
+
+- MCP state exposes project, memory, run start, lock acquire/release and event
+  append only.
+
+Soll:
+
+- MCP state must expose allowlisted tools for scan jobs, findings, tasks, QA
+  gates, execution sessions, audit events and PR state.
+
+Plan correction:
+
+- AN-8 must not start before local schema and local runtime tests pass. Raw SQL,
+  arbitrary command execution and generic write tools remain forbidden.
+
+#### Medium: Reports cannot yet prove task takeover or project improvement
+
+Ist:
+
+- reports.py returns run/project and counts only.
+
+Soll:
+
+- Reports must include selected_task_for_agent_takeover, task/subtask state,
+  findings created, QA gate evidence, validation attempts, execution session IDs,
+  write actions, blockers and next_autonomous_step.
+
+Plan correction:
+
+- AN-7 must update reports.py; Slack/Agent smoke is not valid without this
+  evidence.
+
+#### Medium: Docs contract checks intent, not runtime behavior
+
+Ist:
+
+- tests/test_docs_contract.py protects plan wording and the no Claude/tmux rule.
+
+Soll:
+
+- Each AN phase must add executable behavior tests for its runtime claim.
+
+Plan correction:
+
+- No AN phase can be marked complete from docs-only assertions.
+
+### 6.6 QA Review Completion Gate
+
+Before claiming any phase complete, the implementation must show:
+
+1. focused failing or gap-covering test added first
+2. implementation committed to the local runtime, not only docs
+3. pytest for the affected tests passing
+4. final_quality_report PASS for changed productive files
+5. reuse/dead-code/duplicate-code check result stated
+6. risk and rollback path stated
+7. no false complete wording if runtime evidence is missing
+
 ## 7. Implementation Phases
 
 ### Phase AN-0: Contract Freeze
