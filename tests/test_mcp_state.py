@@ -10,7 +10,7 @@ import pytest
 from runtime_cli_helpers import parse_json, run_cli
 from code_sentinel_agent.db import initialize_database
 from code_sentinel_agent.mcp_state import call_tool, detect_backend
-from code_sentinel_agent import postgres_state
+from code_sentinel_agent import mcp_state, postgres_state
 from code_sentinel_agent.postgres_state import bind_literal, build_psql_command, parse_pg_env
 
 
@@ -1440,6 +1440,141 @@ def test_postgres_run_cycle_persists_task_execution_result_query(monkeypatch: py
     assert ":task_execution_result_json" not in captured["sql"]
 
 
+def test_postgres_run_cycle_records_approved_task_execution_file_changes_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = capture_postgres_sql(
+        monkeypatch,
+        {
+            "status": "passed",
+            "state_backend": "postgres",
+            "task_execution_result": {
+                "status": "passed",
+                "task_status": "completed",
+                "approval_enforced": True,
+            },
+            "task_execution_session": {
+                "output_json": {
+                    "approval_enforced": True,
+                    "files_modified": ["src/app.py"],
+                },
+            },
+            "lock_released": True,
+        },
+    )
+
+    code, payload = postgres_state.postgres_run_cycle(
+        "postgresql://localhost/code_sentinel",
+        {
+            "project_id": "proj-devopshub",
+            "run_id": "run-postgres-task-exec-approved",
+            "latest_ref": "main@postgres-task-exec-approved",
+            "write_request": {
+                "target_project": "nullsoft8411/devopshub",
+                "branch": "main",
+                "path": "src/app.py",
+                "action": "file_write",
+            },
+            "task_execution_result": {
+                "task_id": "task-postgres",
+                "execution_method": "agent_native_python",
+                "script_name": "agent-result-ingest",
+                "files_modified": ["src/app.py"],
+                "validation_result": {
+                    "command": "python3 -m pytest tests -q",
+                    "exit_code": 0,
+                    "stdout": "1 passed",
+                },
+            },
+        },
+    )
+
+    assert code == 0
+    assert payload["task_execution_result"]["approval_enforced"] is True
+    assert "approval_candidate as" in captured["sql"]
+    assert "approval_valid as" in captured["sql"]
+    assert "approval_match as" in captured["sql"]
+    assert "allowed_paths_json ? 'src/app.py'" in captured["sql"]
+    assert "allowed_paths_json ? modified.path" in captured["sql"]
+    assert "allowed_actions_json ? 'file_write'" in captured["sql"]
+    assert "'approval_enforced', ('true' = 'true')" in captured["sql"]
+    assert "WRITE_APPROVAL_MISSING" in captured["sql"]
+    assert "WRITE_APPROVAL_EXPIRED" in captured["sql"]
+    assert "WRITE_APPROVAL_SCOPE_MISMATCH" in captured["sql"]
+    assert "src/app.py" in captured["sql"]
+    assert "nullsoft8411/devopshub" in captured["sql"]
+    assert ":write_request_json" not in captured["sql"]
+
+
+def test_postgres_approval_record_builds_approval_upsert_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = capture_postgres_sql(
+        monkeypatch,
+        {
+            "status": "passed",
+            "state_backend": "postgres",
+            "approval": {"id": "approval-postgres"},
+        },
+    )
+
+    code, payload = postgres_state.postgres_approval_record(
+        "postgresql://localhost/code_sentinel",
+        {
+            "id": "approval-postgres",
+            "run_id": "run-postgres-task-exec-approved",
+            "target_project": "nullsoft8411/devopshub",
+            "branch": "main",
+            "allowed_paths": ["src/app.py"],
+            "allowed_actions": ["file_write"],
+            "approved_by": "operator",
+            "approval_evidence": "explicit per-run Postgres test approval",
+        },
+    )
+
+    assert code == 0
+    assert payload["approval"]["id"] == "approval-postgres"
+    assert "insert into approvals" in captured["sql"]
+    assert "on conflict(id) do update set" in captured["sql"]
+    assert '\'["file_write"]\'::jsonb' in captured["sql"]
+    assert '\'["src/app.py"]\'::jsonb' in captured["sql"]
+    assert "explicit per-run Postgres test approval" in captured["sql"]
+
+
+def test_postgres_call_tool_dispatches_approval_record(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    def fake_init(dsn: str) -> tuple[int, dict]:
+        captured["init_dsn"] = dsn
+        return 0, {"status": "passed"}
+
+    def fake_approval_record(dsn: str, payload: dict) -> tuple[int, dict]:
+        captured["approval_dsn"] = dsn
+        captured["payload"] = payload
+        return 0, {"status": "passed", "approval": {"id": "approval-postgres"}}
+
+    monkeypatch.setattr(mcp_state, "initialize_postgres_database", fake_init)
+    monkeypatch.setattr(mcp_state, "postgres_approval_record", fake_approval_record)
+
+    code, payload = call_tool(
+        "postgresql://localhost/code_sentinel",
+        "state_approval_record",
+        {
+            "id": "approval-postgres",
+            "run_id": "run-postgres",
+            "target_project": "nullsoft8411/devopshub",
+            "allowed_paths": ["src/app.py"],
+            "allowed_actions": ["file_write"],
+            "approved_by": "operator",
+            "approval_evidence": "explicit per-run Postgres test approval",
+        },
+    )
+
+    assert code == 0
+    assert payload["approval"]["id"] == "approval-postgres"
+    assert captured["init_dsn"] == "postgresql://localhost/code_sentinel"
+    assert captured["approval_dsn"] == "postgresql://localhost/code_sentinel"
+    assert captured["payload"]["allowed_actions"] == ["file_write"]
+
+
 def test_postgres_run_cycle_blocks_task_execution_file_changes_without_write_request() -> None:
     code, payload = postgres_state.postgres_run_cycle(
         "postgresql://localhost/code_sentinel",
@@ -1464,21 +1599,30 @@ def test_postgres_run_cycle_blocks_task_execution_file_changes_without_write_req
     assert payload["files_modified"] == ["src/app.py"]
 
 
-def test_postgres_run_cycle_blocks_advanced_execution_inputs() -> None:
+def test_postgres_run_cycle_blocks_invalid_write_request() -> None:
     code, payload = postgres_state.postgres_run_cycle(
         "postgresql://localhost/code_sentinel",
         {
             "project_id": "proj-devopshub",
             "run_id": "run-postgres",
-            "write_request": {"action": "file_write"},
+            "write_request": {"action": "file_write", "path": "src/app.py"},
         },
     )
 
     assert code == 2
     assert payload["status"] == "blocked"
     assert payload["state_backend"] == "postgres"
-    assert payload["blocker_code"] == "POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED"
-    assert payload["unsupported_inputs"] == ["write_request"]
+    assert payload["blocker_code"] == "INVALID_WRITE_REQUEST"
+    assert payload["missing"] == ["target_project", "branch"]
+
+
+def test_postgres_mcp_state_schema_documents_approval_guard() -> None:
+    schema = (RUNTIME_ROOT / "migrations" / "postgres" / "001_mcp_state.sql").read_text(encoding="utf-8")
+
+    assert "create table if not exists approvals" in schema
+    assert "allowed_paths_json jsonb not null" in schema
+    assert "allowed_actions_json jsonb not null" in schema
+    assert "idx_approvals_run_target_branch" in schema
 
 
 def test_postgres_psql_backend_uses_env_not_dsn_arg() -> None:

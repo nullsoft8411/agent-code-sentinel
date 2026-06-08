@@ -241,6 +241,24 @@ create table if not exists validation_attempts (
   created_at timestamptz not null default now()
 );
 
+create table if not exists approvals (
+  id text primary key,
+  run_id text not null references runs(id) on delete cascade,
+  target_project text not null,
+  branch text,
+  allowed_paths_json jsonb not null,
+  allowed_actions_json jsonb not null,
+  approved_by text not null,
+  approval_evidence text not null,
+  expires_at timestamptz,
+  consumed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_approvals_run_target_branch
+on approvals(run_id, target_project, branch)
+where consumed_at is null;
+
 create table if not exists artifacts (
   id text primary key,
   run_id text not null references runs(id) on delete cascade,

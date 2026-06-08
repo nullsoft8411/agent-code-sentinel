@@ -244,6 +244,88 @@ select coalesce(
     return run_psql_json(dsn, bind_literal(sql, "run_id", run_id))
 
 
+def postgres_approval_record(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
+    try:
+        run_id = required_postgres_payload_value(payload, "run_id")
+        target_project = required_postgres_payload_value(payload, "target_project")
+        approved_by = required_postgres_payload_value(payload, "approved_by")
+        approval_evidence = required_postgres_payload_value(payload, "approval_evidence")
+    except ValueError as exc:
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "INVALID_APPROVAL_RECORD",
+            "state_backend": "postgres",
+            "reason": str(exc),
+        }
+    allowed_paths = postgres_string_list(payload.get("allowed_paths"))
+    allowed_actions = postgres_string_list(payload.get("allowed_actions"))
+    if not allowed_paths or not allowed_actions:
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "INVALID_APPROVAL_RECORD",
+            "state_backend": "postgres",
+            "reason": "allowed_paths and allowed_actions are required",
+        }
+
+    sql = """
+insert into approvals(
+  id, run_id, target_project, branch, allowed_paths_json,
+  allowed_actions_json, approved_by, approval_evidence, expires_at
+)
+values (
+  :approval_id,
+  :run_id,
+  :target_project,
+  nullif(:branch, ''),
+  :allowed_paths_json::jsonb,
+  :allowed_actions_json::jsonb,
+  :approved_by,
+  :approval_evidence,
+  nullif(:expires_at, '')::timestamptz
+)
+on conflict(id) do update set
+  target_project = excluded.target_project,
+  branch = excluded.branch,
+  allowed_paths_json = excluded.allowed_paths_json,
+  allowed_actions_json = excluded.allowed_actions_json,
+  approved_by = excluded.approved_by,
+  approval_evidence = excluded.approval_evidence,
+  expires_at = excluded.expires_at
+returning json_build_object(
+  'status', 'passed',
+  'state_backend', 'postgres',
+  'approval', json_build_object(
+    'id', id,
+    'run_id', run_id,
+    'target_project', target_project,
+    'branch', branch,
+    'allowed_paths', allowed_paths_json,
+    'allowed_actions', allowed_actions_json,
+    'approved_by', approved_by,
+    'approval_evidence', approval_evidence,
+    'expires_at', expires_at
+  )
+);
+"""
+    return run_psql_json(
+        dsn,
+        bind_literals(
+            sql,
+            {
+                "approval_id": str(payload.get("id") or stable_id("approval", run_id, target_project)),
+                "run_id": run_id,
+                "target_project": target_project,
+                "branch": str(payload.get("branch") or "").strip(),
+                "allowed_paths_json": json.dumps(allowed_paths, sort_keys=True),
+                "allowed_actions_json": json.dumps(allowed_actions, sort_keys=True),
+                "approved_by": approved_by,
+                "approval_evidence": approval_evidence,
+                "expires_at": str(payload.get("expires_at") or "").strip(),
+            },
+        ),
+    )
+
+
 def postgres_analyze_to_state(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
     code, analysis = analyze_context(payload)
     if code != 0:
@@ -502,21 +584,6 @@ commit;
 
 
 def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
-    unsupported_inputs = [
-        key
-        for key in ("write_request",)
-        if payload.get(key)
-    ]
-    if unsupported_inputs:
-        return 2, {
-            "status": "blocked",
-            "blocker_code": "POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED",
-            "state_backend": "postgres",
-            "unsupported_inputs": unsupported_inputs,
-            "reason": "Postgres run-cycle currently covers Agent-owned state takeover only; project evidence, validation, task execution and write approvals are separate migration slices",
-            "next_action": "run state_analyze_to_state first, then call state_run_cycle without advanced execution payloads",
-        }
-
     project_id = str(payload.get("project_id") or "").strip()
     run_id = str(payload.get("run_id") or "").strip()
     latest_ref = str(payload.get("latest_ref") or "current ref")
@@ -529,8 +596,16 @@ def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
             "reason": "project_id and run_id are required",
         }
 
+    write_request_code, write_request_state = postgres_write_request_state(payload, run_id=run_id)
+    if write_request_code != 0:
+        return write_request_code, write_request_state
     project_evidence = postgres_project_evidence(payload, project_id=project_id, run_id=run_id, latest_ref=latest_ref)
-    task_execution_code, task_execution_state = postgres_task_execution_state(payload, project_id=project_id, run_id=run_id)
+    task_execution_code, task_execution_state = postgres_task_execution_state(
+        payload,
+        project_id=project_id,
+        run_id=run_id,
+        write_request_state=write_request_state,
+    )
     if task_execution_code != 0:
         return task_execution_code, task_execution_state
     validation_state = task_execution_state.get("validation_state")
@@ -566,6 +641,7 @@ def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
     validation_findings_json = json.dumps(validation_state.get("findings") or [], sort_keys=True)
     task_execution_result_json = json.dumps(task_execution_result, sort_keys=True)
     task_execution_files_json = json.dumps(task_execution_state.get("files_modified") or [], sort_keys=True)
+    write_request_json = json.dumps(write_request_state.get("write_request"), sort_keys=True)
 
     sql = """
 begin;
@@ -878,6 +954,33 @@ validation_task_insert as (
   on conflict (project_id, task_signature) do nothing
   returning id
 ),
+approval_candidate as (
+  select *
+  from approvals
+  where run_id = :run_id
+    and target_project = :write_request_target_project
+    and (branch = :write_request_branch or branch is null)
+    and consumed_at is null
+    and :write_request_present = 'true'
+  order by created_at desc
+  limit 1
+),
+approval_valid as (
+  select *
+  from approval_candidate
+  where expires_at is null or expires_at > now()
+),
+approval_match as (
+  select *
+  from approval_valid
+  where allowed_actions_json ? :write_request_action
+    and allowed_paths_json ? :write_request_path
+    and not exists (
+      select 1
+      from jsonb_array_elements_text(:task_execution_files_json::jsonb) as modified(path)
+      where not (allowed_paths_json ? modified.path)
+    )
+),
 task_execution_task_update as (
   update tasks
   set
@@ -889,6 +992,7 @@ task_execution_task_update as (
     and run_id = :run_id
     and :task_execution_present = 'true'
     and exists (select 1 from validation_attempt_insert)
+    and (:task_execution_approval_required <> 'true' or exists (select 1 from approval_match))
   returning *
 ),
 task_execution_session_insert as (
@@ -911,13 +1015,29 @@ task_execution_session_insert as (
       'task_id', :task_execution_task_id,
       'validation', :validation_result_json::jsonb,
       'files_modified', :task_execution_files_json::jsonb,
-      'approval_enforced', false
+      'approval_enforced', (:task_execution_approval_required = 'true'),
+      'approval', (select jsonb_build_object(
+        'id', id,
+        'run_id', run_id,
+        'target_project', target_project,
+        'branch', branch,
+        'allowed_paths', allowed_paths_json,
+        'allowed_actions', allowed_actions_json,
+        'approved_by', approved_by,
+        'approval_evidence', approval_evidence,
+        'expires_at', expires_at
+      ) from approval_match)
     ),
     nullif(:task_execution_error_summary, ''),
     :task_execution_files_json::jsonb,
     jsonb_build_array(
       jsonb_build_object('step', 'task_loaded', 'status', 'passed'),
-      jsonb_build_object('step', 'write_approval', 'status', 'not_required'),
+      jsonb_build_object(
+        'step',
+        'write_approval',
+        'status',
+        case when :task_execution_approval_required = 'true' then 'passed' else 'not_required' end
+      ),
       jsonb_build_object('step', 'validation_result', 'status', :task_execution_status),
       jsonb_build_object('step', 'task_status_update', 'status', :task_execution_task_status)
     ),
@@ -1089,6 +1209,7 @@ select coalesce(
       ) from selected_task),
     'validation_result', :validation_result_json::jsonb,
     'task_execution_result', :task_execution_result_json::jsonb,
+    'write_request', :write_request_json::jsonb,
     'project_evidence', :project_evidence_json::jsonb,
     'improvement_work_package', null,
     'cycle_session', (select json_build_object('id', id, 'task_id', task_id, 'status', status, 'output_json', output_json, 'attempt_log_json', attempt_log_json) from session_insert),
@@ -1117,6 +1238,50 @@ select coalesce(
   where runs.id = :run_id
     and exists (select 1 from run_update)
     and (:task_execution_present <> 'true' or exists (select 1 from task_execution_task_update))),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'WRITE_APPROVAL_MISSING',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'run_id', :run_id,
+    'write_request', :write_request_json::jsonb,
+    'files_modified', :task_execution_files_json::jsonb,
+    'reason', 'no approval record matches run, project, branch and unconsumed state',
+    'next_action', 'provide explicit per-run approval for the exact project, branch, path, and action',
+    'lock_released', exists (select 1 from lock_release)
+  )
+  where :task_execution_approval_required = 'true'
+    and not exists (select 1 from approval_candidate)),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'WRITE_APPROVAL_EXPIRED',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'run_id', :run_id,
+    'write_request', :write_request_json::jsonb,
+    'files_modified', :task_execution_files_json::jsonb,
+    'reason', 'matching approval records are expired',
+    'next_action', 'provide a fresh explicit per-run approval for the exact files',
+    'lock_released', exists (select 1 from lock_release)
+  )
+  where :task_execution_approval_required = 'true'
+    and exists (select 1 from approval_candidate)
+    and not exists (select 1 from approval_valid)),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'WRITE_APPROVAL_SCOPE_MISMATCH',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'run_id', :run_id,
+    'write_request', :write_request_json::jsonb,
+    'files_modified', :task_execution_files_json::jsonb,
+    'reason', 'approval does not cover required action or all modified files',
+    'next_action', 'provide approval covering file_write and every modified path',
+    'lock_released', exists (select 1 from lock_release)
+  )
+  where :task_execution_approval_required = 'true'
+    and exists (select 1 from approval_valid)
+    and not exists (select 1 from approval_match)),
   (select json_build_object(
     'status', 'blocked',
     'blocker_code', 'TASK_NOT_FOUND_OR_SCOPE_MISMATCH',
@@ -1193,7 +1358,14 @@ commit;
                     else ""
                 ),
                 "qa_gate_id": str(validation_state.get("qa_gate_id") or ""),
+                "write_request_present": str(bool(write_request_state.get("write_request"))).lower(),
+                "write_request_json": write_request_json,
+                "write_request_target_project": str(write_request_state.get("target_project") or ""),
+                "write_request_branch": str(write_request_state.get("branch") or ""),
+                "write_request_path": str(write_request_state.get("path") or ""),
+                "write_request_action": str(write_request_state.get("action") or ""),
                 "task_execution_present": str(bool(task_execution_result)).lower(),
+                "task_execution_approval_required": str(bool(task_execution_state.get("approval_required"))).lower(),
                 "task_execution_result_json": task_execution_result_json,
                 "task_execution_task_id": str(task_execution_state.get("task_id") or ""),
                 "task_execution_task_status": str(task_execution_state.get("task_status") or ""),
@@ -1396,6 +1568,7 @@ def postgres_task_execution_state(
     *,
     project_id: str,
     run_id: str,
+    write_request_state: dict[str, Any],
 ) -> tuple[int, dict[str, Any]]:
     execution_result = payload.get("task_execution_result") if isinstance(payload.get("task_execution_result"), dict) else None
     if not execution_result:
@@ -1410,7 +1583,7 @@ def postgres_task_execution_state(
             "reason": "task_execution_result.task_id is required",
         }
     files_modified = postgres_string_list(execution_result.get("files_modified"))
-    if files_modified:
+    if files_modified and not write_request_state.get("write_request"):
         return 2, {
             "status": "blocked",
             "blocker_code": "WRITE_APPROVAL_REQUIRED_FOR_TASK_RESULT",
@@ -1453,6 +1626,7 @@ def postgres_task_execution_state(
         "execution_method": str(execution_result.get("execution_method") or "agent_native_task_execution"),
         "session_id": session_id,
         "files_modified": files_modified,
+        "approval_required": bool(files_modified),
         "error_summary": validation_result.get("evidence") if validation_result["status"] == "blocking" else None,
         "validation_state": validation_state,
         "task_execution_result": {
@@ -1463,7 +1637,7 @@ def postgres_task_execution_state(
             "task_status": task_status,
             "validation_result": validation_result,
             "files_modified": files_modified,
-            "approval_enforced": False,
+            "approval_enforced": bool(files_modified),
             "next_action": (
                 "continue task remediation with a fresh bounded fix plan"
                 if validation_result["status"] == "blocking"
@@ -1473,10 +1647,59 @@ def postgres_task_execution_state(
     }
 
 
+def postgres_write_request_state(payload: dict[str, Any], *, run_id: str) -> tuple[int, dict[str, Any]]:
+    write_request = payload.get("write_request") if isinstance(payload.get("write_request"), dict) else None
+    if not write_request:
+        return 0, {"write_request": None}
+    target_project = str(write_request.get("target_project") or "").strip()
+    branch = str(write_request.get("branch") or "").strip()
+    path = str(write_request.get("path") or "").strip()
+    action = str(write_request.get("action") or "").strip()
+    missing = [
+        key
+        for key, value in (
+            ("target_project", target_project),
+            ("branch", branch),
+            ("path", path),
+            ("action", action),
+        )
+        if not value
+    ]
+    if missing:
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "INVALID_WRITE_REQUEST",
+            "state_backend": "postgres",
+            "run_id": run_id,
+            "missing": missing,
+            "reason": "write_request requires target_project, branch, path and action",
+        }
+    return 0, {
+        "write_request": {
+            "run_id": run_id,
+            "target_project": target_project,
+            "branch": branch,
+            "path": path,
+            "action": action,
+        },
+        "target_project": target_project,
+        "branch": branch,
+        "path": path,
+        "action": action,
+    }
+
+
 def postgres_string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item).strip() for item in value if str(item).strip()]
+
+
+def required_postgres_payload_value(payload: dict[str, Any], key: str) -> str:
+    value = str(payload.get(key) or "").strip()
+    if not value:
+        raise ValueError(f"{key} is required")
+    return value
 
 
 def qg_finding_signature(result: ValidationResult, finding: dict[str, Any]) -> str:

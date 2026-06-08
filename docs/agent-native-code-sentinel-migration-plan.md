@@ -956,19 +956,24 @@ Current local progress:
   status on failing gates while releasing the project lock. It now accepts
   `task_execution_result` without file modifications, validates the nested
   validation result, updates task status/attempt count, records a task-execution
-  session, and still blocks reported file modifications until `write_request`
-  approval is implemented. Advanced execution input `write_request` still
-  returns a precise `POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED` blocker
-  rather than pretending full parity. The SQL contract is covered by
+  session. It now accepts `write_request` for task-execution file modifications,
+  checks matching unconsumed Postgres `approvals` by run, target project,
+  branch, action, requested path and every modified path, records approval
+  evidence in the task-execution session, and returns precise missing, expired
+  or scope-mismatch approval blockers while releasing the lock. The SQL contract
+  is covered by `tests/test_mcp_state.py::test_postgres_approval_record_builds_approval_upsert_query`,
   `tests/test_mcp_state.py::test_postgres_run_cycle_builds_task_takeover_query`,
   `tests/test_mcp_state.py::test_postgres_run_cycle_persists_project_evidence_query`,
   `tests/test_mcp_state.py::test_postgres_run_cycle_persists_validation_result_query`,
   and
-  `tests/test_mcp_state.py::test_postgres_run_cycle_persists_task_execution_result_query`.
+  `tests/test_mcp_state.py::test_postgres_run_cycle_persists_task_execution_result_query`,
+  plus
+  `tests/test_mcp_state.py::test_postgres_run_cycle_records_approved_task_execution_file_changes_query`.
 - Next open implementation slice: continue section 2.6 with the next uncovered
-  runtime responsibility, currently Postgres write-request approval processing
-  for task-execution file modifications inside advanced `state_run_cycle`,
-  without claiming full Postgres parity.
+  runtime responsibility, currently direct Postgres MCP tool parity for
+  task-execution-result ingestion (`state_task_execution_result`) without
+  routing everything through `state_run_cycle`, then live Postgres E2E once a
+  local DB is available.
 - AN-3 parent/subtask status coverage is now locally proven for completed,
   blocked and failed-validation transitions. `tests/test_task_creation.py::test_task_status_updates_parent_progress`
   proves completed subtasks complete the parent, and

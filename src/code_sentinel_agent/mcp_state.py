@@ -17,6 +17,7 @@ from .execution_sessions import list_execution_sessions, parse_execution_session
 from .postgres_state import (
     initialize_postgres_database,
     postgres_analyze_to_state,
+    postgres_approval_record,
     postgres_lock_acquire,
     postgres_lock_release,
     postgres_memory_get,
@@ -775,6 +776,11 @@ def call_postgres_tool(dsn: str, tool_name: str, payload: dict[str, Any]) -> tup
             run_id=require_str(payload, "run_id"),
             latest_ref=payload.get("latest_ref"),
         )
+    if tool_name == "state_approval_record":
+        code, init_payload = initialize_postgres_database(dsn)
+        if code != 0:
+            return code, init_payload
+        return postgres_approval_record(dsn, unwrap_tool_payload(payload))
     if tool_name == "state_analyze_to_state":
         code, init_payload = initialize_postgres_database(dsn)
         if code != 0:
