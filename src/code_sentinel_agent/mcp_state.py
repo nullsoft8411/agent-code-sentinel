@@ -16,6 +16,7 @@ from .db import connect, initialize_database
 from .execution_sessions import list_execution_sessions, parse_execution_session_payload, record_execution_session
 from .postgres_state import (
     initialize_postgres_database,
+    postgres_analyze_to_state,
     postgres_lock_acquire,
     postgres_lock_release,
     postgres_memory_get,
@@ -773,6 +774,11 @@ def call_postgres_tool(dsn: str, tool_name: str, payload: dict[str, Any]) -> tup
             run_id=require_str(payload, "run_id"),
             latest_ref=payload.get("latest_ref"),
         )
+    if tool_name == "state_analyze_to_state":
+        code, init_payload = initialize_postgres_database(dsn)
+        if code != 0:
+            return code, init_payload
+        return postgres_analyze_to_state(dsn, unwrap_tool_payload(payload))
     return postgres_not_ready(tool_name, {"type": "postgres", "dsn": dsn, "driver_available": postgres_driver_available()})
 
 

@@ -45,6 +45,18 @@ def seed_project(db_path: Path) -> None:
         conn.commit()
 
 
+def capture_postgres_sql(monkeypatch: pytest.MonkeyPatch, payload: dict) -> dict:
+    captured = {}
+
+    def fake_run_psql_json(dsn: str, sql: str) -> tuple[int, dict]:
+        captured["dsn"] = dsn
+        captured["sql"] = sql
+        return 0, payload
+
+    monkeypatch.setattr(postgres_state, "run_psql_json", fake_run_psql_json)
+    return captured
+
+
 def create_mcp_cycle_project(root: Path) -> Path:
     project = root / "mcp-cycle-project"
     project.mkdir()
@@ -1163,7 +1175,6 @@ def test_mcp_state_postgres_dsn_blocks_until_driver_and_adapter_exist() -> None:
 @pytest.mark.parametrize(
     ("tool_name", "payload"),
     [
-        ("state_analyze_to_state", {"project_id": "proj-devopshub", "run_id": "run-1", "finding_candidates": []}),
         ("state_run_cycle", {"project_id": "proj-devopshub", "run_id": "run-1", "latest_ref": "main@test"}),
     ],
 )
@@ -1178,14 +1189,10 @@ def test_postgres_backend_blocks_unsupported_local_e2e_state_tools(tool_name: st
 
 
 def test_postgres_memory_get_builds_latest_memory_readback_query(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured = {}
-
-    def fake_run_psql_json(dsn: str, sql: str) -> tuple[int, dict]:
-        captured["dsn"] = dsn
-        captured["sql"] = sql
-        return 0, {"status": "passed", "state_backend": "postgres", "project_id": "proj-devopshub"}
-
-    monkeypatch.setattr(postgres_state, "run_psql_json", fake_run_psql_json)
+    captured = capture_postgres_sql(
+        monkeypatch,
+        {"status": "passed", "state_backend": "postgres", "project_id": "proj-devopshub"},
+    )
 
     code, payload = postgres_state.postgres_memory_get(
         "postgresql://localhost/code_sentinel",
@@ -1204,14 +1211,10 @@ def test_postgres_memory_get_builds_latest_memory_readback_query(monkeypatch: py
 
 
 def test_postgres_report_get_builds_partial_report_readback_query(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured = {}
-
-    def fake_run_psql_json(dsn: str, sql: str) -> tuple[int, dict]:
-        captured["dsn"] = dsn
-        captured["sql"] = sql
-        return 0, {"status": "passed", "state_backend": "postgres", "partial_report": True}
-
-    monkeypatch.setattr(postgres_state, "run_psql_json", fake_run_psql_json)
+    captured = capture_postgres_sql(
+        monkeypatch,
+        {"status": "passed", "state_backend": "postgres", "partial_report": True},
+    )
 
     code, payload = postgres_state.postgres_report_get(
         "postgresql://localhost/code_sentinel",
@@ -1225,10 +1228,62 @@ def test_postgres_report_get_builds_partial_report_readback_query(monkeypatch: p
     assert "join projects" in captured["sql"]
     assert "qa_gate_results" in captured["sql"]
     assert "artifacts" in captured["sql"]
+    assert "from findings" in captured["sql"]
+    assert "from tasks" in captured["sql"]
     assert "unsupported_counts" in captured["sql"]
+    assert "'findings'" not in captured["sql"].split("unsupported_counts", 1)[1]
+    assert "'tasks'" not in captured["sql"].split("unsupported_counts", 1)[1]
     assert "RUN_NOT_FOUND" in captured["sql"]
     assert ":run_id" not in captured["sql"]
     assert "'run-postgres'" in captured["sql"]
+
+
+def test_postgres_analyze_to_state_builds_agent_findings_tasks_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = capture_postgres_sql(
+        monkeypatch,
+        {
+            "status": "passed",
+            "state_backend": "postgres",
+            "mode": "agent_supplied_analysis_persistence",
+        },
+    )
+
+    code, payload = postgres_state.postgres_analyze_to_state(
+        "postgresql://localhost/code_sentinel",
+        {
+            "project_id": "proj-devopshub",
+            "run_id": "run-postgres",
+            "latest_ref": "main@postgres",
+            "finding_candidates": [
+                {
+                    "category": "validation",
+                    "severity": "high",
+                    "file_path": "src/app.py",
+                    "line_number": 7,
+                    "title": "Pytest failure",
+                    "description": "pytest failed",
+                    "evidence": "src/app.py:7: AssertionError",
+                    "rule_id": "pytest_failure",
+                }
+            ],
+        },
+    )
+
+    assert code == 0
+    assert payload["mode"] == "agent_supplied_analysis_persistence"
+    assert captured["dsn"] == "postgresql://localhost/code_sentinel"
+    assert "insert into scan_jobs" in captured["sql"]
+    assert "insert into findings" in captured["sql"]
+    assert "insert into scan_findings" in captured["sql"]
+    assert "insert into tasks" in captured["sql"]
+    assert "on conflict (project_id, signature) do nothing" in captured["sql"]
+    assert "on conflict (project_id, task_signature) do nothing" in captured["sql"]
+    assert "selected_task_for_agent_takeover" in captured["sql"]
+    assert "jsonb_array_elements" in captured["sql"]
+    assert ":project_id" not in captured["sql"]
+    assert ":findings_json" not in captured["sql"]
+    assert "'proj-devopshub'" in captured["sql"]
+    assert "Pytest failure" in captured["sql"]
 
 
 def test_postgres_psql_backend_uses_env_not_dsn_arg() -> None:
@@ -1254,9 +1309,22 @@ def test_postgres_mcp_state_schema_documents_locking_contract() -> None:
     sql_path = RUNTIME_ROOT / "migrations" / "postgres" / "001_mcp_state.sql"
     sql = sql_path.read_text(encoding="utf-8")
 
-    for table in ["projects", "runs", "memories", "qa_gate_results", "artifacts", "state_locks"]:
+    for table in [
+        "projects",
+        "runs",
+        "memories",
+        "findings",
+        "tasks",
+        "scan_jobs",
+        "scan_findings",
+        "qa_gate_results",
+        "artifacts",
+        "state_locks",
+    ]:
         assert re.search(rf"create table if not exists {table}\b", sql)
     assert "jsonb not null" in sql
+    assert "idx_tasks_project_signature" in sql
+    assert "idx_scan_findings_project_status" in sql
     assert "idx_state_locks_one_active_project" in sql
     assert "pg_try_advisory_xact_lock" in sql
     assert "hashtext(:project_id)" in sql

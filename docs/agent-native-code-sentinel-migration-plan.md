@@ -914,13 +914,16 @@ Current local progress:
   submits the same Agent finding twice through `state_analyze_to_state` and
   proves the second call returns `created=false`, creates zero additional
   tasks, and leaves report counts at one finding and one task.
+- Target runtime DB is PostgreSQL only. SQLite remains a legacy/reference
+  regression harness while the runtime is migrated, but it is not a second
+  Agent production state backend and must not be used to claim Agent-runtime
+  readiness.
 - Next open implementation slice: Postgres parity remains intentionally open.
-  Either implement every state tool used by the local E2E for the Postgres
-  backend, or add explicit blocker evidence per tool without claiming parity.
-- Postgres parity is still not implemented, but unsupported local E2E state
-  tools now have explicit blocker evidence. `tests/test_mcp_state.py::test_postgres_backend_blocks_unsupported_local_e2e_state_tools`
-  proves `state_analyze_to_state` and `state_run_cycle` return controlled `blocked` payloads with
-  `state_backend=postgres` instead of pretending execution succeeded.
+  Implement every state tool used by the local E2E for the Postgres backend, or
+  keep explicit blocker evidence per tool without claiming parity.
+- Postgres unsupported-tool evidence is now narrowed to the still-open
+  `state_run_cycle` backend gap. `state_analyze_to_state` is no longer treated
+  as unsupported once its Postgres write path is implemented.
 - Postgres `state_memory_get` is now implemented as the first expanded
   Postgres state-tool parity slice. `postgres_memory_get` reads the latest
   `memories` row by `project_id`, returns `memory`, `latest_ref`,
@@ -930,12 +933,18 @@ Current local progress:
   `tests/test_mcp_state.py::test_postgres_memory_get_builds_latest_memory_readback_query`.
 - Postgres `state_report_get` is now implemented as a partial readback over
   the current Postgres schema. `postgres_report_get` returns run/project data,
-  QA-gate and artifact counts, and explicitly marks findings, tasks,
-  validation attempts and execution sessions as `unsupported_counts` instead
-  of faking full report parity. The SQL contract is covered by
+  QA-gate, artifact, finding and task counts, and explicitly marks validation
+  attempts and execution sessions as `unsupported_counts` instead of faking
+  full report parity. The SQL contract is covered by
   `tests/test_mcp_state.py::test_postgres_report_get_builds_partial_report_readback_query`.
+- Postgres `state_analyze_to_state` now has the first Agent-owned analysis
+  write path: it reuses the Agent finding normalization contract, writes
+  `scan_jobs`, compatibility `findings`, `scan_findings` and deduped
+  standalone `tasks`, and returns selected-task takeover context without
+  invoking Claude/Codex/tmux/external executors. The SQL contract is covered by
+  `tests/test_mcp_state.py::test_postgres_analyze_to_state_builds_agent_findings_tasks_query`.
 - Next open implementation slice: continue section 2.6 with the next uncovered
-  runtime responsibility after dedupe/Postgres-blocker evidence, without
+  runtime responsibility, currently Postgres `state_run_cycle`, without
   claiming full Postgres parity.
 - AN-3 parent/subtask status coverage is now locally proven for completed,
   blocked and failed-validation transitions. `tests/test_task_creation.py::test_task_status_updates_parent_progress`
