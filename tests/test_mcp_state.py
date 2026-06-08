@@ -1394,13 +1394,83 @@ def test_postgres_run_cycle_persists_validation_result_query(monkeypatch: pytest
     assert ":validation_findings_json" not in captured["sql"]
 
 
+def test_postgres_run_cycle_persists_task_execution_result_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = capture_postgres_sql(
+        monkeypatch,
+        {
+            "status": "passed",
+            "state_backend": "postgres",
+            "task_execution_result": {"status": "passed", "task_status": "completed"},
+            "selected_task_for_agent_takeover": None,
+            "lock_released": True,
+        },
+    )
+
+    code, payload = postgres_state.postgres_run_cycle(
+        "postgresql://localhost/code_sentinel",
+        {
+            "project_id": "proj-devopshub",
+            "run_id": "run-postgres-task-exec",
+            "latest_ref": "main@postgres-task-exec",
+            "task_execution_result": {
+                "task_id": "task-postgres",
+                "execution_method": "agent_native_python",
+                "script_name": "agent-result-ingest",
+                "validation_result": {
+                    "command": "python3 -m pytest tests -q",
+                    "exit_code": 0,
+                    "stdout": "1 passed",
+                },
+            },
+        },
+    )
+
+    assert code == 0
+    assert payload["task_execution_result"]["status"] == "passed"
+    assert "task_execution_task_update as" in captured["sql"]
+    assert "task_execution_session_insert as" in captured["sql"]
+    assert "TASK_NOT_FOUND_OR_SCOPE_MISMATCH" in captured["sql"]
+    assert "exists (select 1 from task_execution_task_update)" in captured["sql"]
+    assert "status = 'completed'" in captured["sql"] or "'completed'" in captured["sql"]
+    assert "python3 -m pytest tests -q" in captured["sql"]
+    assert "agent-result-ingest" in captured["sql"]
+    assert "agent_native_python" in captured["sql"]
+    assert "validation_attempts" in captured["sql"]
+    assert "qa_gate_results" in captured["sql"]
+    assert ":task_execution_result_json" not in captured["sql"]
+
+
+def test_postgres_run_cycle_blocks_task_execution_file_changes_without_write_request() -> None:
+    code, payload = postgres_state.postgres_run_cycle(
+        "postgresql://localhost/code_sentinel",
+        {
+            "project_id": "proj-devopshub",
+            "run_id": "run-postgres-task-exec",
+            "task_execution_result": {
+                "task_id": "task-postgres",
+                "files_modified": ["src/app.py"],
+                "validation_result": {
+                    "command": "python3 -m pytest tests -q",
+                    "exit_code": 0,
+                },
+            },
+        },
+    )
+
+    assert code == 2
+    assert payload["status"] == "blocked"
+    assert payload["state_backend"] == "postgres"
+    assert payload["blocker_code"] == "WRITE_APPROVAL_REQUIRED_FOR_TASK_RESULT"
+    assert payload["files_modified"] == ["src/app.py"]
+
+
 def test_postgres_run_cycle_blocks_advanced_execution_inputs() -> None:
     code, payload = postgres_state.postgres_run_cycle(
         "postgresql://localhost/code_sentinel",
         {
             "project_id": "proj-devopshub",
             "run_id": "run-postgres",
-            "task_execution_result": {"task_id": "task-1"},
+            "write_request": {"action": "file_write"},
         },
     )
 
@@ -1408,7 +1478,7 @@ def test_postgres_run_cycle_blocks_advanced_execution_inputs() -> None:
     assert payload["status"] == "blocked"
     assert payload["state_backend"] == "postgres"
     assert payload["blocker_code"] == "POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED"
-    assert payload["unsupported_inputs"] == ["task_execution_result"]
+    assert payload["unsupported_inputs"] == ["write_request"]
 
 
 def test_postgres_psql_backend_uses_env_not_dsn_arg() -> None:

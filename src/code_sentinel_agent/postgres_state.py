@@ -504,7 +504,7 @@ commit;
 def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
     unsupported_inputs = [
         key
-        for key in ("task_execution_result", "write_request")
+        for key in ("write_request",)
         if payload.get(key)
     ]
     if unsupported_inputs:
@@ -530,20 +530,29 @@ def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
         }
 
     project_evidence = postgres_project_evidence(payload, project_id=project_id, run_id=run_id, latest_ref=latest_ref)
-    validation_code, validation_state = postgres_validation_state(payload, project_id=project_id, run_id=run_id)
-    if validation_code != 0:
-        return validation_code, validation_state
+    task_execution_code, task_execution_state = postgres_task_execution_state(payload, project_id=project_id, run_id=run_id)
+    if task_execution_code != 0:
+        return task_execution_code, task_execution_state
+    validation_state = task_execution_state.get("validation_state")
+    if not isinstance(validation_state, dict):
+        validation_code, validation_state = postgres_validation_state(payload, project_id=project_id, run_id=run_id)
+        if validation_code != 0:
+            return validation_code, validation_state
     scan_job = project_evidence.get("scan_job") if isinstance(project_evidence.get("scan_job"), dict) else {}
     validation_result = validation_state.get("validation_result")
+    task_execution_result = task_execution_state.get("task_execution_result")
     cycle_status = (
         "blocking"
         if project_evidence.get("status") == "blocking"
         or (isinstance(validation_result, dict) and validation_result.get("status") == "blocking")
+        or (isinstance(task_execution_result, dict) and task_execution_result.get("status") == "blocking")
         else "passed"
     )
     project_evidence_next_step = (
         f"resolve project evidence blocker: {project_evidence.get('blocker_code')}"
         if project_evidence.get("status") == "blocking"
+        else "continue task remediation with a fresh bounded fix plan"
+        if isinstance(task_execution_result, dict) and task_execution_result.get("status") == "blocking"
         else "create or continue the selected task for the failing gate"
         if isinstance(validation_result, dict) and validation_result.get("status") == "blocking"
         else "analyze project context and create findings/tasks before editing"
@@ -555,6 +564,8 @@ def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
     file_checks_json = json.dumps(file_checks, sort_keys=True)
     validation_result_json = json.dumps(validation_result, sort_keys=True)
     validation_findings_json = json.dumps(validation_state.get("findings") or [], sort_keys=True)
+    task_execution_result_json = json.dumps(task_execution_result, sort_keys=True)
+    task_execution_files_json = json.dumps(task_execution_state.get("files_modified") or [], sort_keys=True)
 
     sql = """
 begin;
@@ -867,6 +878,63 @@ validation_task_insert as (
   on conflict (project_id, task_signature) do nothing
   returning id
 ),
+task_execution_task_update as (
+  update tasks
+  set
+    status = :task_execution_task_status,
+    attempt_count = attempt_count + (:task_execution_increment_attempt)::integer,
+    updated_at = now()
+  where id = :task_execution_task_id
+    and project_id = :project_id
+    and run_id = :run_id
+    and :task_execution_present = 'true'
+    and exists (select 1 from validation_attempt_insert)
+  returning *
+),
+task_execution_session_insert as (
+  insert into agent_execution_sessions(
+    id, run_id, project_id, task_id, session_type, script_name,
+    execution_method, command, status, output_json, error_summary,
+    files_modified_json, attempt_log_json, completed_at
+  )
+  select
+    :task_execution_session_id,
+    :run_id,
+    :project_id,
+    :task_execution_task_id,
+    'task_execution',
+    :task_execution_script_name,
+    :task_execution_method,
+    :validation_command,
+    :task_execution_status,
+    jsonb_build_object(
+      'task_id', :task_execution_task_id,
+      'validation', :validation_result_json::jsonb,
+      'files_modified', :task_execution_files_json::jsonb,
+      'approval_enforced', false
+    ),
+    nullif(:task_execution_error_summary, ''),
+    :task_execution_files_json::jsonb,
+    jsonb_build_array(
+      jsonb_build_object('step', 'task_loaded', 'status', 'passed'),
+      jsonb_build_object('step', 'write_approval', 'status', 'not_required'),
+      jsonb_build_object('step', 'validation_result', 'status', :task_execution_status),
+      jsonb_build_object('step', 'task_status_update', 'status', :task_execution_task_status)
+    ),
+    now()
+  where :task_execution_present = 'true'
+    and exists (select 1 from task_execution_task_update)
+  on conflict (id) do update set
+    task_id = excluded.task_id,
+    status = excluded.status,
+    output_json = excluded.output_json,
+    error_summary = excluded.error_summary,
+    files_modified_json = excluded.files_modified_json,
+    attempt_log_json = excluded.attempt_log_json,
+    completed_at = excluded.completed_at,
+    updated_at = now()
+  returning id, task_id, status, output_json, files_modified_json, attempt_log_json
+),
 selected_task as (
   select *
   from tasks
@@ -893,6 +961,7 @@ run_update as (
   set
     current_focus = case
       when :project_evidence_status = 'blocking' then 'project_evidence'
+      when :task_execution_status = 'blocking' then 'task_execution'
       when :validation_status = 'blocking' then 'qa_gate_takeover'
       when exists (select 1 from selected_task) then 'task_takeover'
       else 'analysis'
@@ -937,6 +1006,7 @@ session_insert as (
       'selected_task_id', (select id from selected_task),
       'project_evidence_status', :project_evidence_status,
       'validation_status', nullif(:validation_status, ''),
+      'task_execution_status', nullif(:task_execution_status, ''),
       'scan_job_id', nullif(:scan_job_id, ''),
       'file_checks_count', (:file_checks_count)::integer
     ),
@@ -946,6 +1016,7 @@ session_insert as (
       jsonb_build_object('step', 'run_state_loaded', 'status', 'passed'),
       jsonb_build_object('step', 'project_evidence', 'status', :project_evidence_status),
       jsonb_build_object('step', 'validation_result', 'status', coalesce(nullif(:validation_status, ''), 'not_available')),
+      jsonb_build_object('step', 'task_execution_result', 'status', coalesce(nullif(:task_execution_status, ''), 'not_available')),
       jsonb_build_object('step', 'selected_task', 'status', case when exists (select 1 from selected_task) then 'passed' else 'not_available' end)
     ),
     now()
@@ -970,9 +1041,10 @@ audit_insert as (
     jsonb_build_object(
       'latest_ref', :latest_ref,
       'selected_task_id', (select id from selected_task),
-      'current_focus', case when :cycle_status = 'blocking' and :project_evidence_status = 'blocking' then 'project_evidence' when :validation_status = 'blocking' then 'qa_gate_takeover' when exists (select 1 from selected_task) then 'task_takeover' else 'analysis' end,
+      'current_focus', case when :cycle_status = 'blocking' and :project_evidence_status = 'blocking' then 'project_evidence' when :task_execution_status = 'blocking' then 'task_execution' when :validation_status = 'blocking' then 'qa_gate_takeover' when exists (select 1 from selected_task) then 'task_takeover' else 'analysis' end,
       'project_evidence_status', :project_evidence_status,
       'validation_status', nullif(:validation_status, ''),
+      'task_execution_status', nullif(:task_execution_status, ''),
       'scan_job_id', nullif(:scan_job_id, '')
     )
   where exists (select 1 from run_update)
@@ -1016,10 +1088,11 @@ select coalesce(
         'progress', progress_json
       ) from selected_task),
     'validation_result', :validation_result_json::jsonb,
-    'task_execution_result', null,
+    'task_execution_result', :task_execution_result_json::jsonb,
     'project_evidence', :project_evidence_json::jsonb,
     'improvement_work_package', null,
     'cycle_session', (select json_build_object('id', id, 'task_id', task_id, 'status', status, 'output_json', output_json, 'attempt_log_json', attempt_log_json) from session_insert),
+    'task_execution_session', (select json_build_object('id', id, 'task_id', task_id, 'status', status, 'output_json', output_json, 'files_modified_json', files_modified_json, 'attempt_log_json', attempt_log_json) from task_execution_session_insert),
     'audit_event', (select json_build_object('id', id, 'event_type', event_type, 'summary', summary, 'payload_json', payload_json) from audit_insert),
     'report', json_build_object(
       'status', 'passed',
@@ -1042,7 +1115,20 @@ select coalesce(
   from runs
   join projects on projects.id = runs.project_id
   where runs.id = :run_id
-    and exists (select 1 from run_update)),
+    and exists (select 1 from run_update)
+    and (:task_execution_present <> 'true' or exists (select 1 from task_execution_task_update))),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'TASK_NOT_FOUND_OR_SCOPE_MISMATCH',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'run_id', :run_id,
+    'task_id', :task_execution_task_id,
+    'reason', 'record execution only for a task belonging to the current project run',
+    'lock_released', exists (select 1 from lock_release)
+  )
+  where :task_execution_present = 'true'
+    and not exists (select 1 from task_execution_task_update)),
   (select json_build_object(
     'status', 'blocked',
     'blocker_code', 'STATE_LOCK_HELD',
@@ -1107,6 +1193,17 @@ commit;
                     else ""
                 ),
                 "qa_gate_id": str(validation_state.get("qa_gate_id") or ""),
+                "task_execution_present": str(bool(task_execution_result)).lower(),
+                "task_execution_result_json": task_execution_result_json,
+                "task_execution_task_id": str(task_execution_state.get("task_id") or ""),
+                "task_execution_task_status": str(task_execution_state.get("task_status") or ""),
+                "task_execution_increment_attempt": "1" if task_execution_state.get("increment_attempt") else "0",
+                "task_execution_session_id": str(task_execution_state.get("session_id") or ""),
+                "task_execution_script_name": str(task_execution_state.get("script_name") or ""),
+                "task_execution_method": str(task_execution_state.get("execution_method") or ""),
+                "task_execution_status": str(task_execution_result.get("status") if isinstance(task_execution_result, dict) else ""),
+                "task_execution_error_summary": str(task_execution_state.get("error_summary") or ""),
+                "task_execution_files_json": task_execution_files_json,
             },
         ),
     )
@@ -1292,6 +1389,94 @@ def postgres_validation_state(
         },
         "findings": findings,
     }
+
+
+def postgres_task_execution_state(
+    payload: dict[str, Any],
+    *,
+    project_id: str,
+    run_id: str,
+) -> tuple[int, dict[str, Any]]:
+    execution_result = payload.get("task_execution_result") if isinstance(payload.get("task_execution_result"), dict) else None
+    if not execution_result:
+        return 0, {"task_execution_result": None}
+
+    task_id = str(execution_result.get("task_id") or "").strip()
+    if not task_id:
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "INVALID_TASK_EXECUTION_RESULT",
+            "state_backend": "postgres",
+            "reason": "task_execution_result.task_id is required",
+        }
+    files_modified = postgres_string_list(execution_result.get("files_modified"))
+    if files_modified:
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "WRITE_APPROVAL_REQUIRED_FOR_TASK_RESULT",
+            "state_backend": "postgres",
+            "reason": "task execution reported file changes without an approved write_request",
+            "files_modified": files_modified,
+            "next_action": "provide write_request approval for every modified file before recording the task result",
+        }
+
+    validation_payload = execution_result.get("validation_result")
+    if not isinstance(validation_payload, dict):
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "TASK_VALIDATION_RESULT_REQUIRED",
+            "state_backend": "postgres",
+            "reason": "task_execution_result.validation_result is required",
+            "next_action": "return task_execution_result.validation_result with command and exit_code",
+        }
+    validation_input = {
+        **validation_payload,
+        "gate": str(validation_payload.get("gate") or "task_execution_validation"),
+    }
+    validation_code, validation_state = postgres_validation_state(
+        {"validation_result": validation_input},
+        project_id=project_id,
+        run_id=run_id,
+    )
+    if validation_code != 0:
+        return validation_code, validation_state
+
+    validation_result = validation_state["validation_result"]
+    task_status = "completed" if validation_result["status"] == "passed" else "failed_validation"
+    command = validation_result["command"]
+    session_id = stable_id("task-exec", run_id, task_id, command, validation_result["status"])
+    return 0, {
+        "task_id": task_id,
+        "task_status": task_status,
+        "increment_attempt": validation_result["status"] == "blocking",
+        "script_name": str(execution_result.get("script_name") or "agent-task-execution"),
+        "execution_method": str(execution_result.get("execution_method") or "agent_native_task_execution"),
+        "session_id": session_id,
+        "files_modified": files_modified,
+        "error_summary": validation_result.get("evidence") if validation_result["status"] == "blocking" else None,
+        "validation_state": validation_state,
+        "task_execution_result": {
+            "status": validation_result["status"],
+            "project_id": project_id,
+            "run_id": run_id,
+            "task_id": task_id,
+            "task_status": task_status,
+            "validation_result": validation_result,
+            "files_modified": files_modified,
+            "approval_enforced": False,
+            "next_action": (
+                "continue task remediation with a fresh bounded fix plan"
+                if validation_result["status"] == "blocking"
+                else "refresh report and continue with the next runnable task"
+            ),
+        },
+    }
+
+
+def postgres_string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
 
 
 def qg_finding_signature(result: ValidationResult, finding: dict[str, Any]) -> str:

@@ -953,17 +953,22 @@ Current local progress:
   It now accepts `validation_result`, normalizes the supplied validation result,
   persists `validation_attempts`, `qa_gate_results`, validation execution
   sessions, validation findings and deduped takeover tasks, and returns blocking
-  status on failing gates while releasing the project lock. Advanced execution
-  inputs (`task_execution_result`, `write_request`) still return a precise
-  `POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED` blocker rather than
-  pretending full parity. The SQL contract is covered by
+  status on failing gates while releasing the project lock. It now accepts
+  `task_execution_result` without file modifications, validates the nested
+  validation result, updates task status/attempt count, records a task-execution
+  session, and still blocks reported file modifications until `write_request`
+  approval is implemented. Advanced execution input `write_request` still
+  returns a precise `POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED` blocker
+  rather than pretending full parity. The SQL contract is covered by
   `tests/test_mcp_state.py::test_postgres_run_cycle_builds_task_takeover_query`,
   `tests/test_mcp_state.py::test_postgres_run_cycle_persists_project_evidence_query`,
+  `tests/test_mcp_state.py::test_postgres_run_cycle_persists_validation_result_query`,
   and
-  `tests/test_mcp_state.py::test_postgres_run_cycle_persists_validation_result_query`.
+  `tests/test_mcp_state.py::test_postgres_run_cycle_persists_task_execution_result_query`.
 - Next open implementation slice: continue section 2.6 with the next uncovered
-  runtime responsibility, currently Postgres task-execution-result processing
-  inside advanced `state_run_cycle`, without claiming full Postgres parity.
+  runtime responsibility, currently Postgres write-request approval processing
+  for task-execution file modifications inside advanced `state_run_cycle`,
+  without claiming full Postgres parity.
 - AN-3 parent/subtask status coverage is now locally proven for completed,
   blocked and failed-validation transitions. `tests/test_task_creation.py::test_task_status_updates_parent_progress`
   proves completed subtasks complete the parent, and
@@ -971,10 +976,6 @@ Current local progress:
   proves `blocked_approval_required` derives parent status `blocked` and
   `failed_validation` derives parent status `failed_validation` with accurate
   progress JSON.
-- Next open implementation slice: continue section 2.6 with AN-4 ScanJob and
-  Plugin Execution coverage. The local gate must prove scan_job status
-  lifecycle, plugin_execution records, file_check readback and static/blocker
-  behavior from an executable fixture path.
 - AN-4 ScanJob and Plugin Execution coverage is now locally proven for both
   pass and blocker paths. `tests/test_autonomous_cycle.py::test_run_cycle_collects_project_scan_file_plugin_and_audit_evidence`
   proves run-cycle persists a completed scan_job, project_context and
@@ -1038,10 +1039,10 @@ Current local progress:
   `npm run test:cli` with 5 tests passing, `npm run type-check`, and
   `CODE_SENTINEL_RUNTIME_ROOT=/home/pika/projekte/agent-code-sentinel npm run
   smoke:code-sentinel-state` with `CODE_SENTINEL_MCP_STATE_SMOKE_PASS`.
-- Next open implementation slice: AN-9 Agent Studio Packaging remains paused
-  until the user explicitly resumes managed Agent configuration. When resumed,
-  refresh or reconnect only the unpublished MCP connector and never publish the
-  MCP app. Do not claim managed Agent completion from local AN-8/MCP evidence.
+- Managed Agent Studio packaging remains paused until the user explicitly
+  resumes managed Agent configuration. When resumed, refresh or reconnect only
+  the unpublished MCP connector and never publish the MCP app. Do not claim
+  managed Agent completion from local AN-8/MCP evidence.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
