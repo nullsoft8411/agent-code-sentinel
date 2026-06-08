@@ -178,6 +178,57 @@ select coalesce(
     return run_psql_json(dsn, bind_literal(sql, "project_id", project_id))
 
 
+def postgres_report_get(dsn: str, run_id: str) -> tuple[int, dict]:
+    sql = """
+select coalesce(
+  (select json_build_object(
+    'status', 'passed',
+    'state_backend', 'postgres',
+    'partial_report', true,
+    'run', json_build_object(
+      'id', runs.id,
+      'status', runs.status,
+      'current_focus', runs.current_focus,
+      'next_autonomous_step', runs.next_autonomous_step
+    ),
+    'project', json_build_object(
+      'id', projects.id,
+      'target', projects.target
+    ),
+    'counts', json_build_object(
+      'qa_gates', (select count(*) from qa_gate_results where run_id = :run_id),
+      'artifacts', (select count(*) from artifacts where run_id = :run_id),
+      'findings', 0,
+      'tasks', 0,
+      'validation_attempts', 0,
+      'execution_sessions', 0
+    ),
+    'unsupported_counts', json_build_array(
+      'findings',
+      'tasks',
+      'validation_attempts',
+      'execution_sessions'
+    ),
+    'qa_review_outcomes', json_build_array(),
+    'missing_review_outcomes', json_build_array(),
+    'execution_sessions', json_build_array(),
+    'selected_task_for_agent_takeover', null
+  )
+  from runs
+  join projects on projects.id = runs.project_id
+  where runs.id = :run_id),
+  json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'RUN_NOT_FOUND',
+    'state_backend', 'postgres',
+    'run_id', :run_id,
+    'reason', 'initialize the run before requesting a report'
+  )
+);
+"""
+    return run_psql_json(dsn, bind_literal(sql, "run_id", run_id))
+
+
 def postgres_lock_acquire(
     dsn: str,
     *,

@@ -919,8 +919,7 @@ Current local progress:
   backend, or add explicit blocker evidence per tool without claiming parity.
 - Postgres parity is still not implemented, but unsupported local E2E state
   tools now have explicit blocker evidence. `tests/test_mcp_state.py::test_postgres_backend_blocks_unsupported_local_e2e_state_tools`
-  proves `state_analyze_to_state`, `state_run_cycle` and
-  `state_report_get` return controlled `blocked` payloads with
+  proves `state_analyze_to_state` and `state_run_cycle` return controlled `blocked` payloads with
   `state_backend=postgres` instead of pretending execution succeeded.
 - Postgres `state_memory_get` is now implemented as the first expanded
   Postgres state-tool parity slice. `postgres_memory_get` reads the latest
@@ -929,6 +928,12 @@ Current local progress:
   `PROJECT_NOT_FOUND` blocker if project state is missing. The dependency-free
   SQL contract is covered by
   `tests/test_mcp_state.py::test_postgres_memory_get_builds_latest_memory_readback_query`.
+- Postgres `state_report_get` is now implemented as a partial readback over
+  the current Postgres schema. `postgres_report_get` returns run/project data,
+  QA-gate and artifact counts, and explicitly marks findings, tasks,
+  validation attempts and execution sessions as `unsupported_counts` instead
+  of faking full report parity. The SQL contract is covered by
+  `tests/test_mcp_state.py::test_postgres_report_get_builds_partial_report_readback_query`.
 - Next open implementation slice: continue section 2.6 with the next uncovered
   runtime responsibility after dedupe/Postgres-blocker evidence, without
   claiming full Postgres parity.

@@ -1165,7 +1165,6 @@ def test_mcp_state_postgres_dsn_blocks_until_driver_and_adapter_exist() -> None:
     [
         ("state_analyze_to_state", {"project_id": "proj-devopshub", "run_id": "run-1", "finding_candidates": []}),
         ("state_run_cycle", {"project_id": "proj-devopshub", "run_id": "run-1", "latest_ref": "main@test"}),
-        ("state_report_get", {"run_id": "run-1"}),
     ],
 )
 def test_postgres_backend_blocks_unsupported_local_e2e_state_tools(tool_name: str, payload: dict) -> None:
@@ -1202,6 +1201,34 @@ def test_postgres_memory_get_builds_latest_memory_readback_query(monkeypatch: py
     assert "next_autonomous_step" in captured["sql"]
     assert ":project_id" not in captured["sql"]
     assert "'proj-devopshub'" in captured["sql"]
+
+
+def test_postgres_report_get_builds_partial_report_readback_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    def fake_run_psql_json(dsn: str, sql: str) -> tuple[int, dict]:
+        captured["dsn"] = dsn
+        captured["sql"] = sql
+        return 0, {"status": "passed", "state_backend": "postgres", "partial_report": True}
+
+    monkeypatch.setattr(postgres_state, "run_psql_json", fake_run_psql_json)
+
+    code, payload = postgres_state.postgres_report_get(
+        "postgresql://localhost/code_sentinel",
+        "run-postgres",
+    )
+
+    assert code == 0
+    assert payload["partial_report"] is True
+    assert captured["dsn"] == "postgresql://localhost/code_sentinel"
+    assert "from runs" in captured["sql"]
+    assert "join projects" in captured["sql"]
+    assert "qa_gate_results" in captured["sql"]
+    assert "artifacts" in captured["sql"]
+    assert "unsupported_counts" in captured["sql"]
+    assert "RUN_NOT_FOUND" in captured["sql"]
+    assert ":run_id" not in captured["sql"]
+    assert "'run-postgres'" in captured["sql"]
 
 
 def test_postgres_psql_backend_uses_env_not_dsn_arg() -> None:

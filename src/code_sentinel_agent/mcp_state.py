@@ -20,6 +20,7 @@ from .postgres_state import (
     postgres_lock_release,
     postgres_memory_get,
     postgres_project_get,
+    postgres_report_get,
     postgres_run_start,
 )
 from .qg_workflow import process_quality_gate_payload
@@ -739,6 +740,8 @@ def call_postgres_tool(dsn: str, tool_name: str, payload: dict[str, Any]) -> tup
         return postgres_project_get(dsn, require_str(payload, "project_id"))
     if tool_name == "state_memory_get":
         return postgres_memory_get(dsn, require_str(payload, "project_id"))
+    if tool_name == "state_report_get":
+        return postgres_report_get(dsn, require_str(payload, "run_id"))
     if tool_name == "state_lock_acquire":
         code, init_payload = initialize_postgres_database(dsn)
         if code != 0:
