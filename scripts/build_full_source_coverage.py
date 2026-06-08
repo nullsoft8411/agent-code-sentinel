@@ -30,6 +30,49 @@ CORE_MIGRATED_TABLES = {
     "tracked_prs": ("adapted", ["src/code_sentinel_agent/mcp_state.py"], ["tests/test_mcp_state.py"]),
 }
 
+SAAS_IDENTITY_REMOVED_TABLES = {
+    "api_keys",
+    "service_accounts",
+    "tenant_invitations",
+    "tenant_usage_records",
+    "tenants",
+    "users",
+}
+
+SAAS_IDENTITY_REMOVED_MODULES = {
+    "application/auth/role_service.py",
+    "application/auth/sso_service.py",
+    "application/auth/system_user_handlers.py",
+    "application/commands/system_user_commands.py",
+    "application/services/api_key_service.py",
+    "application/services/oauth_service.py",
+    "application/services/permission_checker.py",
+    "application/services/service_account_service.py",
+    "application/tenant/commands.py",
+    "application/tenant/dtos.py",
+    "application/tenant/tenant_service.py",
+    "application/tenant/tenant_stats_service.py",
+    "application/tenant/tenant_user_service.py",
+    "infrastructure/persistence/api_key_repository.py",
+    "infrastructure/persistence/invitation_repository.py",
+    "infrastructure/persistence/models/api_key.py",
+    "infrastructure/persistence/models/invitation.py",
+    "infrastructure/persistence/models/service_account.py",
+    "infrastructure/persistence/models/tenant.py",
+    "infrastructure/persistence/models/user.py",
+    "infrastructure/persistence/rls/tenant_filter.py",
+    "infrastructure/persistence/service_account_repository.py",
+    "infrastructure/persistence/tenant_aware_repository.py",
+    "infrastructure/persistence/tenant_repository.py",
+    "infrastructure/persistence/user_repository.py",
+}
+
+BUDGET_USAGE_ACCEPTANCE = "User explicitly stated: im agent haben wir kein budget oder usage."
+SAAS_IDENTITY_ACCEPTANCE = (
+    "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; "
+    "the Agent must migrate work logic, not the SaaS human-identity layer."
+)
+
 
 MODULE_RULES: list[tuple[str, str, list[str], list[str], str]] = [
     ("application/auth/authorization_service.py", "adapted", ["src/code_sentinel_agent/approvals.py", "src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/audit_events.py"], ["tests/test_write_guard.py", "tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "RBAC permission checks are adapted to project-scoped MCP tools, explicit per-run approval, state locks and audit evidence"),
@@ -69,6 +112,22 @@ def classify_table(table: dict[str, Any]) -> dict[str, Any]:
             target_modules=[],
             tests=["tests/test_docs_contract.py"],
             extra={"class_name": table["class_name"]},
+            user_acceptance=BUDGET_USAGE_ACCEPTANCE,
+        )
+    if table_name in SAAS_IDENTITY_REMOVED_TABLES:
+        return removed_entry(
+            kind="table",
+            source=table["file"],
+            name=table_name,
+            reason=(
+                "Human tenant/user/API-key/service-account identity tables are removed because the "
+                "Workspace Agent does not host SaaS login, role CRUD, SSO/OAuth, invitation or tenant-admin workflows. "
+                "Project isolation, approvals, lock ownership and audit actors remain in the Agent state model."
+            ),
+            target_modules=["src/code_sentinel_agent/approvals.py", "src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/audit_events.py"],
+            tests=["tests/test_docs_contract.py", "tests/test_mcp_state.py", "tests/test_write_guard.py"],
+            extra={"class_name": table["class_name"]},
+            user_acceptance=SAAS_IDENTITY_ACCEPTANCE,
         )
     return blocked_entry(
         kind="table",
@@ -145,6 +204,7 @@ def classify_module(module: dict[str, Any]) -> dict[str, Any]:
             reason="Tenant usage accounting is removed because the Agent target runtime has no usage subsystem.",
             target_modules=[],
             tests=["tests/test_docs_contract.py"],
+            user_acceptance=BUDGET_USAGE_ACCEPTANCE,
         )
     if file_name in {"infrastructure/persistence/models/budget.py", "infrastructure/persistence/models/usage.py"}:
         return removed_entry(
@@ -154,30 +214,21 @@ def classify_module(module: dict[str, Any]) -> dict[str, Any]:
             reason="Budget and usage models are removed because the Agent target runtime has no budget or usage subsystem.",
             target_modules=[],
             tests=["tests/test_docs_contract.py"],
+            user_acceptance=BUDGET_USAGE_ACCEPTANCE,
         )
-    if file_name in {"application/auth/role_service.py"}:
-        return blocked_entry(
+    if file_name in SAAS_IDENTITY_REMOVED_MODULES:
+        return removed_entry(
             kind="runtime_module",
             source=file_name,
             name=module["module"],
-            reason="role hierarchy and custom-role management require explicit mapping to Agent workspace roles, connector permissions, or removal with user acceptance",
-            extra={"blocker_code": "ROLE_MANAGEMENT_MAPPING_REQUIRED"},
-        )
-    if file_name in {"application/auth/sso_service.py", "application/services/oauth_service.py"}:
-        return blocked_entry(
-            kind="runtime_module",
-            source=file_name,
-            name=module["module"],
-            reason="SSO/OAuth login and provisioning flows require mapping to ChatGPT workspace identity, connector auth, or explicit non-runtime removal",
-            extra={"blocker_code": "SSO_OAUTH_MAPPING_REQUIRED"},
-        )
-    if file_name in {"application/auth/system_user_handlers.py", "application/commands/system_user_commands.py"}:
-        return blocked_entry(
-            kind="runtime_module",
-            source=file_name,
-            name=module["module"],
-            reason="system-user/service-account behavior requires mapping to MCP service identity, scheduled-run owner and audit actor fields",
-            extra={"blocker_code": "SYSTEM_USER_MAPPING_REQUIRED"},
+            reason=(
+                "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows "
+                "are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside "
+                "this runtime and keeps only project_id, approval, lock owner and audit actor evidence."
+            ),
+            target_modules=["src/code_sentinel_agent/approvals.py", "src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/audit_events.py"],
+            tests=["tests/test_docs_contract.py", "tests/test_mcp_state.py", "tests/test_write_guard.py"],
+            user_acceptance=SAAS_IDENTITY_ACCEPTANCE,
         )
     if file_name.startswith("application/auth/") or "auth" in file_name:
         return blocked_entry(
@@ -238,6 +289,7 @@ def removed_entry(
     target_modules: list[str],
     tests: list[str],
     extra: dict[str, Any] | None = None,
+    user_acceptance: str = BUDGET_USAGE_ACCEPTANCE,
 ) -> dict[str, Any]:
     payload = {
         "kind": kind,
@@ -247,7 +299,7 @@ def removed_entry(
         "reason": reason,
         "target_modules": target_modules,
         "tests": tests,
-        "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage.",
+        "user_acceptance": user_acceptance,
     }
     if extra:
         payload.update(extra)

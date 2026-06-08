@@ -106,11 +106,29 @@ def test_full_source_coverage_has_specific_auth_rbac_mapping() -> None:
     assert entries["application/auth/exceptions.py"]["status"] == "adapted"
     assert "blocker_code" in entries["application/auth/exceptions.py"]["reason"]
 
-    assert entries["application/auth/role_service.py"]["status"] == "blocked"
-    assert entries["application/auth/role_service.py"]["blocker_code"] == "ROLE_MANAGEMENT_MAPPING_REQUIRED"
-    assert entries["application/auth/sso_service.py"]["blocker_code"] == "SSO_OAUTH_MAPPING_REQUIRED"
-    assert entries["application/services/oauth_service.py"]["blocker_code"] == "SSO_OAUTH_MAPPING_REQUIRED"
-    assert entries["application/auth/system_user_handlers.py"]["blocker_code"] == "SYSTEM_USER_MAPPING_REQUIRED"
+    for source in [
+        "application/auth/role_service.py",
+        "application/auth/sso_service.py",
+        "application/services/oauth_service.py",
+        "application/auth/system_user_handlers.py",
+        "application/commands/system_user_commands.py",
+        "application/services/api_key_service.py",
+        "application/services/permission_checker.py",
+        "application/services/service_account_service.py",
+        "application/tenant/tenant_service.py",
+        "infrastructure/persistence/models/user.py",
+        "infrastructure/persistence/models/tenant.py",
+        "infrastructure/persistence/models/api_key.py",
+        "infrastructure/persistence/models/service_account.py",
+    ]:
+        assert entries[source]["status"] == "removed"
+        assert "roles, auth and SSO do not exist in the Agent runtime" in entries[source]["user_acceptance"]
+        assert "src/code_sentinel_agent/approvals.py" in entries[source]["target_modules"]
+
+    by_name = {entry["name"]: entry for entry in coverage["entries"]}
+    for table_name in ["users", "tenants", "api_keys", "service_accounts", "tenant_invitations", "tenant_usage_records"]:
+        assert by_name[table_name]["status"] == "removed"
+        assert "not the SaaS human-identity layer" in by_name[table_name]["user_acceptance"]
 
 
 def test_full_source_coverage_has_specific_budget_billing_mapping() -> None:

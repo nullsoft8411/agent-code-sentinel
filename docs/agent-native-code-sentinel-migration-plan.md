@@ -204,8 +204,8 @@ map or a linked follow-up gate before managed Agent testing resumes.
 | Audit/report/next step | audit_logger/audit models, worker status/report flows | Every cycle writes audit events, report counts, QA outcomes, risks, rollback and next_autonomous_step | audit_events.py, reports.py and cycle.py exist | E2E must prove report readback includes findings/tasks/qa/session/audit and no false-complete state |
 | MCP shared state | local DB/repositories, queues/workers | MCP exposes controlled state tools without raw SQL or generic shell fallback | SQLite MCP tools and trend-mcp schemas exist | Local trend-mcp smoke must prove all required state tools, including state_run_cycle and analyze-to-state, against the runtime repo |
 | Postgres shared state | local PostgreSQL/SQLAlchemy semantics | Durable shared-state backend or an explicit per-tool blocker with migration task | Postgres bootstrap currently covers only a subset of MCP tools | Do not claim complete migration or AN-9 readiness until every runtime state tool is implemented for Postgres or listed with exact blocker, owner and follow-up |
-| Tenant/RBAC/API-key/user/service-account safety | tenant.py, user.py, api_key.py, service_account.py, invitation.py, budget/usage models, auth/API services | Preserve the functional safety boundary for project ownership, workspace isolation, explicit approvals, API/service identity and auditability in the Agent runtime | partial: project_id, approval and audit labels exist, but full source-backed mapping is not complete | Add source-backed coverage rows and tests or explicit target adaptation for every auth/isolation/accounting behavior before AN-9 |
-| Billing/budget/usage guard | budget.py, usage.py, budget_guard_service.py, billing/Stripe integration paths | Preserve the functional limit/attempt/safety behavior even if Stripe billing itself is not needed | partial: attempt limits and approval gates exist; budget/usage source mapping is incomplete | Map billing/usage/budget semantics to Agent attempt limits, run quotas, or explicit non-runtime blockers with tests |
+| Tenant/RBAC/API-key/user/service-account safety | tenant.py, user.py, api_key.py, service_account.py, invitation.py, auth/API services | Do not port SaaS human-identity, tenant-admin, role CRUD, SSO/OAuth, API-key or service-account management. Preserve only the functional Agent safety boundary through project_id, Workspace/MCP connector identity, explicit approvals, state lock owner and audit actors | source-reviewed and removed for SaaS identity; authorization exceptions and approval/write guard are adapted | Keep human-identity removal explicit in coverage and continue mapping project isolation, approvals, locks and audit evidence before AN-9 |
+| Billing/budget/usage guard | budget.py, usage.py, budget_guard_service.py, billing/Stripe integration paths | Do not port billing, budget or usage accounting into the Agent runtime | source-reviewed and removed by explicit user decision | Keep budget/usage removed from target claims; do not replace it with generic quota, usage, cost-estimation or token-budget behavior |
 | FastAPI/product API workflows | routers/API services, task_commands.py, task_queries.py, project/scan/task endpoints | Preserve user-visible workflow semantics as CLI/MCP/Agent contracts where they affect autonomous operation | partial: CLI and MCP commands exist for core runtime; full endpoint-to-contract mapping is incomplete | Build endpoint/workflow inventory and mark every workflow as migrated, adapted, or blocked before AN-9 |
 | Redis/worker orchestration | Redis streams, scan_worker.py, task_processing_worker.py, worker_registry.py, stream_task_worker.py, projection/session cleanup workers | Preserve scheduling, queue, locking, retry, cleanup, projection and continuation semantics through MCP state, locks, schedules and reports | partial: lock/run/task cycle exists; full worker inventory mapping is incomplete | Map every worker to Agent/MCP equivalent, local script, schedule, cleanup task, or explicit blocker |
 | GitHub/PR lifecycle | git_service.py, github_app_service.py, tracked_pr.py, pr_* workers | Preserve clone, branch, diff, commit, PR, tracking and rollback behavior through controlled MCP/GitHub tools | partial: clone/write/PR E2E exists; full tracked PR lifecycle mapping is incomplete | Add tracked PR lifecycle coverage or explicit blocker before complete migration claim |
@@ -216,8 +216,8 @@ transitions that the local service used to produce through scanners, workers,
 tasks, QA workflows and executor sessions.
 - execution_sessions.py: persists agent-native execution sessions without
   referencing an external AI provider.
-- policy.py: enforces write scope, command scope, approval and budget-like
-  attempt limits.
+- policy.py: enforces write scope, command scope and approval boundaries. It
+  must not reintroduce budget, usage, billing or token-cost accounting.
 
 The Agent is the intelligence layer. Python scripts provide deterministic
 state, extraction, normalization, validation and reporting.
@@ -264,13 +264,17 @@ Initial full source coverage evidence:
 - Current gate_status: blocked
 - Current coverage count: 199 source responsibilities, including 33 tables and
   166 runtime modules
-- Current blocker count: 176 blocked entries after the first Auth/RBAC mapping
-  pass
+- Current blocker count: 133 blocked entries after Auth/RBAC, SaaS identity and
+  Budget/Billing/Usage classification passes
 - First coverage reduction: application/auth/authorization_service.py and
   application/auth/exceptions.py are adapted to project-scoped MCP tools,
   explicit per-run approvals, state locks, audit evidence and structured
-  blocker payloads. Role management, SSO/OAuth and system-user behavior remain
-  blocked with specific blocker codes.
+  blocker payloads.
+- Role management, SSO/OAuth, system-user, tenant/user, API-key,
+  service-account and invitation administration are source-reviewed and removed
+  from the Agent target runtime by explicit user decision: the Workspace Agent
+  does not host this SaaS human-identity layer. Do not replace these with
+  internal role CRUD, OAuth login, tenant admin or API-key management claims.
 - Budget/Billing/Usage coverage is source-reviewed and removed from the Agent
   target runtime by explicit user decision: the Agent has no budget or usage
   subsystem. Do not replace this with generic attempt-limit, quota, usage or

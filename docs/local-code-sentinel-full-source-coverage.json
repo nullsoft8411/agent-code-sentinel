@@ -36,37 +36,58 @@
       ]
     },
     {
-      "blocker_code": "ROLE_MANAGEMENT_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.auth.role_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "role hierarchy and custom-role management require explicit mapping to Agent workspace roles, connector permissions, or removal with user acceptance",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/auth/role_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "SSO_OAUTH_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.auth.sso_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "SSO/OAuth login and provisioning flows require mapping to ChatGPT workspace identity, connector auth, or explicit non-runtime removal",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/auth/sso_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "SYSTEM_USER_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.auth.system_user_handlers",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "system-user/service-account behavior requires mapping to MCP service identity, scheduled-run owner and audit actor fields",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/auth/system_user_handlers.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "kind": "runtime_module",
@@ -92,15 +113,22 @@
       "tests": []
     },
     {
-      "blocker_code": "SYSTEM_USER_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.commands.system_user_commands",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "system-user/service-account behavior requires mapping to MCP service identity, scheduled-run owner and audit actor fields",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/commands/system_user_commands.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -210,15 +238,22 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.api_key_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/services/api_key_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -379,26 +414,40 @@
       "tests": []
     },
     {
-      "blocker_code": "SSO_OAUTH_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.oauth_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "SSO/OAuth login and provisioning flows require mapping to ChatGPT workspace identity, connector auth, or explicit non-runtime removal",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/services/oauth_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.permission_checker",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/services/permission_checker.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -528,15 +577,22 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.service_account_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/services/service_account_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -611,59 +667,94 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.tenant.commands",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/tenant/commands.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.tenant.dtos",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/tenant/dtos.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.tenant.tenant_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/tenant/tenant_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.tenant.tenant_stats_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/tenant/tenant_stats_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.tenant.tenant_user_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "application/tenant/tenant_user_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "kind": "runtime_module",
@@ -863,15 +954,22 @@
       ]
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.api_key_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/api_key_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
@@ -1018,15 +1116,22 @@
       "tests": []
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.invitation_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/invitation_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
@@ -1040,15 +1145,22 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.api_key",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/models/api_key.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -1140,15 +1252,22 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.invitation",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/models/invitation.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -1228,15 +1347,22 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.service_account",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/models/service_account.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -1261,15 +1387,22 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.tenant",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/models/tenant.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -1295,15 +1428,22 @@
       "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.user",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/models/user.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -1471,15 +1611,22 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.rls.tenant_filter",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/rls/tenant_filter.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
@@ -1515,15 +1662,22 @@
       "tests": []
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.service_account_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/service_account_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -1592,26 +1746,40 @@
       "tests": []
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.tenant_aware_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/tenant_aware_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.tenant_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/tenant_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -1636,15 +1804,22 @@
       "tests": []
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.user_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "SaaS identity, tenant administration, role CRUD, SSO/OAuth, API-key and service-account workflows are intentionally not ported. The Agent target relies on Workspace/MCP connector identity outside this runtime and keeps only project_id, approval, lock owner and audit actor evidence.",
       "source": "infrastructure/persistence/user_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
@@ -1878,16 +2053,23 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "ApiKeyModel",
       "kind": "table",
       "name": "api_keys",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Human tenant/user/API-key/service-account identity tables are removed because the Workspace Agent does not host SaaS login, role CRUD, SSO/OAuth, invitation or tenant-admin workflows. Project isolation, approvals, lock ownership and audit actors remain in the Agent state model.",
       "source": "infrastructure/persistence/models/api_key.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "class_name": "AuditLog",
@@ -2018,16 +2200,23 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "TenantInvitationModel",
       "kind": "table",
       "name": "tenant_invitations",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Human tenant/user/API-key/service-account identity tables are removed because the Workspace Agent does not host SaaS login, role CRUD, SSO/OAuth, invitation or tenant-admin workflows. Project isolation, approvals, lock ownership and audit actors remain in the Agent state model.",
       "source": "infrastructure/persistence/models/invitation.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -2161,16 +2350,23 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "ServiceAccountModel",
       "kind": "table",
       "name": "service_accounts",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Human tenant/user/API-key/service-account identity tables are removed because the Workspace Agent does not host SaaS login, role CRUD, SSO/OAuth, invitation or tenant-admin workflows. Project isolation, approvals, lock ownership and audit actors remain in the Agent state model.",
       "source": "infrastructure/persistence/models/service_account.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "class_name": "StateModel",
@@ -2228,28 +2424,42 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "TenantUsageRecord",
       "kind": "table",
       "name": "tenant_usage_records",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Human tenant/user/API-key/service-account identity tables are removed because the Workspace Agent does not host SaaS login, role CRUD, SSO/OAuth, invitation or tenant-admin workflows. Project isolation, approvals, lock ownership and audit actors remain in the Agent state model.",
       "source": "infrastructure/persistence/models/tenant.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "TenantModel",
       "kind": "table",
       "name": "tenants",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Human tenant/user/API-key/service-account identity tables are removed because the Workspace Agent does not host SaaS login, role CRUD, SSO/OAuth, invitation or tenant-admin workflows. Project isolation, approvals, lock ownership and audit actors remain in the Agent state model.",
       "source": "infrastructure/persistence/models/tenant.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "class_name": "TrackedPR",
@@ -2279,16 +2489,23 @@
       "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "UserModel",
       "kind": "table",
       "name": "users",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Human tenant/user/API-key/service-account identity tables are removed because the Workspace Agent does not host SaaS login, role CRUD, SSO/OAuth, invitation or tenant-admin workflows. Project isolation, approvals, lock ownership and audit actors remain in the Agent state model.",
       "source": "infrastructure/persistence/models/user.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ],
+      "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -2320,7 +2537,7 @@
   "inventory_source": "docs/local-code-sentinel-source-inventory.json",
   "source_root": "/home/pika/projekte/code-sentinel",
   "summary": {
-    "blocked_total": 164,
+    "blocked_total": 133,
     "entries_total": 199,
     "kind_counts": {
       "runtime_module": 166,
@@ -2328,9 +2545,9 @@
     },
     "status_counts": {
       "adapted": 15,
-      "blocked": 164,
+      "blocked": 133,
       "migrated": 7,
-      "removed": 13
+      "removed": 44
     }
   }
 }
