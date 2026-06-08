@@ -879,10 +879,27 @@ Current local progress:
   tools. `tests/test_mcp_state.py::test_mcp_state_blocks_raw_sql_and_generic_command_tools`
   proves `raw_sql`, `sql_query` and `run_command` are blocked as unknown
   MCP-state tools and are absent from the allowlist.
+- Runtime repo handoff is now committed and pushed:
+  `agent-code-sentinel@c6057b7` implements the Agent-owned analysis
+  contract, `state_analyze_to_state`, project-evidence cycle blocking,
+  repository smoke script packaging and the local AN-1 through AN-8 coverage
+  gates. Validation evidence before push: `PYTHONPATH=src python3 -m pytest
+  tests -q` with `79 passed`; final-quality had `fail=0` with Pytest
+  entrypoint warnings only.
+- Local MCP adapter handoff is now committed and pushed:
+  `trend-mcp@8fa5ffc` exposes `state_analyze_to_state` in the direct
+  allowlisted state surface and expands the local smoke so it starts a local
+  MCP server, lists required tools, persists Agent-supplied findings, runs
+  `state_run_cycle`, reads `state_report_get`, proves
+  `selected_task_for_agent_takeover`, session evidence, lock release and
+  `missing_review_outcomes=[]`. Validation evidence before push:
+  `npm run test:cli` with 5 tests passing, `npm run type-check`, and
+  `CODE_SENTINEL_RUNTIME_ROOT=/home/pika/projekte/agent-code-sentinel npm run
+  smoke:code-sentinel-state` with `CODE_SENTINEL_MCP_STATE_SMOKE_PASS`.
 - Next open implementation slice: AN-9 Agent Studio Packaging remains paused
-  until the local runtime repo state is committed/pushed and the unpublished
-  MCP connector can be refreshed without publishing. Do not claim managed
-  Agent completion from local AN-8 evidence.
+  until the user explicitly resumes managed Agent configuration. When resumed,
+  refresh or reconnect only the unpublished MCP connector and never publish the
+  MCP app. Do not claim managed Agent completion from local AN-8/MCP evidence.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.
