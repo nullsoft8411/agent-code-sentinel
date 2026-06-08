@@ -906,13 +906,17 @@ analysis, findings and task pipeline exist.
 
 ### 6.5 QA Review Findings Integrated Into This Plan
 
-These findings are retained as historical QA/review guardrails. Items that are
-now implemented in section 6.1 and section 6.4 are no longer current blockers,
-but they remain regression checks: the runtime must not fall back to docs-only
+These findings are retained as historical QA/review guardrails. They are not
+the active next implementation queue when section 6.1 and section 6.4 already
+contain newer runtime evidence. Treat each item below as resolved unless a fresh
+test or runtime smoke regresses it. The runtime must not fall back to docs-only
 claims, missing task creation, summary-only QA gates, or bootstrap-only MCP
 state.
 
 #### High: Autonomous work logic exists as plan, not runtime
+
+Current status: resolved as a local runtime gate by AN-7 evidence in section
+6.4. Keep this as a regression guard for cycle.py.
 
 Ist:
 
@@ -936,6 +940,9 @@ Plan correction:
 
 #### High: Finding-to-task/subtask pipeline is missing
 
+Current status: resolved as a local runtime gate by AN-3 evidence in section
+6.4. Keep this as a regression guard for task_creation.py and task_workflow.py.
+
 Ist:
 
 - The schema has flat findings and minimal tasks.
@@ -956,6 +963,9 @@ Plan correction:
 
 #### High: QA-gate failure does not create findings/tasks
 
+Current status: resolved as a local runtime gate by AN-5 evidence in section
+6.4. Keep this as a regression guard for qg_workflow.py and validation_runner.py.
+
 Ist:
 
 - qa_gates.py currently reads stored gate rows and returns blocking gate names.
@@ -974,6 +984,10 @@ Plan correction:
 
 #### High: Source-compatible state model is incomplete
 
+Current status: resolved as a local runtime gate by AN-2 and AN-8 evidence in
+section 6.4. Keep this as a regression guard for scan_jobs, scan_findings,
+plugin_executions, file_checks, execution_sessions, audit_events and PR state.
+
 Ist:
 
 - Current SQLite schema lacks scan_jobs, scan_findings, plugin_executions,
@@ -990,6 +1004,10 @@ Plan correction:
   AN-8.
 
 #### Medium: MCP state bridge exposes only bootstrap tools
+
+Current status: resolved as a local MCP gate by AN-8 evidence in section 6.4 and
+the pushed trend-mcp adapter handoff. Keep this as a regression guard for the
+allowlisted direct state tools and the no raw SQL/generic command boundary.
 
 Ist:
 
@@ -1008,6 +1026,9 @@ Plan correction:
 
 #### Medium: Reports cannot yet prove task takeover or project improvement
 
+Current status: resolved as a local runtime gate by AN-7/AN-8 evidence in
+section 6.4. Keep this as a regression guard for reports.py and state_report_get.
+
 Ist:
 
 - reports.py returns run/project and counts only.
@@ -1024,6 +1045,10 @@ Plan correction:
   evidence.
 
 #### Medium: Docs contract checks intent, not runtime behavior
+
+Current status: resolved for AN-1 through AN-8 by focused tests and local E2E
+evidence in section 6.4. Keep this as a regression guard: future AN phases still
+require executable tests, not docs-only assertions.
 
 Ist:
 
@@ -1051,6 +1076,11 @@ Before claiming any phase complete, the implementation must show:
 8. no false complete wording if runtime evidence is missing
 
 Contract statement: Every AN phase requires a focused unit/integration test and a phase-specific E2E test before it can be marked complete.
+
+Active gate after local AN-1 through AN-8 evidence: do not start AN-9 managed
+Agent Studio packaging until the user explicitly resumes managed configuration.
+When it resumes, the next step is an unpublished connector refresh/reconnect and
+Slack/Studio E2E; MCP publishing remains forbidden.
 
 ### 6.7 Phase E2E Gate Matrix
 
