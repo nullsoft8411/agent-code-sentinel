@@ -2,55 +2,67 @@
   "blocking_rule": "AN-9 and managed Agent testing remain blocked while blocked_total > 0.",
   "entries": [
     {
-      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.auth.authorization_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "reason": "RBAC permission checks are adapted to project-scoped MCP tools, explicit per-run approval, state locks and audit evidence",
       "source": "application/auth/authorization_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_write_guard.py",
+        "tests/test_mcp_state.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.auth.exceptions",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "reason": "authorization exceptions are adapted to structured blocked payloads with blocker_code, reason and next_action",
       "source": "application/auth/exceptions.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_write_guard.py",
+        "tests/test_mcp_state.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "blocker_code": "ROLE_MANAGEMENT_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.auth.role_service",
       "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "reason": "role hierarchy and custom-role management require explicit mapping to Agent workspace roles, connector permissions, or removal with user acceptance",
       "source": "application/auth/role_service.py",
       "status": "blocked",
       "target_modules": [],
       "tests": []
     },
     {
-      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "blocker_code": "SSO_OAUTH_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.auth.sso_service",
       "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "reason": "SSO/OAuth login and provisioning flows require mapping to ChatGPT workspace identity, connector auth, or explicit non-runtime removal",
       "source": "application/auth/sso_service.py",
       "status": "blocked",
       "target_modules": [],
       "tests": []
     },
     {
-      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "blocker_code": "SYSTEM_USER_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.auth.system_user_handlers",
       "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "reason": "system-user/service-account behavior requires mapping to MCP service identity, scheduled-run owner and audit actor fields",
       "source": "application/auth/system_user_handlers.py",
       "status": "blocked",
       "target_modules": [],
@@ -79,11 +91,11 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "blocker_code": "SYSTEM_USER_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.commands.system_user_commands",
       "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "system-user/service-account behavior requires mapping to MCP service identity, scheduled-run owner and audit actor fields",
       "source": "application/commands/system_user_commands.py",
       "status": "blocked",
       "target_modules": [],
@@ -362,11 +374,11 @@
       "tests": []
     },
     {
-      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "blocker_code": "SSO_OAUTH_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.oauth_service",
       "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "reason": "SSO/OAuth login and provisioning flows require mapping to ChatGPT workspace identity, connector auth, or explicit non-runtime removal",
       "source": "application/services/oauth_service.py",
       "status": "blocked",
       "target_modules": [],
@@ -2296,15 +2308,15 @@
   "inventory_source": "docs/local-code-sentinel-source-inventory.json",
   "source_root": "/home/pika/projekte/code-sentinel",
   "summary": {
-    "blocked_total": 178,
+    "blocked_total": 176,
     "entries_total": 199,
     "kind_counts": {
       "runtime_module": 166,
       "table": 33
     },
     "status_counts": {
-      "adapted": 13,
-      "blocked": 178,
+      "adapted": 15,
+      "blocked": 176,
       "migrated": 7,
       "removed": 1
     }

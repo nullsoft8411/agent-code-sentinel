@@ -32,6 +32,8 @@ CORE_MIGRATED_TABLES = {
 
 
 MODULE_RULES: list[tuple[str, str, list[str], list[str], str]] = [
+    ("application/auth/authorization_service.py", "adapted", ["src/code_sentinel_agent/approvals.py", "src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/audit_events.py"], ["tests/test_write_guard.py", "tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "RBAC permission checks are adapted to project-scoped MCP tools, explicit per-run approval, state locks and audit evidence"),
+    ("application/auth/exceptions.py", "adapted", ["src/code_sentinel_agent/approvals.py", "src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/task_execution.py"], ["tests/test_write_guard.py", "tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "authorization exceptions are adapted to structured blocked payloads with blocker_code, reason and next_action"),
     ("application/services/task_creation_service.py", "migrated", ["src/code_sentinel_agent/task_creation.py"], ["tests/test_task_creation.py"], "finding-to-task grouping and dedupe are implemented locally"),
     ("application/task_service.py", "adapted", ["src/code_sentinel_agent/task_workflow.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_task_workflow.py", "tests/test_autonomous_cycle.py"], "task service behavior is represented as local workflow helpers and cycle state"),
     ("application/scanner_service.py", "adapted", ["src/code_sentinel_agent/analysis_workflow.py", "src/code_sentinel_agent/scan_jobs.py"], ["tests/test_agent_analysis.py", "tests/test_scan_runtime_helpers.py"], "scanner orchestration becomes Agent-supplied analysis plus deterministic state persistence"),
@@ -88,6 +90,30 @@ def classify_module(module: dict[str, Any]) -> dict[str, Any]:
             name=module["module"],
             reason="scanner plugin category requires source-backed mapping to Agent analysis, deterministic parser, or explicit removal",
             extra={"blocker_code": "SCANNER_PLUGIN_MAPPING_REQUIRED"},
+        )
+    if file_name in {"application/auth/role_service.py"}:
+        return blocked_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason="role hierarchy and custom-role management require explicit mapping to Agent workspace roles, connector permissions, or removal with user acceptance",
+            extra={"blocker_code": "ROLE_MANAGEMENT_MAPPING_REQUIRED"},
+        )
+    if file_name in {"application/auth/sso_service.py", "application/services/oauth_service.py"}:
+        return blocked_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason="SSO/OAuth login and provisioning flows require mapping to ChatGPT workspace identity, connector auth, or explicit non-runtime removal",
+            extra={"blocker_code": "SSO_OAUTH_MAPPING_REQUIRED"},
+        )
+    if file_name in {"application/auth/system_user_handlers.py", "application/commands/system_user_commands.py"}:
+        return blocked_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason="system-user/service-account behavior requires mapping to MCP service identity, scheduled-run owner and audit actor fields",
+            extra={"blocker_code": "SYSTEM_USER_MAPPING_REQUIRED"},
         )
     if file_name.startswith("application/auth/") or "auth" in file_name:
         return blocked_entry(

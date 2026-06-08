@@ -95,6 +95,24 @@ def test_full_source_coverage_gate_classifies_every_inventory_entry() -> None:
     assert "managed Agent testing remain blocked" in coverage["blocking_rule"]
 
 
+def test_full_source_coverage_has_specific_auth_rbac_mapping() -> None:
+    coverage = json.loads((ROOT / "docs/local-code-sentinel-full-source-coverage.json").read_text())
+    entries = {entry["source"]: entry for entry in coverage["entries"]}
+
+    assert entries["application/auth/authorization_service.py"]["status"] == "adapted"
+    assert "explicit per-run approval" in entries["application/auth/authorization_service.py"]["reason"]
+    assert "src/code_sentinel_agent/approvals.py" in entries["application/auth/authorization_service.py"]["target_modules"]
+
+    assert entries["application/auth/exceptions.py"]["status"] == "adapted"
+    assert "blocker_code" in entries["application/auth/exceptions.py"]["reason"]
+
+    assert entries["application/auth/role_service.py"]["status"] == "blocked"
+    assert entries["application/auth/role_service.py"]["blocker_code"] == "ROLE_MANAGEMENT_MAPPING_REQUIRED"
+    assert entries["application/auth/sso_service.py"]["blocker_code"] == "SSO_OAUTH_MAPPING_REQUIRED"
+    assert entries["application/services/oauth_service.py"]["blocker_code"] == "SSO_OAUTH_MAPPING_REQUIRED"
+    assert entries["application/auth/system_user_handlers.py"]["blocker_code"] == "SYSTEM_USER_MAPPING_REQUIRED"
+
+
 def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     readme = (ROOT / "README.md").read_text()
     plan = (ROOT / "docs/agent-native-code-sentinel-migration-plan.md").read_text()

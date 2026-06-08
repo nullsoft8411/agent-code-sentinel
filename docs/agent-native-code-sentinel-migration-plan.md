@@ -264,7 +264,13 @@ Initial full source coverage evidence:
 - Current gate_status: blocked
 - Current coverage count: 199 source responsibilities, including 33 tables and
   166 runtime modules
-- Current blocker count: 178 blocked entries
+- Current blocker count: 176 blocked entries after the first Auth/RBAC mapping
+  pass
+- First coverage reduction: application/auth/authorization_service.py and
+  application/auth/exceptions.py are adapted to project-scoped MCP tools,
+  explicit per-run approvals, state locks, audit evidence and structured
+  blocker payloads. Role management, SSO/OAuth and system-user behavior remain
+  blocked with specific blocker codes.
 - Consequence: AN-9, Slack, Agent Studio, schedule and connector tests remain
   blocked until every entry is migrated, adapted, blocked with a concrete owner
   and implementation task, or removed with explicit user acceptance.
