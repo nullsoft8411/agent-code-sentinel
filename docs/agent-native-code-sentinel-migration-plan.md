@@ -261,13 +261,13 @@ Initial full source coverage evidence:
 
 - Generated file: docs/local-code-sentinel-full-source-coverage.json
 - Generator: scripts/build_full_source_coverage.py
-- Current gate_status: blocked
+- Current gate_status: passed
 - Current coverage count: 199 source responsibilities, including 33 tables and
   166 runtime modules
-- Current blocker count: 44 blocked entries after Auth/RBAC, SaaS identity,
+- Current blocker count: 0 blocked entries after Auth/RBAC, SaaS identity,
   Budget/Billing/Usage, Command/Query/Service-Orchestration and
   Services/Execution/Messaging plus Infrastructure Messaging/Persistence
-  classification passes
+  plus final Persistence/Worker-Lifecycle classification passes
 - First coverage reduction: application/auth/authorization_service.py and
   application/auth/exceptions.py are adapted to project-scoped MCP tools,
   explicit per-run approvals, state locks, audit evidence and structured
@@ -305,9 +305,18 @@ Initial full source coverage evidence:
   explicit SQLite migrations and Agent state modules. Contact/sales,
   GitHub-App-installation, logging-config and webhook persistence are removed
   with the SaaS shell.
-- Consequence: AN-9, Slack, Agent Studio, schedule and connector tests remain
-  blocked until every entry is migrated, adapted, blocked with a concrete owner
-  and implementation task, or removed with explicit user acceptance.
+- Final persistence and worker lifecycle coverage is source-reviewed:
+  remaining projections, query services, QG/scan/task/state repositories,
+  session/unit-of-work/types and worker lifecycles are adapted to report
+  counters, MCP state tools, scan jobs, findings, validation workflows, task
+  takeover, execution sessions and deterministic cycle transitions. Tenant RLS,
+  system-admin, webhook delivery and cleanup workers tied to removed SaaS or
+  daemon subsystems are removed.
+- Consequence: the Full Local Source Coverage Gate no longer blocks the next
+  migration step. This does not mean the complete Agent migration or AN-9 is
+  finished; it means every inventoried local Code Sentinel source responsibility
+  now has an explicit migrated/adapted/removed classification with evidence.
+  The next phase must continue with the next plan gate and its own validation.
 
 ## 3. QA Gate Ownership And Task Takeover
 

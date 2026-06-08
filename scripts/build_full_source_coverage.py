@@ -138,6 +138,25 @@ MODULE_RULES: list[tuple[str, str, list[str], list[str], str]] = [
     ("infrastructure/persistence/health_repository.py", "adapted", ["src/code_sentinel_agent/project_context.py", "src/code_sentinel_agent/reports.py"], ["tests/test_project_context.py", "tests/test_cli_contract.py"], "health repository readback is adapted to project context and report evidence"),
     ("infrastructure/persistence/plugin_execution_repository.py", "adapted", ["src/code_sentinel_agent/plugin_executions.py"], ["tests/test_scan_runtime_helpers.py"], "plugin execution repository is adapted to Agent plugin_executions persistence"),
     ("infrastructure/persistence/project_repository.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/db.py"], ["tests/test_mcp_state.py", "tests/test_db_schema.py"], "project repository is adapted to projects table bootstrap and state_project_get contract"),
+    ("infrastructure/persistence/projections/project_stats_projector.py", "adapted", ["src/code_sentinel_agent/reports.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_cli_contract.py", "tests/test_mcp_state.py"], "project stats projection is adapted to report readback counters without token cost or budget fields"),
+    ("infrastructure/persistence/projections/task_detail_projector.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/task_workflow.py"], ["tests/test_mcp_state.py", "tests/test_task_workflow.py"], "task detail projection is adapted to state_tasks_list and workflow task payloads"),
+    ("infrastructure/persistence/projections/task_list_projector.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/task_workflow.py"], ["tests/test_mcp_state.py", "tests/test_task_workflow.py"], "task list projection is adapted to read-only MCP task listing and runnable task selection"),
+    ("infrastructure/persistence/qg_workflow_repository.py", "adapted", ["src/code_sentinel_agent/qg_workflow.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_qg_workflow.py", "tests/test_autonomous_cycle.py"], "QG workflow repository is adapted to qg_workflow persistence and cycle selected_task_for_agent_takeover evidence"),
+    ("infrastructure/persistence/quality_gate_repository.py", "adapted", ["src/code_sentinel_agent/qa_gates.py", "src/code_sentinel_agent/qg_workflow.py"], ["tests/test_qg_workflow.py"], "quality gate repositories are adapted to local QA gate normalization and validation workflow state"),
+    ("infrastructure/persistence/query_optimizer.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/reports.py"], ["tests/test_mcp_state.py", "tests/test_cli_contract.py"], "query optimization/pagination is adapted to small bounded state readbacks and report counters"),
+    ("infrastructure/persistence/query_service.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/reports.py"], ["tests/test_mcp_state.py", "tests/test_cli_contract.py"], "query service is adapted to read-only MCP state tools and report readback"),
+    ("infrastructure/persistence/read_models.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/reports.py"], ["tests/test_mcp_state.py", "tests/test_cli_contract.py"], "SQL read models are adapted to JSON state payloads and report counters"),
+    ("infrastructure/persistence/realtime_repository.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/audit_events.py"], ["tests/test_mcp_state.py", "tests/test_audit_events.py"], "realtime repository is adapted to append-only events and explicit MCP state readback"),
+    ("infrastructure/persistence/scan_finding_repository.py", "adapted", ["src/code_sentinel_agent/scan_findings.py"], ["tests/test_scan_runtime_helpers.py", "tests/test_mcp_state.py"], "scan finding repository is adapted to scan_findings state and signature dedupe"),
+    ("infrastructure/persistence/scan_job_repository.py", "adapted", ["src/code_sentinel_agent/scan_jobs.py"], ["tests/test_scan_runtime_helpers.py"], "scan job repository is adapted to scan_jobs lifecycle helpers"),
+    ("infrastructure/persistence/scanner_repository.py", "adapted", ["src/code_sentinel_agent/file_inventory.py", "src/code_sentinel_agent/scan_jobs.py"], ["tests/test_scan_runtime_helpers.py"], "scanner repository is adapted to file checks and scan job state"),
+    ("infrastructure/persistence/session.py", "adapted", ["src/code_sentinel_agent/db.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_db_schema.py", "tests/test_mcp_state.py"], "SQLAlchemy session factory is adapted to explicit SQLite bootstrap and MCP backend detection"),
+    ("infrastructure/persistence/snapshot_store.py", "adapted", ["src/code_sentinel_agent/reports.py", "src/code_sentinel_agent/audit_events.py"], ["tests/test_cli_contract.py", "tests/test_audit_events.py"], "snapshot store is adapted to report snapshots and audit evidence instead of generic event-sourcing snapshots"),
+    ("infrastructure/persistence/state_repository.py", "adapted", ["src/code_sentinel_agent/memory.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_mcp_state.py"], "state repository is adapted to memories, runs, locks and state tools"),
+    ("infrastructure/persistence/stats_repository.py", "adapted", ["src/code_sentinel_agent/reports.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_cli_contract.py", "tests/test_mcp_state.py"], "stats repositories are adapted to report counters and read-only state tools without usage accounting"),
+    ("infrastructure/persistence/task_repository.py", "adapted", ["src/code_sentinel_agent/task_creation.py", "src/code_sentinel_agent/task_workflow.py"], ["tests/test_task_creation.py", "tests/test_task_workflow.py"], "task repository is adapted to task creation, subtask progress and workflow state helpers"),
+    ("infrastructure/persistence/types.py", "adapted", ["src/code_sentinel_agent/db.py", "src/code_sentinel_agent/output_contract.py"], ["tests/test_db_schema.py", "tests/test_cli_contract.py"], "custom SQLAlchemy JSON types are adapted to explicit JSON serialization in SQLite payload contracts"),
+    ("infrastructure/persistence/unit_of_work.py", "adapted", ["src/code_sentinel_agent/db.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_db_schema.py", "tests/test_mcp_state.py"], "unit-of-work transaction boundary is adapted to small explicit SQLite transactions around state tool calls"),
     ("infrastructure/execution/qg_test_runner.py", "adapted", ["src/code_sentinel_agent/validation_runner.py"], ["tests/test_qg_workflow.py"], "validation output is normalized without importing production runner dependencies"),
     ("infrastructure/execution/claude_executor.py", "removed", ["src/code_sentinel_agent/execution_sessions.py"], ["tests/test_docs_contract.py", "tests/test_execution_sessions.py"], "external AI executor is intentionally replaced by Workspace Agent task takeover"),
     ("infrastructure/messaging/stream_service.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "Redis stream delivery is represented by locks, runs, events and next_autonomous_step"),
@@ -168,6 +187,11 @@ SAAS_APP_INFRA_REMOVED_MODULES = {
     "infrastructure/persistence/models/github_app_installation.py": "GitHub App installation models are removed; repository and PR state are represented through MCP/GitHub tools and pr_state.",
     "infrastructure/persistence/models/logging_config.py": "Logging config model is removed from the Agent runtime.",
     "infrastructure/persistence/models/webhook.py": "Webhook configuration and delivery models are removed from the Agent runtime.",
+    "infrastructure/persistence/rls/postgres_rls.py": "Tenant RLS setup is removed with the SaaS tenant/RBAC layer.",
+    "infrastructure/persistence/rls/rls_mixin.py": "Tenant RLS mixin is removed with the SaaS tenant/RBAC layer.",
+    "infrastructure/persistence/rls/session_middleware.py": "Tenant-scoped DB session middleware is removed with the SaaS tenant/RBAC layer.",
+    "infrastructure/persistence/system_admin_repository.py": "System-admin repository is removed with the SaaS identity/admin layer.",
+    "infrastructure/persistence/webhook_repository.py": "Webhook repository is removed with the SaaS webhook delivery subsystem.",
 }
 
 REMOVED_APP_TABLES = {
@@ -178,6 +202,32 @@ REMOVED_APP_TABLES = {
     "logging_configs": "SaaS logging configuration table is removed; Agent runtime stores audit/report evidence instead.",
     "webhook_configs": "Outbound webhook configuration is removed from the Agent runtime.",
     "webhook_deliveries": "Webhook delivery queue is removed from the Agent runtime.",
+}
+
+WORKER_RULES: dict[str, tuple[str, list[str], list[str], str]] = {
+    "workers/__init__.py": ("adapted", ["src/code_sentinel_agent/cycle.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_autonomous_cycle.py", "tests/test_mcp_state.py"], "worker package entrypoints are adapted to Agent cycle and MCP state tools"),
+    "workers/__main__.py": ("adapted", ["src/code_sentinel_agent/cli.py"], ["tests/test_cli_contract.py"], "worker CLI launcher is adapted to repository scripts and Agent runtime CLI commands"),
+    "workers/cli/commands.py": ("adapted", ["src/code_sentinel_agent/cli.py"], ["tests/test_cli_contract.py"], "worker CLI commands are adapted to Agent runtime CLI commands and reports"),
+    "workers/cli/utils.py": ("adapted", ["src/code_sentinel_agent/cli.py", "src/code_sentinel_agent/db.py"], ["tests/test_cli_contract.py", "tests/test_db_schema.py"], "worker CLI utilities are adapted to local CLI formatting and SQLite bootstrap"),
+    "workers/connectivity_health_worker.py": ("adapted", ["src/code_sentinel_agent/project_context.py", "src/code_sentinel_agent/reports.py"], ["tests/test_project_context.py", "tests/test_cli_contract.py"], "connectivity health worker is adapted to project preflight and report evidence"),
+    "workers/pr_monitor_worker.py": ("adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/reports.py"], ["tests/test_mcp_state.py", "tests/test_cli_contract.py"], "PR monitor worker is adapted to pr_state tools and report readback"),
+    "workers/pr_poller.py": ("adapted", ["src/code_sentinel_agent/mcp_state.py"], ["tests/test_mcp_state.py"], "PR polling is adapted to explicit MCP/GitHub tool use and persisted pr_state"),
+    "workers/pr_tracker_worker.py": ("adapted", ["src/code_sentinel_agent/mcp_state.py"], ["tests/test_mcp_state.py"], "PR tracker worker is adapted to pr_state set/get contracts"),
+    "workers/preconditions.py": ("adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/project_context.py"], ["tests/test_mcp_state.py", "tests/test_project_context.py"], "worker preconditions are adapted to project context and MCP blocker payloads"),
+    "workers/projection_worker.py": ("adapted", ["src/code_sentinel_agent/reports.py", "src/code_sentinel_agent/audit_events.py"], ["tests/test_cli_contract.py", "tests/test_audit_events.py"], "projection worker is adapted to report generation and audit event readback"),
+    "workers/scan_coordinator.py": ("adapted", ["src/code_sentinel_agent/scan_jobs.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_scan_runtime_helpers.py", "tests/test_autonomous_cycle.py"], "scan coordinator is adapted to scan job lifecycle and autonomous cycle selection"),
+    "workers/scan_worker.py": ("adapted", ["src/code_sentinel_agent/analysis_workflow.py", "src/code_sentinel_agent/plugin_executions.py", "src/code_sentinel_agent/file_inventory.py"], ["tests/test_agent_analysis.py", "tests/test_scan_runtime_helpers.py"], "scan worker is adapted to Agent-owned analysis, plugin execution evidence and file checks"),
+    "workers/session_cleanup_worker.py": ("adapted", ["src/code_sentinel_agent/execution_sessions.py"], ["tests/test_execution_sessions.py"], "session cleanup is adapted to Agent-native execution session evidence and no external terminal attachment"),
+    "workers/signal_subscription_worker.py": ("adapted", ["src/code_sentinel_agent/cycle.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_autonomous_cycle.py", "tests/test_mcp_state.py"], "signal subscription worker is adapted to state_run_cycle and MCP state transitions"),
+    "workers/stream_task_worker.py": ("adapted", ["src/code_sentinel_agent/task_workflow.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_task_workflow.py", "tests/test_autonomous_cycle.py"], "stream task worker is adapted to selected runnable task and Agent cycle task takeover"),
+    "workers/task_processing_worker.py": ("adapted", ["src/code_sentinel_agent/task_execution.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "task processing worker is adapted to Agent task execution result, approvals and cycle next step"),
+    "workers/worker_registry.py": ("adapted", ["src/code_sentinel_agent/reports.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_cli_contract.py", "tests/test_mcp_state.py"], "worker registry is adapted to report/run state instead of a Redis worker registry"),
+}
+
+REMOVED_WORKER_MODULES = {
+    "workers/archive_cleanup_worker.py": "Archive cleanup worker is removed with SaaS tenant/project archive deletion.",
+    "workers/cleanup_worker.py": "Generic cleanup worker for old daemon/workspace resources is removed; Agent state cleanup is explicit and state-scoped.",
+    "workers/webhook_delivery_worker.py": "Webhook delivery worker is removed with the SaaS webhook subsystem.",
 }
 
 PERSISTENCE_MODEL_RULES: dict[str, tuple[str, list[str], list[str], str]] = {
@@ -368,6 +418,27 @@ def classify_module(module: dict[str, Any]) -> dict[str, Any]:
             reason=SAAS_APP_INFRA_REMOVED_MODULES[file_name],
             target_modules=["src/code_sentinel_agent/audit_events.py", "src/code_sentinel_agent/reports.py", "src/code_sentinel_agent/mcp_state.py"],
             tests=["tests/test_docs_contract.py", "tests/test_audit_events.py", "tests/test_cli_contract.py"],
+            user_acceptance=SAAS_APP_INFRA_ACCEPTANCE,
+        )
+    if file_name in WORKER_RULES:
+        status, target_modules, tests, reason = WORKER_RULES[file_name]
+        return {
+            "kind": "runtime_module",
+            "source": file_name,
+            "name": module["module"],
+            "status": status,
+            "target_modules": target_modules,
+            "tests": tests,
+            "reason": reason,
+        }
+    if file_name in REMOVED_WORKER_MODULES:
+        return removed_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason=REMOVED_WORKER_MODULES[file_name],
+            target_modules=["src/code_sentinel_agent/reports.py", "src/code_sentinel_agent/mcp_state.py"],
+            tests=["tests/test_docs_contract.py", "tests/test_cli_contract.py", "tests/test_mcp_state.py"],
             user_acceptance=SAAS_APP_INFRA_ACCEPTANCE,
         )
     if file_name in PERSISTENCE_MODEL_RULES:

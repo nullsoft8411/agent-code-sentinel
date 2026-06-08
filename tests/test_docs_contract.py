@@ -90,8 +90,9 @@ def test_full_source_coverage_gate_classifies_every_inventory_entry() -> None:
             assert entry["blocker_code"]
             assert entry["next_task"]
 
-    assert coverage["gate_status"] == "blocked"
-    assert coverage["summary"]["blocked_total"] > 0
+    assert coverage["summary"]["blocked_total"] == 0
+    assert coverage["gate_status"] == "passed"
+    assert not [entry for entry in coverage["entries"] if entry["status"] == "blocked"]
     assert "managed Agent testing remain blocked" in coverage["blocking_rule"]
 
 
@@ -298,6 +299,50 @@ def test_full_source_coverage_maps_messaging_and_persistence_slice() -> None:
         entry = entries[("runtime_module", source)]
         assert entry["status"] == "removed"
         assert "not the local FastAPI SaaS product shell" in entry["user_acceptance"]
+
+
+def test_full_source_coverage_maps_final_persistence_and_worker_slice() -> None:
+    coverage = json.loads((ROOT / "docs/local-code-sentinel-full-source-coverage.json").read_text())
+    entries = {(entry["kind"], entry["source"]): entry for entry in coverage["entries"]}
+
+    adapted_sources = {
+        "infrastructure/persistence/projections/project_stats_projector.py": "report readback counters",
+        "infrastructure/persistence/qg_workflow_repository.py": "selected_task_for_agent_takeover",
+        "infrastructure/persistence/quality_gate_repository.py": "QA gate normalization",
+        "infrastructure/persistence/query_service.py": "read-only MCP state tools",
+        "infrastructure/persistence/scan_finding_repository.py": "signature dedupe",
+        "infrastructure/persistence/scan_job_repository.py": "scan_jobs lifecycle",
+        "infrastructure/persistence/session.py": "MCP backend detection",
+        "infrastructure/persistence/state_repository.py": "memories, runs, locks",
+        "infrastructure/persistence/task_repository.py": "subtask progress",
+        "infrastructure/persistence/unit_of_work.py": "state tool calls",
+        "workers/scan_worker.py": "Agent-owned analysis",
+        "workers/task_processing_worker.py": "Agent task execution result",
+        "workers/stream_task_worker.py": "selected runnable task",
+        "workers/pr_monitor_worker.py": "pr_state tools",
+        "workers/projection_worker.py": "report generation",
+        "workers/worker_registry.py": "report/run state",
+    }
+    for source, reason_fragment in adapted_sources.items():
+        entry = entries[("runtime_module", source)]
+        assert entry["status"] == "adapted"
+        assert reason_fragment in entry["reason"]
+        assert entry["target_modules"]
+        assert entry["tests"]
+
+    for source in [
+        "infrastructure/persistence/rls/postgres_rls.py",
+        "infrastructure/persistence/rls/rls_mixin.py",
+        "infrastructure/persistence/rls/session_middleware.py",
+        "infrastructure/persistence/system_admin_repository.py",
+        "infrastructure/persistence/webhook_repository.py",
+        "workers/archive_cleanup_worker.py",
+        "workers/cleanup_worker.py",
+        "workers/webhook_delivery_worker.py",
+    ]:
+        entry = entries[("runtime_module", source)]
+        assert entry["status"] == "removed"
+        assert entry["user_acceptance"]
 
 
 def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
