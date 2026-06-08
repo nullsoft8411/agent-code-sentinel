@@ -1266,7 +1266,7 @@ def test_postgres_analyze_to_state_builds_agent_findings_tasks_query(monkeypatch
     assert "insert into scan_findings" in captured["sql"]
     assert "insert into tasks" in captured["sql"]
     assert "on conflict (project_id, signature) do nothing" in captured["sql"]
-    assert "on conflict (project_id, task_signature) do nothing" in captured["sql"]
+    assert "on conflict (project_id, task_signature) where task_signature is not null do nothing" in captured["sql"]
     assert "selected_task_for_agent_takeover" in captured["sql"]
     assert "jsonb_array_elements" in captured["sql"]
     assert ":project_id" not in captured["sql"]

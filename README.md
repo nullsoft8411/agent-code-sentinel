@@ -222,6 +222,12 @@ PYTHONPATH=src python3 scripts/postgres_task_execution_e2e.py
 Without `CODE_SENTINEL_POSTGRES_DSN`, the script exits `2` with a controlled
 `POSTGRES_DSN_MISSING` blocker instead of faking live DB evidence.
 
+Latest local live evidence: on the local PostgreSQL 16 server, the harness
+returned `postgres_task_execution_e2e_passed` with `approval_recorded=true`,
+`task_execution_status=passed`, `task_status_after_execution=completed`,
+`validation_attempts_count=1`, `execution_sessions_count=1`,
+`approval_enforced=true`, and `unapproved_actions=[]`.
+
 ## Output Rules
 
 - JSON stdout is the machine contract.

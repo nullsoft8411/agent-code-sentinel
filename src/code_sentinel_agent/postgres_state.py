@@ -483,7 +483,7 @@ validation_task_insert as (
   from validation_finding_input
   join findings on findings.project_id = :project_id and findings.signature = value->>'signature'
   where exists (select 1 from validation_attempt_insert)
-  on conflict (project_id, task_signature) do nothing
+  on conflict (project_id, task_signature) where task_signature is not null do nothing
   returning id
 ),
 approval_candidate as (
@@ -870,7 +870,7 @@ task_inserted as (
   from input_findings
   join findings on findings.project_id = :project_id and findings.signature = value->>'signature'
   where findings.run_id = :run_id
-  on conflict (project_id, task_signature) do nothing
+  on conflict (project_id, task_signature) where task_signature is not null do nothing
   returning id
 ),
 selected_task as (
@@ -1338,7 +1338,7 @@ validation_task_insert as (
   from validation_finding_input
   join findings on findings.project_id = :project_id and findings.signature = value->>'signature'
   where exists (select 1 from validation_attempt_insert)
-  on conflict (project_id, task_signature) do nothing
+  on conflict (project_id, task_signature) where task_signature is not null do nothing
   returning id
 ),
 approval_candidate as (

@@ -74,7 +74,7 @@ def main() -> int:
                 "files_modified": [MODIFIED_FILE],
                 "validation_result": {
                     "gate": "postgres_live_task_execution",
-                    "command": "PYTHONPATH=src python3 -m pytest tests/test_mcp_state.py -q",
+                    "command": "python3 -m pytest tests/test_mcp_state.py -q",
                     "exit_code": 0,
                     "stdout": "live postgres task execution e2e passed",
                     "stderr": "",
