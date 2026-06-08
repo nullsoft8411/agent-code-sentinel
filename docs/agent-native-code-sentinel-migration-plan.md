@@ -184,8 +184,11 @@ Target replacement:
 Complete migration means every functional responsibility of the local
 Code Sentinel workweise is either ported into agent-code-sentinel, explicitly
 adapted to the Workspace Agent runtime, or explicitly classified as not
-required for the Agent target. It does not mean copying the local SaaS project
-1:1.
+required for the Agent target after source-backed review. It is not acceptable
+to declare broad local Code Sentinel areas out of scope from assumption alone.
+Every model, service, worker, plugin category, repository contract, API-facing
+workflow, safety guard and persistence behavior must have a row in the coverage
+map or a linked follow-up gate before managed Agent testing resumes.
 
 | Source functional area | Local source evidence | Target responsibility | Current target coverage | Required local gate before Agent packaging |
 |---|---|---|---|---|
@@ -200,8 +203,12 @@ required for the Agent target. It does not mean copying the local SaaS project
 | Approval and write guard | claude_executor path/branch validation, git_service.py, PR flow | Runtime blocks writes unless explicit per-run approval covers action/path/branch | approvals.py and task_execution.py approval checks exist | E2E must prove unapproved file changes block and approved bounded changes record approval evidence |
 | Audit/report/next step | audit_logger/audit models, worker status/report flows | Every cycle writes audit events, report counts, QA outcomes, risks, rollback and next_autonomous_step | audit_events.py, reports.py and cycle.py exist | E2E must prove report readback includes findings/tasks/qa/session/audit and no false-complete state |
 | MCP shared state | local DB/repositories, queues/workers | MCP exposes controlled state tools without raw SQL or generic shell fallback | SQLite MCP tools and trend-mcp schemas exist | Local trend-mcp smoke must prove all required state tools, including state_run_cycle and analyze-to-state, against the runtime repo |
-| Postgres shared state | local PostgreSQL/SQLAlchemy semantics | Optional local Postgres backend for durable shared state when SQLite is insufficient | Postgres bootstrap currently covers only a subset of MCP tools | Do not claim Postgres parity until all state tools used by local E2E are implemented or explicitly blocked |
-| SaaS/admin layers | tenants, RBAC, billing, Stripe, API keys, users | Not part of Agent runtime unless later proven required for Agent state safety | out of scope for current adapter | Keep out of target runtime; only port minimal project ownership labels needed for state isolation |
+| Postgres shared state | local PostgreSQL/SQLAlchemy semantics | Durable shared-state backend or an explicit per-tool blocker with migration task | Postgres bootstrap currently covers only a subset of MCP tools | Do not claim complete migration or AN-9 readiness until every runtime state tool is implemented for Postgres or listed with exact blocker, owner and follow-up |
+| Tenant/RBAC/API-key/user/service-account safety | tenant.py, user.py, api_key.py, service_account.py, invitation.py, budget/usage models, auth/API services | Preserve the functional safety boundary for project ownership, workspace isolation, explicit approvals, API/service identity and auditability in the Agent runtime | partial: project_id, approval and audit labels exist, but full source-backed mapping is not complete | Add source-backed coverage rows and tests or explicit target adaptation for every auth/isolation/accounting behavior before AN-9 |
+| Billing/budget/usage guard | budget.py, usage.py, budget_guard_service.py, billing/Stripe integration paths | Preserve the functional limit/attempt/safety behavior even if Stripe billing itself is not needed | partial: attempt limits and approval gates exist; budget/usage source mapping is incomplete | Map billing/usage/budget semantics to Agent attempt limits, run quotas, or explicit non-runtime blockers with tests |
+| FastAPI/product API workflows | routers/API services, task_commands.py, task_queries.py, project/scan/task endpoints | Preserve user-visible workflow semantics as CLI/MCP/Agent contracts where they affect autonomous operation | partial: CLI and MCP commands exist for core runtime; full endpoint-to-contract mapping is incomplete | Build endpoint/workflow inventory and mark every workflow as migrated, adapted, or blocked before AN-9 |
+| Redis/worker orchestration | Redis streams, scan_worker.py, task_processing_worker.py, worker_registry.py, stream_task_worker.py, projection/session cleanup workers | Preserve scheduling, queue, locking, retry, cleanup, projection and continuation semantics through MCP state, locks, schedules and reports | partial: lock/run/task cycle exists; full worker inventory mapping is incomplete | Map every worker to Agent/MCP equivalent, local script, schedule, cleanup task, or explicit blocker |
+| GitHub/PR lifecycle | git_service.py, github_app_service.py, tracked_pr.py, pr_* workers | Preserve clone, branch, diff, commit, PR, tracking and rollback behavior through controlled MCP/GitHub tools | partial: clone/write/PR E2E exists; full tracked PR lifecycle mapping is incomplete | Add tracked PR lifecycle coverage or explicit blocker before complete migration claim |
 
 The open migration work is therefore not "add Claude-like executor". The open
 work is to make the Agent-owned analysis pipeline produce the same state
@@ -214,6 +221,41 @@ tasks, QA workflows and executor sessions.
 
 The Agent is the intelligence layer. Python scripts provide deterministic
 state, extraction, normalization, validation and reporting.
+
+### 2.7 Full Local Source Coverage Gate
+
+Before any further Slack, Agent Studio, schedule, connector or managed-Agent
+E2E work, run a full local Code Sentinel source coverage pass. This pass must
+start from the source project, not from the already-ported adapter modules.
+
+Required source inputs:
+
+- infrastructure/persistence/models/
+- database/alembic/versions/
+- infrastructure/persistence/*repository*.py
+- application/services/, application/commands/ and application/queries/
+- domain/scanning/plugins/ and domain/scanning/entities/
+- infrastructure/execution/
+- workers/
+- API/router paths if present
+- docs that define user-visible Code Sentinel behavior
+
+Coverage output must classify every discovered source responsibility as exactly
+one of:
+
+- migrated: implemented in agent-code-sentinel with tests and E2E evidence
+- adapted: intentionally represented differently for the Workspace Agent, with
+  the target module, test and E2E evidence named
+- blocked: not implemented yet, with blocker code, risk and next task
+- removed: not needed in the Agent target only after source-backed reasoning and
+  explicit user acceptance
+
+No phase after AN-8 and no AN-9 managed packaging may be called ready while any
+source responsibility is unmapped. A passing local test suite is necessary but
+not sufficient; the coverage matrix must prove that the whole local
+Code Sentinel functional surface has been reviewed.
+
+Contract statement: Full local Code Sentinel source coverage is mandatory before managed Agent testing resumes.
 
 ## 3. QA Gate Ownership And Task Takeover
 
