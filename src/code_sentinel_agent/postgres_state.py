@@ -140,6 +140,44 @@ select coalesce(
     return run_psql_json(dsn, bind_literal(sql, "project_id", project_id))
 
 
+def postgres_memory_get(dsn: str, project_id: str) -> tuple[int, dict]:
+    sql = """
+select coalesce(
+  (select json_build_object(
+    'status', 'passed',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'memory', memory_json,
+    'latest_ref', latest_ref,
+    'stale_memory_decision', coalesce(stale_memory_decision, 'not_applicable'),
+    'next_autonomous_step', coalesce(nullif(memory_json->>'next_autonomous_step', ''), 'run repository preflight')
+  )
+  from memories
+  where project_id = :project_id
+  order by created_at desc
+  limit 1),
+  (select json_build_object(
+    'status', 'passed',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'memory', null,
+    'latest_ref', null,
+    'stale_memory_decision', 'missing_memory',
+    'next_autonomous_step', 'run repository preflight'
+  )
+  where exists (select 1 from projects where id = :project_id)),
+  json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'PROJECT_NOT_FOUND',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'reason', 'initialize project state before reading memory'
+  )
+);
+"""
+    return run_psql_json(dsn, bind_literal(sql, "project_id", project_id))
+
+
 def postgres_lock_acquire(
     dsn: str,
     *,

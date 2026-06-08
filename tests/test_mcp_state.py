@@ -10,6 +10,7 @@ import pytest
 from runtime_cli_helpers import parse_json, run_cli
 from code_sentinel_agent.db import initialize_database
 from code_sentinel_agent.mcp_state import call_tool, detect_backend
+from code_sentinel_agent import postgres_state
 from code_sentinel_agent.postgres_state import bind_literal, build_psql_command, parse_pg_env
 
 
@@ -1162,7 +1163,6 @@ def test_mcp_state_postgres_dsn_blocks_until_driver_and_adapter_exist() -> None:
 @pytest.mark.parametrize(
     ("tool_name", "payload"),
     [
-        ("state_memory_get", {"project_id": "proj-devopshub"}),
         ("state_analyze_to_state", {"project_id": "proj-devopshub", "run_id": "run-1", "finding_candidates": []}),
         ("state_run_cycle", {"project_id": "proj-devopshub", "run_id": "run-1", "latest_ref": "main@test"}),
         ("state_report_get", {"run_id": "run-1"}),
@@ -1176,6 +1176,32 @@ def test_postgres_backend_blocks_unsupported_local_e2e_state_tools(tool_name: st
     assert result["state_backend"] == "postgres"
     assert result["tool_name"] == tool_name
     assert result["blocker_code"] in {"POSTGRES_BACKEND_NOT_IMPLEMENTED", "POSTGRES_DRIVER_MISSING"}
+
+
+def test_postgres_memory_get_builds_latest_memory_readback_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    def fake_run_psql_json(dsn: str, sql: str) -> tuple[int, dict]:
+        captured["dsn"] = dsn
+        captured["sql"] = sql
+        return 0, {"status": "passed", "state_backend": "postgres", "project_id": "proj-devopshub"}
+
+    monkeypatch.setattr(postgres_state, "run_psql_json", fake_run_psql_json)
+
+    code, payload = postgres_state.postgres_memory_get(
+        "postgresql://localhost/code_sentinel",
+        "proj-devopshub",
+    )
+
+    assert code == 0
+    assert payload["state_backend"] == "postgres"
+    assert captured["dsn"] == "postgresql://localhost/code_sentinel"
+    assert "from memories" in captured["sql"]
+    assert "order by created_at desc" in captured["sql"]
+    assert "PROJECT_NOT_FOUND" in captured["sql"]
+    assert "next_autonomous_step" in captured["sql"]
+    assert ":project_id" not in captured["sql"]
+    assert "'proj-devopshub'" in captured["sql"]
 
 
 def test_postgres_psql_backend_uses_env_not_dsn_arg() -> None:

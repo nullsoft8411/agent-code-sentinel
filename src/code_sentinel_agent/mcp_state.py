@@ -18,6 +18,7 @@ from .postgres_state import (
     initialize_postgres_database,
     postgres_lock_acquire,
     postgres_lock_release,
+    postgres_memory_get,
     postgres_project_get,
     postgres_run_start,
 )
@@ -736,6 +737,8 @@ def postgres_not_ready(tool_name: str, backend: dict) -> tuple[int, dict]:
 def call_postgres_tool(dsn: str, tool_name: str, payload: dict[str, Any]) -> tuple[int, dict]:
     if tool_name == "state_project_get":
         return postgres_project_get(dsn, require_str(payload, "project_id"))
+    if tool_name == "state_memory_get":
+        return postgres_memory_get(dsn, require_str(payload, "project_id"))
     if tool_name == "state_lock_acquire":
         code, init_payload = initialize_postgres_database(dsn)
         if code != 0:
