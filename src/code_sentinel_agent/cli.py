@@ -5,6 +5,8 @@ import json
 import sys
 
 from .agent_analysis import analyze_context, load_analysis_payload
+from .analysis_contract import AnalysisContractInput, build_analysis_contract
+from .analysis_workflow import analyze_to_state
 from .approvals import approval_check
 from .audit_events import AuditEventInput, append_audit_event, list_audit_events
 from .check_detection import detect_checks
@@ -83,6 +85,19 @@ def main(argv: list[str] | None = None) -> int:
     analyze_input = analyze.add_mutually_exclusive_group(required=True)
     analyze_input.add_argument("--input-json")
     analyze_input.add_argument("--input-file")
+
+    analyze_state = subparsers.add_parser("analyze-to-state")
+    analyze_state.add_argument("--db", required=True)
+    analyze_state_input = analyze_state.add_mutually_exclusive_group(required=True)
+    analyze_state_input.add_argument("--input-json")
+    analyze_state_input.add_argument("--input-file")
+
+    analysis_contract = subparsers.add_parser("analysis-contract")
+    analysis_contract.add_argument("--project-id", required=True)
+    analysis_contract.add_argument("--run-id", required=True)
+    analysis_contract.add_argument("--target-project", required=True)
+    analysis_contract.add_argument("--file", action="append", default=[])
+    analysis_contract.add_argument("--validation-command", action="append", default=[])
 
     create_tasks = subparsers.add_parser("create-tasks")
     create_tasks.add_argument("--db", required=True)
@@ -227,6 +242,23 @@ def main(argv: list[str] | None = None) -> int:
             return emit(2, {"status": "blocked", "blocker_code": "INVALID_ANALYSIS_INPUT", "reason": str(exc)})
         code, payload = analyze_context(payload_json)
         return emit(code, payload)
+    if args.command == "analyze-to-state":
+        try:
+            payload_json = load_analysis_payload(input_json=args.input_json, input_file=args.input_file)
+            code, payload = analyze_to_state(args.db, payload_json)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            return emit(2, {"status": "blocked", "blocker_code": "INVALID_ANALYSIS_STATE_INPUT", "reason": str(exc)})
+        return emit(code, payload)
+    if args.command == "analysis-contract":
+        return emit(0, build_analysis_contract(
+            AnalysisContractInput(
+                project_id=args.project_id,
+                run_id=args.run_id,
+                target_project=args.target_project,
+                files_to_analyze=args.file,
+                validation_commands=args.validation_command,
+            )
+        ))
     if args.command == "create-tasks":
         code, payload = create_tasks_from_findings(
             args.db,

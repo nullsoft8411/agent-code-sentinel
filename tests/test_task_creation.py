@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
+
+import pytest
 
 from runtime_cli_helpers import parse_json, run_cli
 from code_sentinel_agent.db import connect, initialize_database
@@ -183,6 +186,74 @@ def test_task_status_updates_parent_progress(tmp_path: Path) -> None:
         '{"blocked_subtasks": 0, "completed_subtasks": 2, '
         '"failed_subtasks": 0, "total_subtasks": 2}'
     )
+
+
+@pytest.mark.parametrize(
+    ("subtask_status", "expected_parent_status", "expected_progress"),
+    [
+        (
+            "blocked_approval_required",
+            "blocked",
+            {
+                "blocked_subtasks": 1,
+                "completed_subtasks": 1,
+                "failed_subtasks": 0,
+                "total_subtasks": 2,
+            },
+        ),
+        (
+            "failed_validation",
+            "failed_validation",
+            {
+                "blocked_subtasks": 0,
+                "completed_subtasks": 1,
+                "failed_subtasks": 1,
+                "total_subtasks": 2,
+            },
+        ),
+    ],
+)
+def test_task_status_updates_parent_progress_for_blocked_and_failed_subtasks(
+    tmp_path: Path,
+    subtask_status: str,
+    expected_parent_status: str,
+    expected_progress: dict[str, int],
+) -> None:
+    db_path = tmp_path / "runtime.db"
+    seed_findings(db_path)
+    create = run_cli(
+        "create-tasks",
+        "--db",
+        str(db_path),
+        "--project-id",
+        "proj-agent",
+        "--run-id",
+        "run-agent",
+    )
+    assert create.returncode == 0, create.stderr
+
+    with sqlite3.connect(db_path) as conn:
+        subtask_ids = [
+            row[0]
+            for row in conn.execute(
+                "select id from tasks where task_type = 'subtask' order by subtask_order"
+            ).fetchall()
+        ]
+
+    completed = run_cli("task-status", "--db", str(db_path), "--task-id", subtask_ids[0], "--status", "completed")
+    changed = run_cli("task-status", "--db", str(db_path), "--task-id", subtask_ids[1], "--status", subtask_status)
+
+    assert completed.returncode == 0, completed.stderr
+    assert changed.returncode == 0, changed.stderr
+    assert parse_json(changed)["task"]["status"] == subtask_status
+
+    with sqlite3.connect(db_path) as conn:
+        parent = conn.execute(
+            "select status, progress_json from tasks where task_type = 'parent'"
+        ).fetchone()
+
+    assert parent[0] == expected_parent_status
+    assert json.loads(parent[1]) == expected_progress
 
 
 def test_create_tasks_blocks_when_subtask_limit_exceeded(tmp_path: Path) -> None:

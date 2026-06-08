@@ -5,6 +5,8 @@ import sqlite3
 from pathlib import Path
 import re
 
+import pytest
+
 from runtime_cli_helpers import parse_json, run_cli
 from code_sentinel_agent.db import initialize_database
 from code_sentinel_agent.mcp_state import call_tool, detect_backend
@@ -223,6 +225,21 @@ def test_mcp_state_cli_dispatches_json_tool_payload(tmp_path: Path) -> None:
     payload = parse_json(result)
     assert payload["status"] == "passed"
     assert payload["project"]["target"] == "nullsoft8411/devopshub"
+
+
+@pytest.mark.parametrize("tool_name", ["raw_sql", "sql_query", "run_command"])
+def test_mcp_state_blocks_raw_sql_and_generic_command_tools(tmp_path: Path, tool_name: str) -> None:
+    db_path = tmp_path / "state.db"
+    seed_project(db_path)
+
+    code, payload = call_tool(db_path, tool_name, {"query": "select * from projects"})
+
+    assert code == 2
+    assert payload["status"] == "blocked"
+    assert payload["blocker_code"] == "UNKNOWN_MCP_STATE_TOOL"
+    assert payload["tool_name"] == tool_name
+    assert tool_name not in payload["allowed_tools"]
+    assert "state_report_get" in payload["allowed_tools"]
 
 
 def test_mcp_state_expanded_tools_persist_findings_tasks_qa_execution_audit_and_pr(tmp_path: Path) -> None:
@@ -822,6 +839,231 @@ def test_mcp_state_run_cycle_derives_review_outcomes_from_task_takeover(tmp_path
     assert payload["lock_released"] is True
 
 
+def test_mcp_state_analyze_to_state_records_agent_supplied_findings(tmp_path: Path) -> None:
+    db_path = tmp_path / "state.db"
+    seed_project(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "insert into runs(id, project_id, status, current_focus) values (?, ?, ?, ?)",
+            ("run-analysis-state", "proj-devopshub", "in_progress", "analysis"),
+        )
+        conn.commit()
+
+    result = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_analyze_to_state",
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-analysis-state",
+                "finding_candidates": [
+                    {
+                        "category": "security",
+                        "severity": "high",
+                        "file_path": "src/settings.py",
+                        "line_number": 1,
+                        "title": "Token is hardcoded",
+                        "description": "TOKEN='sk-test-should-redact' is stored in source.",
+                        "evidence": "TOKEN='sk-test-should-redact'",
+                        "source": "agent_reasoning",
+                        "rule_id": "secret_assignment",
+                    }
+                ],
+            }
+        ),
+    )
+    payload = parse_json(result)
+    serialized = json.dumps(payload, sort_keys=True)
+
+    assert result.returncode == 0, result.stderr
+    assert payload["mode"] == "agent_supplied_analysis_persistence"
+    assert payload["analysis"]["counts"]["findings"] == 1
+    assert payload["task_creation"]["created_tasks"]
+    assert payload["selected_task_for_agent_takeover"]["affected_file"] == "src/settings.py"
+    assert payload["report"]["counts"]["findings"] == 1
+    assert payload["report"]["counts"]["tasks"] == 1
+    assert "sk-test-should-redact" not in serialized
+
+
+def test_mcp_state_analyze_to_state_dedupes_findings_and_tasks(tmp_path: Path) -> None:
+    db_path = tmp_path / "state.db"
+    seed_project(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "insert into runs(id, project_id, status, current_focus) values (?, ?, ?, ?)",
+            ("run-analysis-dedupe", "proj-devopshub", "in_progress", "analysis"),
+        )
+        conn.commit()
+
+    payload = {
+        "project_id": "proj-devopshub",
+        "run_id": "run-analysis-dedupe",
+        "latest_ref": "main@analysis-dedupe",
+        "finding_candidates": [
+            {
+                "category": "code_quality",
+                "severity": "high",
+                "file_path": "src/settings.py",
+                "line_number": 1,
+                "title": "Duplicate candidate should not duplicate state",
+                "description": "The same Agent finding is submitted twice.",
+                "evidence": "src/settings.py:1 inspected twice",
+                "source": "agent_reasoning",
+                "rule_id": "agent_dedupe_review",
+            }
+        ],
+    }
+
+    first = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_analyze_to_state",
+        "--payload-json",
+        json.dumps(payload),
+    )
+    second = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_analyze_to_state",
+        "--payload-json",
+        json.dumps(payload),
+    )
+    first_payload = parse_json(first)
+    second_payload = parse_json(second)
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    assert first_payload["persisted_findings"][0]["created"] is True
+    assert second_payload["persisted_findings"][0]["created"] is False
+    assert first_payload["task_creation"]["counts"]["created_tasks"] == 1
+    assert second_payload["task_creation"]["counts"]["created_tasks"] == 0
+    assert second_payload["report"]["counts"]["findings"] == 1
+    assert second_payload["report"]["counts"]["tasks"] == 1
+
+
+def test_local_agent_analysis_to_cycle_e2e(tmp_path: Path) -> None:
+    db_path = tmp_path / "state.db"
+    project_path = create_mcp_cycle_project(tmp_path)
+    (project_path / "AGENTS.md").write_text(
+        "# Repo rules\n- Preserve validation evidence before claiming completion.\n",
+        encoding="utf-8",
+    )
+    seed_project(db_path)
+
+    context = run_cli("project-context", "--project", str(project_path), "--max-files", "20")
+    context_payload = parse_json(context)
+    assert context.returncode == 0, context.stderr
+    assert context_payload["status"] == "passed"
+    assert context_payload["project_rules"]["agents_md_count"] >= 1
+    assert context_payload["context_summary"]["has_project_rules"] is True
+    assert "python" in context_payload["check_detection"]["signals"]
+    selected_context_file = next(
+        item
+        for item in context_payload["file_inventory"]["files"]
+        if item["path"] == "src/mcp_cycle_project/app.py"
+    )
+
+    contract = run_cli(
+        "analysis-contract",
+        "--project-id",
+        "proj-devopshub",
+        "--run-id",
+        "run-analysis-cycle",
+        "--target-project",
+        str(project_path),
+        "--file",
+        selected_context_file["path"],
+        "--validation-command",
+        "python3 -m pytest tests -q",
+    )
+    contract_payload = parse_json(contract)
+    assert contract.returncode == 0, contract.stderr
+    assert contract_payload["mode"] == "agent_supplied_analysis_contract"
+    assert contract_payload["analysis_payload_template"]["finding_candidates"] == []
+
+    start = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_run_start",
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-analysis-cycle",
+                "latest_ref": "main@analysis-cycle",
+            }
+        ),
+    )
+    assert start.returncode == 0, start.stderr
+
+    analysis_payload = {
+        **contract_payload["analysis_payload_template"],
+        "latest_ref": "main@analysis-cycle",
+        "finding_candidates": [
+            {
+                "category": "code_quality",
+                "severity": "high",
+                "file_path": selected_context_file["path"],
+                "line_number": 1,
+                "title": "Main return needs review",
+                "description": "Agent reasoning selected this file for a bounded review task.",
+                "evidence": f"{selected_context_file['path']}:1 selected from project_context file_inventory",
+                "source": "agent_reasoning",
+                "rule_id": "agent_bounded_review",
+            }
+        ],
+    }
+    analyze = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_analyze_to_state",
+        "--payload-json",
+        json.dumps(analysis_payload),
+    )
+    analyze_payload = parse_json(analyze)
+    assert analyze.returncode == 0, analyze.stderr
+    assert analyze_payload["mode"] == "agent_supplied_analysis_persistence"
+    assert analyze_payload["task_creation"]["counts"]["created_tasks"] == 1
+
+    cycle = run_cli(
+        "mcp-state",
+        "--db",
+        str(db_path),
+        "--tool",
+        "state_run_cycle",
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-analysis-cycle",
+                "latest_ref": "main@analysis-cycle",
+                "project_path": str(project_path),
+            }
+        ),
+    )
+    cycle_payload = parse_json(cycle)
+
+    assert cycle.returncode == 0, cycle.stderr
+    assert cycle_payload["status"] == "passed"
+    assert cycle_payload["selected_task_for_agent_takeover"]["affected_file"] == "src/mcp_cycle_project/app.py"
+    assert cycle_payload["improvement_work_package"]["file_evidence"]["status"] == "passed"
+    assert cycle_payload["report"]["counts"]["findings"] == 1
+    assert cycle_payload["report"]["counts"]["tasks"] == 1
+    assert cycle_payload["lock_released"] is True
+
+
 def test_mcp_state_expanded_tools_accept_nested_payload_wrapper(tmp_path: Path) -> None:
     db_path = tmp_path / "state.db"
     seed_project(db_path)
@@ -915,6 +1157,25 @@ def test_mcp_state_postgres_dsn_blocks_until_driver_and_adapter_exist() -> None:
     assert payload["status"] == "blocked"
     assert payload["state_backend"] == "postgres"
     assert payload["blocker_code"] in {"POSTGRES_QUERY_FAILED", "PSQL_CLIENT_MISSING"}
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "payload"),
+    [
+        ("state_memory_get", {"project_id": "proj-devopshub"}),
+        ("state_analyze_to_state", {"project_id": "proj-devopshub", "run_id": "run-1", "finding_candidates": []}),
+        ("state_run_cycle", {"project_id": "proj-devopshub", "run_id": "run-1", "latest_ref": "main@test"}),
+        ("state_report_get", {"run_id": "run-1"}),
+    ],
+)
+def test_postgres_backend_blocks_unsupported_local_e2e_state_tools(tool_name: str, payload: dict) -> None:
+    code, result = call_tool("postgresql://localhost/code_sentinel", tool_name, payload)
+
+    assert code == 2
+    assert result["status"] == "blocked"
+    assert result["state_backend"] == "postgres"
+    assert result["tool_name"] == tool_name
+    assert result["blocker_code"] in {"POSTGRES_BACKEND_NOT_IMPLEMENTED", "POSTGRES_DRIVER_MISSING"}
 
 
 def test_postgres_psql_backend_uses_env_not_dsn_arg() -> None:

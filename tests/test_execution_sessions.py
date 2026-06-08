@@ -8,7 +8,7 @@ from runtime_cli_helpers import parse_json, run_cli
 from code_sentinel_agent.db import connect, initialize_database
 
 
-def seed_run(db_path: Path) -> None:
+def seed_execution_session_run(db_path: Path) -> None:
     initialize_database(db_path)
     with connect(db_path) as conn:
         conn.execute(
@@ -24,7 +24,7 @@ def seed_run(db_path: Path) -> None:
 
 def test_execution_session_cli_e2e_stores_sanitized_agent_native_record(tmp_path: Path) -> None:
     db_path = tmp_path / "runtime.db"
-    seed_run(db_path)
+    seed_execution_session_run(db_path)
     secret_value = "sk-agent-session-secret"
     payload = {
         "id": "session-1",

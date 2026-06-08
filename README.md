@@ -51,6 +51,30 @@ Analyze Agent-provided context into normalized findings and a fix plan:
 PYTHONPATH=src python3 -m code_sentinel_agent.cli analyze-context --input-json '{"project_id":"proj-1","run_id":"run-1","context":{"files":[{"path":"src/app.py","content":"API_KEY=redacted-example"}]}}'
 ```
 
+Build the exact analysis contract that the Workspace Agent must fill itself:
+
+```bash
+PYTHONPATH=src python3 -m code_sentinel_agent.cli analysis-contract \
+  --project-id proj-1 \
+  --run-id run-1 \
+  --target-project owner/repo \
+  --file src/app.py \
+  --validation-command "python3 -m pytest tests -q"
+```
+
+The contract output is not an executor prompt for any external AI process. It
+tells the Workspace Agent what evidence to read and how to format its own
+`finding_candidates`.
+
+Persist the Agent's completed findings into shared state, create tasks, and
+select the next takeover item:
+
+```bash
+PYTHONPATH=src python3 -m code_sentinel_agent.cli analyze-to-state \
+  --db /tmp/runtime.db \
+  --input-json '{"project_id":"proj-1","run_id":"run-1","finding_candidates":[{"category":"security","severity":"high","file_path":"src/app.py","line_number":1,"title":"Hardcoded token","description":"A token-like value is stored in source.","evidence":"TOKEN=[REDACTED]","source":"agent_reasoning","rule_id":"secret_assignment"}]}'
+```
+
 Evaluate persisted QA gate state:
 
 ```bash
@@ -140,6 +164,7 @@ Available MCP-state tools:
 - `state_lock_acquire`
 - `state_lock_release`
 - `state_run_start`
+- `state_analyze_to_state`
 - `state_append_event`
 - `state_scan_job_create`
 - `state_scan_finding_upsert`
@@ -216,3 +241,16 @@ Agent/MCP DB proof script:
 ```bash
 python3 scripts/agent_mcp_result_probe.py --mcp-json '{"project_result":{"project":{"id":"proj-agent-e2e","target":"workspace-agent-script-e2e","default_branch":"main"}},"memory_result":{"memory":{"latest_ref":"main@agent-e2e","stale_memory_decision":"fresh"}}}'
 ```
+
+Agent-native runtime cycle proof script:
+
+```bash
+PYTHONPATH=src python3 scripts/agent_runtime_cycle_smoke.py
+```
+
+This script seeds a temporary local state database and fixture repository, reads
+project context, persists Agent-supplied finding candidates through
+`analyze_to_state`, runs `state_run_cycle` equivalent runtime logic, and returns
+JSON evidence for selected task takeover, QA review outcomes, report readback
+and lock release. It is designed to run from a cloned checkout and does not use
+Claude, tmux, MCP `run_command`, or another external AI executor.

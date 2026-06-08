@@ -178,6 +178,35 @@ Target replacement:
   results and prior state.
 - agent_execution.py: records the Agent's own action plan, commands requested,
   write approvals, command results and final task result.
+
+### 2.6 Complete Functional Migration Coverage
+
+Complete migration means every functional responsibility of the local
+Code Sentinel workweise is either ported into agent-code-sentinel, explicitly
+adapted to the Workspace Agent runtime, or explicitly classified as not
+required for the Agent target. It does not mean copying the local SaaS project
+1:1.
+
+| Source functional area | Local source evidence | Target responsibility | Current target coverage | Required local gate before Agent packaging |
+|---|---|---|---|---|
+| Project intake and rules | AGENTS.md, README, project metadata, scanner/project services | Agent reads AGENTS.md chain, docs, configs, git truth, selected files and target ref before analysis | project_context.py, preflight.py and analysis_contract.py exist; local E2E now derives the Agent finding target from project_context file_inventory | Keep this covered in every broader local/managed E2E before packaging |
+| Finding analysis | scanner_service.py, code_scanner_orchestrator.py, qg_check_plugin.py, scan_finding.py | Agent itself analyzes files and tool output, then emits structured finding candidates | agent_analysis.py, output_contract.py and analysis_workflow.py exist | E2E must prove Agent-supplied findings are persisted through analyze-to-state and then drive tasks |
+| Scan job lifecycle | scan_execution_service.py, scan_job model, scan_worker.py | Runtime records scan job trigger, status, totals, target ref and plugin/file evidence | scan_jobs.py, file_inventory.py and plugin_executions.py exist for SQLite | Postgres parity and local smoke must prove scan_job, plugin_execution and file_check readback |
+| Finding persistence and dedupe | scan_finding model, scanner repositories | Runtime stores source-compatible findings with signature dedupe and compatibility finding mapping | scan_findings.py and compatibility findings table exist | E2E must prove duplicate signatures do not create duplicate findings or tasks |
+| Finding to task/subtask | task_creation_service.py, task model, subtask model | Runtime groups findings by affected file; one finding creates a standalone task, multiple findings create parent plus ordered subtasks | task_creation.py and task_workflow.py exist | E2E must prove parent progress/status across completed, blocked and failed subtasks |
+| QA gate and validation | qg_workflow_orchestrator.py, qg_test_runner.py, quality_gate models | Runtime turns failed validation into findings/tasks and never marks failed validation complete | validation_runner.py, qa_gates.py and qg_workflow.py exist | E2E must prove failing validation creates finding, task and selected_task_for_agent_takeover |
+| Task takeover | task_processing_worker.py | Agent pulls exactly one runnable task/subtask and owns the analysis/fix decision | cycle.py, improvement_work.py and task_execution.py exist | E2E must prove one selected task, affected-file evidence, QA review outcomes, report and next_autonomous_step |
+| Old external execution boundary | claude_executor.py, Claude session model, session cleanup worker, tmux manager | Do not port executor; replace with Agent-owned decisions plus agent_execution_sessions | execution_sessions.py exists and target src is guarded against Claude/tmux references | Tests must keep target runtime free of ClaudeExecutor, Claude CLI and tmux; sessions must store Agent-native evidence only |
+| Approval and write guard | claude_executor path/branch validation, git_service.py, PR flow | Runtime blocks writes unless explicit per-run approval covers action/path/branch | approvals.py and task_execution.py approval checks exist | E2E must prove unapproved file changes block and approved bounded changes record approval evidence |
+| Audit/report/next step | audit_logger/audit models, worker status/report flows | Every cycle writes audit events, report counts, QA outcomes, risks, rollback and next_autonomous_step | audit_events.py, reports.py and cycle.py exist | E2E must prove report readback includes findings/tasks/qa/session/audit and no false-complete state |
+| MCP shared state | local DB/repositories, queues/workers | MCP exposes controlled state tools without raw SQL or generic shell fallback | SQLite MCP tools and trend-mcp schemas exist | Local trend-mcp smoke must prove all required state tools, including state_run_cycle and analyze-to-state, against the runtime repo |
+| Postgres shared state | local PostgreSQL/SQLAlchemy semantics | Optional local Postgres backend for durable shared state when SQLite is insufficient | Postgres bootstrap currently covers only a subset of MCP tools | Do not claim Postgres parity until all state tools used by local E2E are implemented or explicitly blocked |
+| SaaS/admin layers | tenants, RBAC, billing, Stripe, API keys, users | Not part of Agent runtime unless later proven required for Agent state safety | out of scope for current adapter | Keep out of target runtime; only port minimal project ownership labels needed for state isolation |
+
+The open migration work is therefore not "add Claude-like executor". The open
+work is to make the Agent-owned analysis pipeline produce the same state
+transitions that the local service used to produce through scanners, workers,
+tasks, QA workflows and executor sessions.
 - execution_sessions.py: persists agent-native execution sessions without
   referencing an external AI provider.
 - policy.py: enforces write scope, command scope, approval and budget-like
@@ -524,38 +553,63 @@ The Agent runtime still must implement the actual Code Sentinel work logic:
 
 The migration must not be called complete while these gaps remain:
 
-1. No project improvement mode that goes through findings/tasks/audit in the
-   managed Agent Studio packaging.
-2. Slack/Studio foundation E2E is now proven for cloning the runtime repo,
-   reading MCP DB state and executing an agent-code-sentinel Python script from
-   the cloned checkout. Expanded findings/tasks/session E2E remains open.
-3. Local run-cycle project evidence E2E is implemented and tested, but the
-   managed Agent still needs an Agent Studio/Slack E2E that calls it from the
-   cloned repo against MCP-provided state.
+1. The local runtime and MCP adapter must be the source of truth before any
+   further managed Agent Studio/Slack configuration work. If local runtime or
+   trend-mcp behavior is incomplete, do not try to repair it with prompts.
+2. Project improvement mode must be locally proven end to end through
+   findings/tasks/audit before the managed Agent packaging is updated again.
+3. Slack/Studio evidence remains useful historical proof, but it is not the
+   next implementation driver while local runtime/MCP acceptance is still being
+   expanded.
+4. Local run-cycle project evidence E2E is implemented and tested, but the
+   managed Agent packaging must wait until the local runtime, MCP adapter,
+   state schema, scripts and tests are complete for the current slice.
 
 Contract statement: The current implementation is a bootstrap adapter until AN-1 through AN-8 are implemented and validated.
 
-AN-1 status: implemented locally for analysis-only execution. It does not yet
-persist scan findings, create tasks/subtasks or drive QA-gate takeover; those
-remain AN-2, AN-3 and AN-5 work.
+Local-first reset, 2026-06-08: pause connector-snapshot, Slack and Agent Studio
+work. Continue locally in this order: agent-code-sentinel runtime, trend-mcp MCP
+adapter, local E2E smoke, then managed Agent configuration only after local
+gates pass.
 
-AN-2 status: implemented locally for SQLite schema and repository E2E. It does
-not yet create tasks/subtasks, normalize QA-gate failures into tasks or expose
-the richer finding state through MCP; those remain AN-3, AN-5 and AN-8 work.
+Agent-owned analysis reset, 2026-06-08: the local Code Sentinel workweise is
+ported as a state machine, not copied as its old executor stack. ScanWorker,
+ScanExecutionService, QGWorkflowOrchestrator, TaskCreationService and
+TaskProcessingWorker define the functional flow. ClaudeExecutor, Claude
+sessions and tmux define the old execution boundary and must remain source
+evidence only. In the target runtime, the Workspace Agent itself reads files,
+analyzes evidence, creates structured findings, selects tasks/subtasks and
+decides bounded fixes. agent-code-sentinel scripts persist and validate the
+Agent's structured decisions; they must not delegate analysis or execution to
+another AI process.
 
-AN-3 status: implemented locally for finding-to-task/subtask creation and
-status/progress updates. It does not yet convert failing QA gates into findings
-and selected_task_for_agent_takeover; that remains AN-5 work.
+AN-1 status: implemented locally for Agent-owned analysis contracts and
+normalization. Local E2E evidence now proves project_context output selects the
+Agent-owned finding target and feeds the full analyze-to-state, finding, task,
+state_run_cycle and report path. Remaining completeness gate: broaden this
+through managed Agent packaging only after the local runtime and MCP adapter are
+complete.
+
+AN-2 status: implemented locally for SQLite source-compatible scan jobs,
+scan findings, plugin executions, file checks and compatibility findings.
+Remaining completeness gate: prove duplicate signature behavior and Postgres or
+explicit Postgres-blocker parity for every state tool used by the local E2E.
+
+AN-3 status: implemented locally for finding-to-task/subtask creation,
+dedupe, parent tasks, ordered subtasks and parent progress. Remaining
+completeness gate: prove task/subtask status transitions across successful,
+blocked and failed-validation cycles.
 
 AN-5 status: implemented locally for validation evidence normalization,
 QA-gate persistence, failed-gate findings/tasks and
-selected_task_for_agent_takeover. It does not yet persist full agent execution
-sessions or drive the autonomous cycle; those remain AN-6 and AN-7 work.
+selected_task_for_agent_takeover. Remaining completeness gate: prove these
+QA-gate outcomes are derived from actual repository/file evidence in the
+autonomous cycle, not only from isolated fixture payloads.
 
-AN-6 status: implemented locally for agent-native execution session persistence
-and validation-session integration. It does not yet drive the autonomous cycle
-or expose sessions through MCP shared-state tools; those remain AN-7 and AN-8
-work.
+AN-6 status: implemented locally for agent-native execution session persistence,
+validation-session integration and MCP session readback. Remaining completeness
+gate: prove every Agent-owned analysis/fix/validation phase in the local E2E
+records sanitized session evidence without Claude/tmux/external executor fields.
 
 AN-7 status: implemented locally for one-step autonomous cycle orchestration,
 lock handling, write-approval blocking, validation-failed task takeover,
@@ -567,11 +621,12 @@ managed Workspace Agent has performed a real bounded repository edit end to end.
 
 AN-8 status: implemented locally for SQLite-backed MCP-state tools covering
 scan jobs, findings, tasks, QA gate processing, execution sessions, reports,
-audit events and PR state. AN-9 foundation E2E now proves the managed
-Agent Studio/Slack agent can consume MCP DB state for project/memory plus a
-repo-based script probe. AN-9 expanded-state E2E now proves the managed
-Workspace Agent can use the direct MCP state tools to create/read a scan job,
-finding, task, execution session, report and selected task evidence.
+audit events and PR state. Remaining completeness gate: prove the same surface
+through local trend-mcp smoke against the runtime repo for the full local
+run-cycle path, and keep Postgres parity honest as implemented or blocked.
+Historical AN-9 foundation and expanded-state E2E runs prove that a managed
+Workspace Agent can consume some MCP DB state, but they are not the next driver
+while local-first completion is active.
 
 AN-9 status: foundation and expanded-state E2E passed through the managed
 Workspace Agent. Foundation Slack harness run
@@ -603,10 +658,19 @@ selected_task_for_agent_takeover present and lock_released `true`.
 
 The next implementation work must proceed in this order:
 
-1. Project improvement mode: use the proven MCP state tools plus the
-   agent-code-sentinel runtime repo to let the managed Agent select a real
-   pending task, analyze files, propose/execute an approved bounded change,
-   validate, update task state and audit the result.
+1. Local runtime/MCP completion gate: make the agent-code-sentinel runtime and
+   trend-mcp adapter prove project-improvement run-cycle behavior locally,
+   including state_run_cycle, analysis-derived QA review outcomes, task
+   takeover, validation/session evidence, lock handling and report readback.
+2. Local repository script packaging gate: keep all scripts, schema, tests and
+   usage docs in the agent-code-sentinel repository so the managed Agent can
+   clone and run them later without Studio-uploaded runtime files.
+3. Agent-owned analysis pipeline gate: prove locally that repository/file
+   analysis supplied by the Agent creates scan findings, groups them into
+   tasks/subtasks, runs QA gate classification and returns a selected
+   task_for_agent_takeover without any external AI executor.
+4. Managed Agent packaging gate: only after the local gates pass, reconnect or
+   refresh the unpublished MCP connector and rerun Slack/Studio E2E.
 
 Current local progress:
 
@@ -714,13 +778,111 @@ Current local progress:
   `state_report_get`, but neither direct `state_run_cycle` nor wrapper
   `code_sentinel_state` was callable in the Slack tool snapshot. No write
   actions were performed and no E2E success was claimed.
-- Next open implementation slice: refresh/reconnect the unpublished MCPc
-  connector in a way that updates the Slack Agent tool snapshot, then rerun
-  `workflows/code-sentinel-run-cycle-review-mcp-e2e.json`. If the direct tool
-  remains unavailable, rerun
-  `workflows/code-sentinel-run-cycle-review-wrapper-e2e.json` only after
-  `code_sentinel_state` is callable again. Require pass evidence before marking
-  the managed MCP/Slack E2E complete.
+- Previous next slice superseded: refreshing/reconnecting unpublished MCPc is
+  paused. The local-only state_run_cycle task-takeover path is now proven by
+  `PYTHONPATH=src python3 -m pytest tests/test_mcp_state.py::test_local_agent_analysis_to_cycle_e2e tests/test_mcp_state.py::test_mcp_state_analyze_to_state_records_agent_supplied_findings tests/test_project_context.py -q`
+  with `5 passed`, full target runtime validation with `66 passed`, and local
+  trend-mcp smoke
+  `CODE_SENTINEL_RUNTIME_ROOT=/home/pika/projekte/agent-code-sentinel npm run smoke:code-sentinel-state`
+  with `CODE_SENTINEL_MCP_STATE_SMOKE_PASS`. This proves tool listing,
+  state_analyze_to_state, state_run_cycle, selected_task_for_agent_takeover,
+  report readback, lock release, execution session count, and QA review
+  outcomes with `missing_review_outcomes=[]`.
+- Next open implementation slice: continue local-first with repository script
+  packaging and the next still-open coverage gate. Do not return to direct
+  run-cycle review MCP/Slack E2E or wrapper fallback until the local runtime,
+  scripts, schema and tests for that slice are complete.
+- Repository script packaging gate is now covered for the local runtime cycle:
+  `scripts/agent_runtime_cycle_smoke.py` runs from the cloned repository with
+  `PYTHONPATH=src python3 scripts/agent_runtime_cycle_smoke.py`, seeds a
+  temporary local state database and fixture repository, consumes
+  project_context output, persists Agent-owned finding candidates through
+  analyze_to_state, runs the autonomous cycle logic, and returns JSON evidence
+  for selected_task_for_agent_takeover, QA review outcomes, report readback and
+  lock release. `tests/test_repo_scripts.py` proves the script execution
+  contract with `script_execution_mode=python_executed_from_cloned_repo` and
+  `external_ai_executor_used=false`.
+- Next open implementation slice: continue to the next still-open coverage
+  gate in section 2.6, starting with finding persistence/task dedupe and then
+  Postgres parity or explicit Postgres blocker evidence for every local E2E
+  state tool.
+- Finding persistence/task dedupe gate is now locally covered for the
+  Agent-facing MCP-state path: `tests/test_mcp_state.py::test_mcp_state_analyze_to_state_dedupes_findings_and_tasks`
+  submits the same Agent finding twice through `state_analyze_to_state` and
+  proves the second call returns `created=false`, creates zero additional
+  tasks, and leaves report counts at one finding and one task.
+- Next open implementation slice: Postgres parity remains intentionally open.
+  Either implement every state tool used by the local E2E for the Postgres
+  backend, or add explicit blocker evidence per tool without claiming parity.
+- Postgres parity is still not implemented, but unsupported local E2E state
+  tools now have explicit blocker evidence. `tests/test_mcp_state.py::test_postgres_backend_blocks_unsupported_local_e2e_state_tools`
+  proves `state_memory_get`, `state_analyze_to_state`, `state_run_cycle` and
+  `state_report_get` return controlled `blocked` payloads with
+  `state_backend=postgres` instead of pretending execution succeeded.
+- Next open implementation slice: continue section 2.6 with the next uncovered
+  runtime responsibility after dedupe/Postgres-blocker evidence, without
+  claiming full Postgres parity.
+- AN-3 parent/subtask status coverage is now locally proven for completed,
+  blocked and failed-validation transitions. `tests/test_task_creation.py::test_task_status_updates_parent_progress`
+  proves completed subtasks complete the parent, and
+  `tests/test_task_creation.py::test_task_status_updates_parent_progress_for_blocked_and_failed_subtasks`
+  proves `blocked_approval_required` derives parent status `blocked` and
+  `failed_validation` derives parent status `failed_validation` with accurate
+  progress JSON.
+- Next open implementation slice: continue section 2.6 with AN-4 ScanJob and
+  Plugin Execution coverage. The local gate must prove scan_job status
+  lifecycle, plugin_execution records, file_check readback and static/blocker
+  behavior from an executable fixture path.
+- AN-4 ScanJob and Plugin Execution coverage is now locally proven for both
+  pass and blocker paths. `tests/test_autonomous_cycle.py::test_run_cycle_collects_project_scan_file_plugin_and_audit_evidence`
+  proves run-cycle persists a completed scan_job, project_context and
+  file_inventory plugin_executions, file_checks, session and audit evidence.
+  `tests/test_autonomous_cycle.py::test_run_cycle_blocks_when_project_evidence_collection_fails`
+  proves a missing project path returns `blocking`, persists a failed scan_job,
+  records blocking plugin_executions, creates no file_checks, releases the lock
+  and does not report false success.
+- Next open implementation slice: continue section 2.6 with the next uncovered
+  runtime responsibility after AN-4, prioritizing any remaining AN-5 QA-gate
+  failure-to-finding/task takeover gaps before broader managed-agent work.
+- AN-5 QA-gate failure-to-task takeover is already locally covered by
+  `tests/test_qg_workflow.py::test_qg_workflow_cli_e2e_creates_findings_tasks_and_selected_takeover`,
+  `tests/test_qg_workflow.py::test_qg_workflow_passed_validation_records_exact_command_and_exit_code`
+  and `tests/test_qg_workflow.py::test_qg_workflow_blocks_unapproved_validation_command`.
+  Together they prove failed validation creates findings/tasks and selected
+  task takeover, passed validation records exact command and exit_code, and
+  disallowed validation commands return controlled blockers.
+- Next open implementation slice: continue section 2.6 with AN-6 Agent
+  Execution Sessions, especially sanitized session evidence and the guard that
+  target runtime code stays free of ClaudeExecutor, Claude CLI and tmux paths.
+- AN-6 Agent Execution Sessions are locally covered by
+  `tests/test_execution_sessions.py::test_execution_session_cli_e2e_stores_sanitized_agent_native_record`,
+  which proves sanitized command/output/attempt_log persistence, and by
+  `tests/test_docs_contract.py::test_target_runtime_has_no_external_ai_executor_code`,
+  which guards `src/code_sentinel_agent` against ClaudeExecutor, Claude CLI and
+  tmux target-runtime paths.
+- Next open implementation slice: continue section 2.6 with AN-7 Autonomous
+  Cycle Orchestrator coverage, verifying the existing local cycle tests against
+  the exact one-task takeover, lock, approval, validation and report gates.
+- AN-7 Autonomous Cycle Orchestrator coverage is now locally proven across
+  resume, task takeover, project evidence, lock contention, approval blocking,
+  validation failure, approved task result completion and failed-validation
+  retry paths. `tests/test_autonomous_cycle.py::test_run_cycle_blocks_when_project_lock_is_held_by_another_writer`
+  specifically proves a second writer is blocked by an active project lock
+  before creating the contender run or mutating state.
+- Next open implementation slice: continue section 2.6 with AN-8 MCP State
+  Expansion, verifying direct MCP-state tools cover the migrated state model
+  and never expose raw SQL or generic command execution.
+- AN-8 MCP State Expansion is locally covered for the migrated state model by
+  `tests/test_mcp_state.py::test_mcp_state_expanded_tools_persist_findings_tasks_qa_execution_audit_and_pr`,
+  which persists and reads scan jobs, findings, tasks, QA gate processing,
+  execution sessions, audit events and PR state through allowlisted MCP-state
+  tools. `tests/test_mcp_state.py::test_mcp_state_blocks_raw_sql_and_generic_command_tools`
+  proves `raw_sql`, `sql_query` and `run_command` are blocked as unknown
+  MCP-state tools and are absent from the allowlist.
+- Next open implementation slice: AN-9 Agent Studio Packaging remains paused
+  until the local runtime repo state is committed/pushed and the unpublished
+  MCP connector can be refreshed without publishing. Do not claim managed
+  Agent completion from local AN-8 evidence.
 
 Do not jump to Agent Studio packaging or MCP expansion before the local schema,
 analysis, findings and task pipeline exist.

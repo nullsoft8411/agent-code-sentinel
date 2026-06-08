@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from runtime_cli_helpers import parse_json, run_cli
@@ -261,6 +262,63 @@ def test_run_cycle_selects_existing_task_and_releases_lock(tmp_path: Path) -> No
     assert task_status == "assigned_to_agent"
 
 
+def test_run_cycle_blocks_when_project_lock_is_held_by_another_writer(tmp_path: Path) -> None:
+    db_path = tmp_path / "runtime.db"
+    seed_cycle_state(db_path)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    expires_at = now + timedelta(minutes=15)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            insert into state_locks(id, project_id, run_id, owner, status, acquired_at, expires_at)
+            values (?, ?, ?, ?, 'active', ?, ?)
+            """,
+            (
+                "lock-existing",
+                "proj-devopshub",
+                "run-other",
+                "agent-other",
+                now.isoformat().replace("+00:00", "Z"),
+                expires_at.isoformat().replace("+00:00", "Z"),
+            ),
+        )
+        conn.commit()
+
+    result = run_cli(
+        "run-cycle",
+        "--db",
+        str(db_path),
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-lock-contender",
+                "latest_ref": "main@lock-contender",
+                "owner": "agent-contender",
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 2
+    assert payload["status"] == "blocked"
+    assert payload["blocker_code"] == "STATE_LOCK_HELD"
+    assert payload["active_lock"]["run_id"] == "run-other"
+    assert payload["active_lock"]["owner"] == "agent-other"
+
+    with sqlite3.connect(db_path) as conn:
+        contender_run = conn.execute(
+            "select count(*) from runs where id = ?",
+            ("run-lock-contender",),
+        ).fetchone()[0]
+        active_locks = conn.execute(
+            "select count(*) from state_locks where status = 'active' and released_at is null"
+        ).fetchone()[0]
+
+    assert contender_run == 0
+    assert active_locks == 1
+
+
 def test_run_cycle_collects_project_scan_file_plugin_and_audit_evidence(tmp_path: Path) -> None:
     db_path = tmp_path / "runtime.db"
     project_path = create_cycle_project(tmp_path)
@@ -323,6 +381,64 @@ def test_run_cycle_collects_project_scan_file_plugin_and_audit_evidence(tmp_path
     assert scan_row == ("completed", file_checks)
     assert plugin_executions == 2
     assert audit_count == 1
+    assert active_locks == 0
+
+
+def test_run_cycle_blocks_when_project_evidence_collection_fails(tmp_path: Path) -> None:
+    db_path = tmp_path / "runtime.db"
+    seed_cycle_state(db_path)
+    missing_project = tmp_path / "missing-project"
+
+    result = run_cli(
+        "run-cycle",
+        "--db",
+        str(db_path),
+        "--payload-json",
+        json.dumps(
+            {
+                "project_id": "proj-devopshub",
+                "run_id": "run-project-evidence-blocked",
+                "latest_ref": "main@project-evidence-blocked",
+                "project_path": str(missing_project),
+            }
+        ),
+    )
+    payload = parse_json(result)
+
+    assert result.returncode == 2
+    assert payload["status"] == "blocking"
+    assert payload["blocker_code"] == "PROJECT_PATH_MISSING"
+    assert payload["project_evidence"]["status"] == "blocking"
+    assert payload["project_evidence"]["scan_job"]["status"] == "failed"
+    assert payload["project_evidence"]["file_checks_count"] == 0
+    assert payload["cycle_session"]["output"]["project_evidence_status"] == "blocking"
+    assert payload["audit_event"]["payload"]["project_evidence_status"] == "blocking"
+    assert payload["audit_event"]["payload"]["file_checks_count"] == 0
+    assert payload["lock_released"] is True
+
+    with sqlite3.connect(db_path) as conn:
+        scan_row = conn.execute(
+            "select status, error_message from scan_jobs where run_id = ?",
+            ("run-project-evidence-blocked",),
+        ).fetchone()
+        plugin_statuses = [
+            row[0]
+            for row in conn.execute(
+                "select status from plugin_executions where run_id = ? order by plugin_name",
+                ("run-project-evidence-blocked",),
+            ).fetchall()
+        ]
+        file_checks = conn.execute(
+            "select count(*) from file_checks where run_id = ?",
+            ("run-project-evidence-blocked",),
+        ).fetchone()[0]
+        active_locks = conn.execute(
+            "select count(*) from state_locks where status = 'active' and released_at is null"
+        ).fetchone()[0]
+
+    assert scan_row == ("failed", "PROJECT_PATH_MISSING")
+    assert plugin_statuses == ["blocking", "blocking"]
+    assert file_checks == 0
     assert active_locks == 0
 
 

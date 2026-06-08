@@ -248,7 +248,7 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
                 script_name="run-cycle",
                 execution_method="agent_runtime_cli",
                 command="cs-agent run-cycle",
-                status=_cycle_status(validation_result, task_execution_result),
+                status=_cycle_status(project_evidence, validation_result, task_execution_result),
                 output={
                     "latest_ref": latest_ref,
                     "selected_task_id": selected_task["id"] if selected_task else None,
@@ -281,7 +281,7 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
                 completed_at=_utc_now(),
             ),
         )
-        status = _cycle_status(validation_result, task_execution_result)
+        status = _cycle_status(project_evidence, validation_result, task_execution_result)
         audit_event = append_audit_event(
             str(db_path),
             AuditEventInput(
@@ -315,6 +315,7 @@ def run_autonomous_cycle(db_path: str | Path, payload: dict[str, Any]) -> tuple[
             return report_code, report_payload
         return (2 if status == "blocking" else 0), {
             "status": status,
+            "blocker_code": project_evidence.get("blocker_code") if status == "blocking" else None,
             "project_id": project_id,
             "run_id": run_id,
             "latest_ref": latest_ref,
@@ -352,9 +353,12 @@ def row_to_dict(row: sqlite3.Row | None) -> dict | None:
 
 
 def _cycle_status(
+    project_evidence: dict[str, Any],
     validation_result: dict[str, Any] | None,
     task_execution_result: dict[str, Any] | None,
 ) -> str:
+    if project_evidence.get("status") == "blocking":
+        return "blocking"
     if validation_result and validation_result.get("status") == "blocking":
         return "blocking"
     if task_execution_result and task_execution_result.get("status") == "blocking":

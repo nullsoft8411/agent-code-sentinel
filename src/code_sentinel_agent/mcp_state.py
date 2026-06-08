@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .approvals import approval_check, record_approval
+from .analysis_workflow import analyze_to_state
 from .audit_events import AuditEventInput, append_audit_event, list_audit_events
 from .cycle import next_step_from_memory, row_to_dict, run_autonomous_cycle
 from .db import connect, initialize_database
@@ -43,6 +44,7 @@ ALLOWED_SQLITE_TOOLS = [
     "state_lock_release",
     "state_run_start",
     "state_run_cycle",
+    "state_analyze_to_state",
     "state_append_event",
     "state_scan_job_create",
     "state_scan_finding_upsert",
@@ -83,6 +85,8 @@ def call_tool(db_path: str | Path, tool_name: str, payload: dict[str, Any] | Non
         )
     if tool_name == "state_run_cycle":
         return state_run_cycle(db_path, payload)
+    if tool_name == "state_analyze_to_state":
+        return analyze_to_state(db_path, payload)
     if tool_name == "state_lock_acquire":
         return state_lock_acquire(
             db_path,
