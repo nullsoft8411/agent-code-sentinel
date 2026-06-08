@@ -206,10 +206,21 @@ the MCP-state tables and documents the intended project-level transaction lock:
 take that lock in the same transaction before creating runs, appending events,
 or updating shared project state.
 
-The current `psql` backend implements `state_project_get`,
-`state_lock_acquire`, `state_lock_release`, and `state_run_start`; tools
-outside that set still return a controlled `blocked` response until
-implemented.
+The current `psql` backend implements the local-first runtime state path used
+by the Agent migration work: project/memory/report reads, lock acquire/release,
+run start, analysis-to-state, run-cycle, approval recording and direct
+task-execution-result ingestion. Remaining gaps must stay specific to a tool or
+input contract; do not claim full Postgres parity from SQL-contract tests alone.
+
+Live Postgres approval plus direct task-execution-result E2E:
+
+```bash
+CODE_SENTINEL_POSTGRES_DSN=postgresql://user:password@host:5432/db \
+PYTHONPATH=src python3 scripts/postgres_task_execution_e2e.py
+```
+
+Without `CODE_SENTINEL_POSTGRES_DSN`, the script exits `2` with a controlled
+`POSTGRES_DSN_MISSING` blocker instead of faking live DB evidence.
 
 ## Output Rules
 

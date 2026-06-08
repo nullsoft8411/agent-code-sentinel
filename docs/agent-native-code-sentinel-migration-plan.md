@@ -972,11 +972,17 @@ Current local progress:
   `tests/test_mcp_state.py::test_postgres_task_execution_result_builds_direct_ingestion_query`,
   and
   `tests/test_mcp_state.py::test_postgres_call_tool_dispatches_task_execution_result`.
+  The live E2E harness is now present as
+  `scripts/postgres_task_execution_e2e.py`; it seeds minimal project/run/task
+  state, records approval through `state_approval_record`, records the direct
+  task result through `state_task_execution_result`, reads report counts back,
+  and exits with a controlled `POSTGRES_DSN_MISSING` blocker when no
+  `CODE_SENTINEL_POSTGRES_DSN` is supplied.
 - Next open implementation slice: continue section 2.6 with the next uncovered
-  runtime responsibility, currently live Postgres E2E for approval recording
-  plus direct task-execution-result ingestion once a local DB is available,
-  then continue any remaining specific Postgres tool parity gaps without
-  claiming full parity from SQL-contract tests alone.
+  runtime responsibility, currently execute
+  `scripts/postgres_task_execution_e2e.py` against a reachable Postgres DSN
+  and only then claim live Postgres approval plus direct task-execution-result
+  E2E readiness; until then, keep live Postgres E2E explicitly blocked.
 - AN-3 parent/subtask status coverage is now locally proven for completed,
   blocked and failed-validation transitions. `tests/test_task_creation.py::test_task_status_updates_parent_progress`
   proves completed subtasks complete the parent, and

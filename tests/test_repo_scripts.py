@@ -33,3 +33,24 @@ def test_agent_runtime_cycle_smoke_script_runs_from_repo_checkout() -> None:
     assert payload["report"]["missing_review_outcomes"] == []
     assert all(payload["checks"].values())
     assert payload["write_actions"] == []
+
+
+def test_postgres_task_execution_e2e_blocks_without_dsn() -> None:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(SRC_ROOT)
+    env.pop("CODE_SENTINEL_POSTGRES_DSN", None)
+    result = subprocess.run(
+        [sys.executable, "scripts/postgres_task_execution_e2e.py"],
+        cwd=RUNTIME_ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+
+    assert result.returncode == 2, result.stderr
+    assert payload["status"] == "blocked"
+    assert payload["blocker_code"] == "POSTGRES_DSN_MISSING"
+    assert payload["script_execution_mode"] == "python_executed_from_cloned_repo"
+    assert payload["live_postgres_e2e"] is False
