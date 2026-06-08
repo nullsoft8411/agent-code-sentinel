@@ -968,12 +968,15 @@ Current local progress:
   and
   `tests/test_mcp_state.py::test_postgres_run_cycle_persists_task_execution_result_query`,
   plus
-  `tests/test_mcp_state.py::test_postgres_run_cycle_records_approved_task_execution_file_changes_query`.
+  `tests/test_mcp_state.py::test_postgres_run_cycle_records_approved_task_execution_file_changes_query`,
+  `tests/test_mcp_state.py::test_postgres_task_execution_result_builds_direct_ingestion_query`,
+  and
+  `tests/test_mcp_state.py::test_postgres_call_tool_dispatches_task_execution_result`.
 - Next open implementation slice: continue section 2.6 with the next uncovered
-  runtime responsibility, currently direct Postgres MCP tool parity for
-  task-execution-result ingestion (`state_task_execution_result`) without
-  routing everything through `state_run_cycle`, then live Postgres E2E once a
-  local DB is available.
+  runtime responsibility, currently live Postgres E2E for approval recording
+  plus direct task-execution-result ingestion once a local DB is available,
+  then continue any remaining specific Postgres tool parity gaps without
+  claiming full parity from SQL-contract tests alone.
 - AN-3 parent/subtask status coverage is now locally proven for completed,
   blocked and failed-validation transitions. `tests/test_task_creation.py::test_task_status_updates_parent_progress`
   proves completed subtasks complete the parent, and

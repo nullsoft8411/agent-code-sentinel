@@ -25,6 +25,7 @@ from .postgres_state import (
     postgres_report_get,
     postgres_run_cycle,
     postgres_run_start,
+    postgres_task_execution_result,
 )
 from .qg_workflow import process_quality_gate_payload
 from .reports import report
@@ -781,6 +782,11 @@ def call_postgres_tool(dsn: str, tool_name: str, payload: dict[str, Any]) -> tup
         if code != 0:
             return code, init_payload
         return postgres_approval_record(dsn, unwrap_tool_payload(payload))
+    if tool_name == "state_task_execution_result":
+        code, init_payload = initialize_postgres_database(dsn)
+        if code != 0:
+            return code, init_payload
+        return postgres_task_execution_result(dsn, unwrap_tool_payload(payload))
     if tool_name == "state_analyze_to_state":
         code, init_payload = initialize_postgres_database(dsn)
         if code != 0:

@@ -326,6 +326,393 @@ returning json_build_object(
     )
 
 
+def postgres_task_execution_result(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
+    try:
+        project_id = required_postgres_payload_value(payload, "project_id")
+        run_id = required_postgres_payload_value(payload, "run_id")
+    except ValueError as exc:
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "INVALID_TASK_EXECUTION_RESULT",
+            "state_backend": "postgres",
+            "reason": str(exc),
+        }
+
+    write_request_code, write_request_state = postgres_write_request_state(payload, run_id=run_id)
+    if write_request_code != 0:
+        return write_request_code, write_request_state
+    task_execution_code, task_execution_state = postgres_task_execution_state(
+        payload,
+        project_id=project_id,
+        run_id=run_id,
+        write_request_state=write_request_state,
+    )
+    if task_execution_code != 0:
+        return task_execution_code, task_execution_state
+
+    task_execution_result = task_execution_state.get("task_execution_result")
+    if not isinstance(task_execution_result, dict):
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "TASK_EXECUTION_RESULT_REQUIRED",
+            "state_backend": "postgres",
+            "next_action": "provide task_execution_result with task_id and validation_result",
+        }
+    validation_state = task_execution_state["validation_state"]
+    validation_result = validation_state["validation_result"]
+    task_execution_files_json = json.dumps(task_execution_state.get("files_modified") or [], sort_keys=True)
+    task_execution_result_json = json.dumps(task_execution_result, sort_keys=True)
+    validation_result_json = json.dumps(validation_result, sort_keys=True)
+    validation_findings_json = json.dumps(validation_state.get("findings") or [], sort_keys=True)
+    write_request_json = json.dumps(write_request_state.get("write_request"), sort_keys=True)
+
+    sql = """
+begin;
+with run_context as (
+  select runs.id, runs.project_id, projects.target
+  from runs
+  join projects on projects.id = runs.project_id
+  where runs.id = :run_id
+),
+validation_attempt_insert as (
+  insert into validation_attempts(id, run_id, command, cwd, exit_code, stdout_summary, stderr_summary, status)
+  select
+    :validation_attempt_id,
+    :run_id,
+    :validation_command,
+    nullif(:validation_cwd, ''),
+    (:validation_exit_code)::integer,
+    :validation_stdout_summary,
+    :validation_stderr_summary,
+    :validation_status
+  where exists (select 1 from run_context where project_id = :project_id)
+  on conflict (id) do update set
+    cwd = excluded.cwd,
+    exit_code = excluded.exit_code,
+    stdout_summary = excluded.stdout_summary,
+    stderr_summary = excluded.stderr_summary,
+    status = excluded.status
+  returning id
+),
+qa_gate_result_insert as (
+  insert into qa_gate_results(id, run_id, gate, status, evidence, why_it_matters, next_action)
+  select
+    :qa_gate_id,
+    :run_id,
+    :validation_gate,
+    :validation_status,
+    :validation_evidence,
+    'failed validation must become tracked findings/tasks before autonomous completion',
+    'create or continue the selected task for the failing gate'
+  where exists (select 1 from validation_attempt_insert)
+  on conflict (run_id, gate) do update set
+    status = excluded.status,
+    evidence = excluded.evidence,
+    why_it_matters = excluded.why_it_matters,
+    next_action = excluded.next_action
+  returning id
+),
+validation_finding_input as (
+  select value
+  from jsonb_array_elements(:validation_findings_json::jsonb) as value
+),
+validation_finding_insert as (
+  insert into findings(id, run_id, project_id, signature, category, severity, file_path, line_number, title, details, status)
+  select
+    value->>'compatibility_finding_id',
+    :run_id,
+    :project_id,
+    value->>'signature',
+    'validation',
+    value->>'severity',
+    nullif(value->>'file_path', ''),
+    nullif(value->>'line_number', '')::integer,
+    value->>'title',
+    value->>'message',
+    'open'
+  from validation_finding_input
+  where exists (select 1 from validation_attempt_insert)
+  on conflict (project_id, signature) do nothing
+  returning id, signature
+),
+validation_scan_finding_insert as (
+  insert into scan_findings(
+    id, scan_job_id, run_id, project_id, compatibility_finding_id,
+    scanner_name, rule_id, file_path, line_number, severity, status,
+    title, message, evidence, signature, metadata_json
+  )
+  select
+    value->>'id',
+    null,
+    :run_id,
+    :project_id,
+    value->>'compatibility_finding_id',
+    'validation_runner',
+    value->>'rule_id',
+    nullif(value->>'file_path', ''),
+    nullif(value->>'line_number', '')::integer,
+    value->>'severity',
+    'open',
+    value->>'title',
+    value->>'message',
+    value->>'evidence',
+    value->>'signature',
+    jsonb_build_object('gate', :validation_gate, 'command', :validation_command)
+  from validation_finding_input
+  where exists (select 1 from validation_attempt_insert)
+  on conflict (project_id, signature) do nothing
+  returning id, signature
+),
+validation_task_insert as (
+  insert into tasks(
+    id, finding_id, run_id, project_id, status, priority, title,
+    affected_file, task_type, task_signature, progress_json
+  )
+  select
+    value->>'task_id',
+    findings.id,
+    :run_id,
+    :project_id,
+    'pending',
+    (value->>'task_priority')::integer,
+    'Fix ' || (value->>'title'),
+    nullif(value->>'file_path', ''),
+    'standalone',
+    value->>'task_signature',
+    '{}'::jsonb
+  from validation_finding_input
+  join findings on findings.project_id = :project_id and findings.signature = value->>'signature'
+  where exists (select 1 from validation_attempt_insert)
+  on conflict (project_id, task_signature) do nothing
+  returning id
+),
+approval_candidate as (
+  select *
+  from approvals
+  where run_id = :run_id
+    and target_project = :write_request_target_project
+    and (branch = :write_request_branch or branch is null)
+    and consumed_at is null
+    and :write_request_present = 'true'
+  order by created_at desc
+  limit 1
+),
+approval_valid as (
+  select *
+  from approval_candidate
+  where expires_at is null or expires_at > now()
+),
+approval_match as (
+  select *
+  from approval_valid
+  where allowed_actions_json ? :write_request_action
+    and allowed_paths_json ? :write_request_path
+    and not exists (
+      select 1
+      from jsonb_array_elements_text(:task_execution_files_json::jsonb) as modified(path)
+      where not (allowed_paths_json ? modified.path)
+    )
+),
+task_execution_task_update as (
+  update tasks
+  set
+    status = :task_execution_task_status,
+    attempt_count = attempt_count + (:task_execution_increment_attempt)::integer,
+    updated_at = now()
+  where id = :task_execution_task_id
+    and project_id = :project_id
+    and run_id = :run_id
+    and exists (select 1 from validation_attempt_insert)
+    and (:task_execution_approval_required <> 'true' or exists (select 1 from approval_match))
+  returning *
+),
+task_execution_session_insert as (
+  insert into agent_execution_sessions(
+    id, run_id, project_id, task_id, session_type, script_name,
+    execution_method, command, status, output_json, error_summary,
+    files_modified_json, attempt_log_json, completed_at
+  )
+  select
+    :task_execution_session_id,
+    :run_id,
+    :project_id,
+    :task_execution_task_id,
+    'task_execution',
+    :task_execution_script_name,
+    :task_execution_method,
+    :validation_command,
+    :task_execution_status,
+    jsonb_build_object(
+      'task_id', :task_execution_task_id,
+      'validation', :validation_result_json::jsonb,
+      'files_modified', :task_execution_files_json::jsonb,
+      'approval_enforced', (:task_execution_approval_required = 'true'),
+      'approval', (select jsonb_build_object(
+        'id', id,
+        'run_id', run_id,
+        'target_project', target_project,
+        'branch', branch,
+        'allowed_paths', allowed_paths_json,
+        'allowed_actions', allowed_actions_json,
+        'approved_by', approved_by,
+        'approval_evidence', approval_evidence,
+        'expires_at', expires_at
+      ) from approval_match)
+    ),
+    nullif(:task_execution_error_summary, ''),
+    :task_execution_files_json::jsonb,
+    jsonb_build_array(
+      jsonb_build_object('step', 'task_loaded', 'status', 'passed'),
+      jsonb_build_object('step', 'write_approval', 'status', case when :task_execution_approval_required = 'true' then 'passed' else 'not_required' end),
+      jsonb_build_object('step', 'validation_result', 'status', :task_execution_status),
+      jsonb_build_object('step', 'task_status_update', 'status', :task_execution_task_status)
+    ),
+    now()
+  where exists (select 1 from task_execution_task_update)
+  on conflict (id) do update set
+    task_id = excluded.task_id,
+    status = excluded.status,
+    output_json = excluded.output_json,
+    error_summary = excluded.error_summary,
+    files_modified_json = excluded.files_modified_json,
+    attempt_log_json = excluded.attempt_log_json,
+    completed_at = excluded.completed_at,
+    updated_at = now()
+  returning id, task_id, status, output_json, files_modified_json, attempt_log_json
+)
+select coalesce(
+  (select json_build_object(
+    'status', :task_execution_status,
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'run_id', :run_id,
+    'task_execution_result', :task_execution_result_json::jsonb,
+    'write_request', :write_request_json::jsonb,
+    'task', json_build_object(
+      'id', id,
+      'finding_id', finding_id,
+      'run_id', run_id,
+      'project_id', project_id,
+      'status', status,
+      'priority', priority,
+      'title', title,
+      'affected_file', affected_file,
+      'task_type', task_type,
+      'task_signature', task_signature,
+      'attempt_count', attempt_count,
+      'progress', progress_json
+    ),
+    'validation_result', :validation_result_json::jsonb,
+    'execution_session', (select json_build_object('id', id, 'task_id', task_id, 'status', status, 'output_json', output_json, 'files_modified_json', files_modified_json, 'attempt_log_json', attempt_log_json) from task_execution_session_insert),
+    'files_modified', :task_execution_files_json::jsonb,
+    'approval_enforced', (:task_execution_approval_required = 'true'),
+    'next_action', case when :task_execution_status = 'blocking' then 'continue task remediation with a fresh bounded fix plan' else 'refresh report and continue with the next runnable task' end
+  ) from task_execution_task_update),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'RUN_NOT_FOUND',
+    'state_backend', 'postgres',
+    'run_id', :run_id,
+    'reason', 'initialize the run before recording task execution'
+  )
+  where not exists (select 1 from run_context)),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'RUN_PROJECT_MISMATCH',
+    'state_backend', 'postgres',
+    'run_project_id', project_id,
+    'payload_project_id', :project_id
+  )
+  from run_context
+  where project_id <> :project_id),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'WRITE_APPROVAL_MISSING',
+    'state_backend', 'postgres',
+    'write_request', :write_request_json::jsonb,
+    'files_modified', :task_execution_files_json::jsonb,
+    'next_action', 'provide explicit per-run approval for the exact project, branch, path, and action'
+  )
+  where :task_execution_approval_required = 'true'
+    and not exists (select 1 from approval_candidate)),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'WRITE_APPROVAL_EXPIRED',
+    'state_backend', 'postgres',
+    'write_request', :write_request_json::jsonb,
+    'files_modified', :task_execution_files_json::jsonb,
+    'next_action', 'provide a fresh explicit per-run approval for the exact files'
+  )
+  where :task_execution_approval_required = 'true'
+    and exists (select 1 from approval_candidate)
+    and not exists (select 1 from approval_valid)),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'WRITE_APPROVAL_SCOPE_MISMATCH',
+    'state_backend', 'postgres',
+    'write_request', :write_request_json::jsonb,
+    'files_modified', :task_execution_files_json::jsonb,
+    'next_action', 'provide approval covering file_write and every modified path'
+  )
+  where :task_execution_approval_required = 'true'
+    and exists (select 1 from approval_valid)
+    and not exists (select 1 from approval_match)),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'TASK_NOT_FOUND_OR_SCOPE_MISMATCH',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'run_id', :run_id,
+    'task_id', :task_execution_task_id,
+    'reason', 'record execution only for a task belonging to the current project run'
+  ))
+);
+commit;
+"""
+    code, result = run_psql_json(
+        dsn,
+        bind_literals(
+            sql,
+            {
+                "project_id": project_id,
+                "run_id": run_id,
+                "validation_result_json": validation_result_json,
+                "validation_findings_json": validation_findings_json,
+                "validation_attempt_id": str(validation_state.get("validation_attempt_id") or ""),
+                "validation_gate": str(validation_result.get("gate") or ""),
+                "validation_command": str(validation_result.get("command") or ""),
+                "validation_cwd": str(validation_result.get("cwd") or ""),
+                "validation_exit_code": str(validation_result.get("exit_code") or 0),
+                "validation_stdout_summary": str(validation_result.get("stdout_summary") or ""),
+                "validation_stderr_summary": str(validation_result.get("stderr_summary") or ""),
+                "validation_status": str(validation_result.get("status") or ""),
+                "validation_evidence": str(validation_result.get("evidence") or ""),
+                "qa_gate_id": str(validation_state.get("qa_gate_id") or ""),
+                "write_request_present": str(bool(write_request_state.get("write_request"))).lower(),
+                "write_request_json": write_request_json,
+                "write_request_target_project": str(write_request_state.get("target_project") or ""),
+                "write_request_branch": str(write_request_state.get("branch") or ""),
+                "write_request_path": str(write_request_state.get("path") or ""),
+                "write_request_action": str(write_request_state.get("action") or ""),
+                "task_execution_result_json": task_execution_result_json,
+                "task_execution_task_id": str(task_execution_state.get("task_id") or ""),
+                "task_execution_task_status": str(task_execution_state.get("task_status") or ""),
+                "task_execution_increment_attempt": "1" if task_execution_state.get("increment_attempt") else "0",
+                "task_execution_session_id": str(task_execution_state.get("session_id") or ""),
+                "task_execution_script_name": str(task_execution_state.get("script_name") or ""),
+                "task_execution_method": str(task_execution_state.get("execution_method") or ""),
+                "task_execution_status": str(task_execution_result.get("status") or ""),
+                "task_execution_error_summary": str(task_execution_state.get("error_summary") or ""),
+                "task_execution_files_json": task_execution_files_json,
+                "task_execution_approval_required": str(bool(task_execution_state.get("approval_required"))).lower(),
+            },
+        ),
+    )
+    if code == 0 and result.get("status") == "blocking":
+        return 2, result
+    return code, result
+
+
 def postgres_analyze_to_state(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
     code, analysis = analyze_context(payload)
     if code != 0:

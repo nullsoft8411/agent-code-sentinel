@@ -1542,7 +1542,7 @@ def test_postgres_approval_record_builds_approval_upsert_query(monkeypatch: pyte
 def test_postgres_call_tool_dispatches_approval_record(monkeypatch: pytest.MonkeyPatch) -> None:
     captured = {}
 
-    def fake_init(dsn: str) -> tuple[int, dict]:
+    def fake_approval_init(dsn: str) -> tuple[int, dict]:
         captured["init_dsn"] = dsn
         return 0, {"status": "passed"}
 
@@ -1551,7 +1551,7 @@ def test_postgres_call_tool_dispatches_approval_record(monkeypatch: pytest.Monke
         captured["payload"] = payload
         return 0, {"status": "passed", "approval": {"id": "approval-postgres"}}
 
-    monkeypatch.setattr(mcp_state, "initialize_postgres_database", fake_init)
+    monkeypatch.setattr(mcp_state, "initialize_postgres_database", fake_approval_init)
     monkeypatch.setattr(mcp_state, "postgres_approval_record", fake_approval_record)
 
     code, payload = call_tool(
@@ -1573,6 +1573,112 @@ def test_postgres_call_tool_dispatches_approval_record(monkeypatch: pytest.Monke
     assert captured["init_dsn"] == "postgresql://localhost/code_sentinel"
     assert captured["approval_dsn"] == "postgresql://localhost/code_sentinel"
     assert captured["payload"]["allowed_actions"] == ["file_write"]
+
+
+def test_postgres_task_execution_result_builds_direct_ingestion_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = capture_postgres_sql(
+        monkeypatch,
+        {
+            "status": "passed",
+            "state_backend": "postgres",
+            "task_execution_result": {
+                "status": "passed",
+                "approval_enforced": True,
+            },
+            "execution_session": {"status": "passed"},
+        },
+    )
+
+    code, payload = postgres_state.postgres_task_execution_result(
+        "postgresql://localhost/code_sentinel",
+        {
+            "project_id": "proj-devopshub",
+            "run_id": "run-postgres-task-exec-direct",
+            "write_request": {
+                "target_project": "nullsoft8411/devopshub",
+                "branch": "main",
+                "path": "src/app.py",
+                "action": "file_write",
+            },
+            "task_execution_result": {
+                "task_id": "task-postgres",
+                "execution_method": "agent_native_python",
+                "script_name": "agent-result-ingest",
+                "files_modified": ["src/app.py"],
+                "validation_result": {
+                    "command": "python3 -m pytest tests -q",
+                    "exit_code": 0,
+                    "stdout": "1 passed",
+                },
+            },
+        },
+    )
+
+    assert code == 0
+    assert payload["task_execution_result"]["approval_enforced"] is True
+    assert "with run_context as" in captured["sql"]
+    assert "validation_attempt_insert as" in captured["sql"]
+    assert "qa_gate_result_insert as" in captured["sql"]
+    assert "validation_finding_insert as" in captured["sql"]
+    assert "validation_scan_finding_insert as" in captured["sql"]
+    assert "validation_task_insert as" in captured["sql"]
+    assert "approval_candidate as" in captured["sql"]
+    assert "task_execution_task_update as" in captured["sql"]
+    assert "task_execution_session_insert as" in captured["sql"]
+    assert "RUN_NOT_FOUND" in captured["sql"]
+    assert "RUN_PROJECT_MISMATCH" in captured["sql"]
+    assert "WRITE_APPROVAL_SCOPE_MISMATCH" in captured["sql"]
+    assert "TASK_NOT_FOUND_OR_SCOPE_MISMATCH" in captured["sql"]
+    assert "allowed_paths_json ? 'src/app.py'" in captured["sql"]
+    assert "allowed_actions_json ? 'file_write'" in captured["sql"]
+    assert ":task_execution_result_json" not in captured["sql"]
+
+
+def test_postgres_call_tool_dispatches_task_execution_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    def fake_task_execution_init(dsn: str) -> tuple[int, dict]:
+        captured["init_dsn"] = dsn
+        return 0, {"status": "passed"}
+
+    def fake_task_execution_result(dsn: str, payload: dict) -> tuple[int, dict]:
+        captured["task_execution_dsn"] = dsn
+        captured["payload"] = payload
+        return 0, {"status": "passed", "task_execution_result": {"status": "passed"}}
+
+    monkeypatch.setattr(mcp_state, "initialize_postgres_database", fake_task_execution_init)
+    monkeypatch.setattr(mcp_state, "postgres_task_execution_result", fake_task_execution_result)
+
+    code, payload = call_tool(
+        "postgresql://localhost/code_sentinel",
+        "state_task_execution_result",
+        {
+            "project_id": "proj-devopshub",
+            "run_id": "run-postgres",
+            "task_execution_result": {
+                "task_id": "task-postgres",
+                "validation_result": {"command": "python3 -m pytest tests -q", "exit_code": 0},
+            },
+        },
+    )
+
+    assert code == 0
+    assert payload["task_execution_result"]["status"] == "passed"
+    assert captured["init_dsn"] == "postgresql://localhost/code_sentinel"
+    assert captured["task_execution_dsn"] == "postgresql://localhost/code_sentinel"
+    assert captured["payload"]["task_execution_result"]["task_id"] == "task-postgres"
+
+
+def test_postgres_task_execution_result_requires_payload() -> None:
+    code, payload = postgres_state.postgres_task_execution_result(
+        "postgresql://localhost/code_sentinel",
+        {"project_id": "proj-devopshub", "run_id": "run-postgres"},
+    )
+
+    assert code == 2
+    assert payload["status"] == "blocked"
+    assert payload["state_backend"] == "postgres"
+    assert payload["blocker_code"] == "TASK_EXECUTION_RESULT_REQUIRED"
 
 
 def test_postgres_run_cycle_blocks_task_execution_file_changes_without_write_request() -> None:
