@@ -69,15 +69,16 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.billing.billing_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Stripe/customer/subscription billing workflows do not exist in the Agent target runtime by explicit user decision.",
       "source": "application/billing/billing_service.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -253,37 +254,40 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.budget_factory",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Claude pricing/model cost estimation is removed because the Agent target runtime has no budget, usage or external AI cost accounting.",
       "source": "application/services/budget_factory.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.budget_guard_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Budget guard and usage recording are removed because the Agent target runtime has no budget or usage subsystem.",
       "source": "application/services/budget_guard_service.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.budget_service_adapter",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Budget guard and usage recording are removed because the Agent target runtime has no budget or usage subsystem.",
       "source": "application/services/budget_service_adapter.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -308,15 +312,16 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.cost_estimation_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Claude pricing/model cost estimation is removed because the Agent target runtime has no budget, usage or external AI cost accounting.",
       "source": "application/services/cost_estimation_service.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -661,15 +666,16 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.tenant.usage_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Tenant usage accounting is removed because the Agent target runtime has no usage subsystem.",
       "source": "application/tenant/usage_service.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -901,15 +907,16 @@
       "tests": []
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.billing_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "Billing repository persistence is removed because billing does not exist in the Agent target runtime.",
       "source": "infrastructure/persistence/billing_repository.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
       "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
@@ -1055,15 +1062,16 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.budget",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Budget and usage models are removed because the Agent target runtime has no budget or usage subsystem.",
       "source": "infrastructure/persistence/models/budget.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -1275,15 +1283,16 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.usage",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Budget and usage models are removed because the Agent target runtime has no budget or usage subsystem.",
       "source": "infrastructure/persistence/models/usage.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -1896,28 +1905,30 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "BudgetLimitModel",
       "kind": "table",
       "name": "budget_limits",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Budget and usage accounting do not exist in the Agent target runtime by explicit user decision.",
       "source": "infrastructure/persistence/models/budget.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "UsageRecordModel",
       "kind": "table",
       "name": "usage_records",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Budget and usage accounting do not exist in the Agent target runtime by explicit user decision.",
       "source": "infrastructure/persistence/models/budget.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
       "class_name": "ClaudeSessionModel",
@@ -2255,16 +2266,17 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "UsageModel",
       "kind": "table",
       "name": "health_bot_usage",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Budget and usage accounting do not exist in the Agent target runtime by explicit user decision.",
       "source": "infrastructure/persistence/models/usage.py",
-      "status": "blocked",
+      "status": "removed",
       "target_modules": [],
-      "tests": []
+      "tests": [
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -2308,7 +2320,7 @@
   "inventory_source": "docs/local-code-sentinel-source-inventory.json",
   "source_root": "/home/pika/projekte/code-sentinel",
   "summary": {
-    "blocked_total": 176,
+    "blocked_total": 164,
     "entries_total": 199,
     "kind_counts": {
       "runtime_module": 166,
@@ -2316,9 +2328,9 @@
     },
     "status_counts": {
       "adapted": 15,
-      "blocked": 176,
+      "blocked": 164,
       "migrated": 7,
-      "removed": 1
+      "removed": 13
     }
   }
 }

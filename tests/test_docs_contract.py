@@ -113,6 +113,30 @@ def test_full_source_coverage_has_specific_auth_rbac_mapping() -> None:
     assert entries["application/auth/system_user_handlers.py"]["blocker_code"] == "SYSTEM_USER_MAPPING_REQUIRED"
 
 
+def test_full_source_coverage_has_specific_budget_billing_mapping() -> None:
+    coverage = json.loads((ROOT / "docs/local-code-sentinel-full-source-coverage.json").read_text())
+    entries = {entry["source"]: entry for entry in coverage["entries"]}
+    by_name = {entry["name"]: entry for entry in coverage["entries"]}
+
+    for source in [
+        "application/billing/billing_service.py",
+        "infrastructure/persistence/billing_repository.py",
+        "application/services/budget_guard_service.py",
+        "application/services/budget_service_adapter.py",
+        "application/services/budget_factory.py",
+        "application/services/cost_estimation_service.py",
+        "application/tenant/usage_service.py",
+        "infrastructure/persistence/models/budget.py",
+        "infrastructure/persistence/models/usage.py",
+    ]:
+        assert entries[source]["status"] == "removed"
+        assert "kein budget oder usage" in entries[source]["user_acceptance"]
+
+    for table_name in ["budget_limits", "usage_records", "health_bot_usage"]:
+        assert by_name[table_name]["status"] == "removed"
+        assert "kein budget oder usage" in by_name[table_name]["user_acceptance"]
+
+
 def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     readme = (ROOT / "README.md").read_text()
     plan = (ROOT / "docs/agent-native-code-sentinel-migration-plan.md").read_text()

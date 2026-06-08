@@ -271,6 +271,10 @@ Initial full source coverage evidence:
   explicit per-run approvals, state locks, audit evidence and structured
   blocker payloads. Role management, SSO/OAuth and system-user behavior remain
   blocked with specific blocker codes.
+- Budget/Billing/Usage coverage is source-reviewed and removed from the Agent
+  target runtime by explicit user decision: the Agent has no budget or usage
+  subsystem. Do not replace this with generic attempt-limit, quota, usage or
+  cost-estimation claims.
 - Consequence: AN-9, Slack, Agent Studio, schedule and connector tests remain
   blocked until every entry is migrated, adapted, blocked with a concrete owner
   and implementation task, or removed with explicit user acceptance.

@@ -60,6 +60,16 @@ def classify_table(table: dict[str, Any]) -> dict[str, Any]:
             "tests": tests,
             "reason": "covered by the current agent runtime state model",
         }
+    if table_name in {"budget_limits", "usage_records", "health_bot_usage"}:
+        return removed_entry(
+            kind="table",
+            source=table["file"],
+            name=table_name,
+            reason="Budget and usage accounting do not exist in the Agent target runtime by explicit user decision.",
+            target_modules=[],
+            tests=["tests/test_docs_contract.py"],
+            extra={"class_name": table["class_name"]},
+        )
     return blocked_entry(
         kind="table",
         source=table["file"],
@@ -90,6 +100,60 @@ def classify_module(module: dict[str, Any]) -> dict[str, Any]:
             name=module["module"],
             reason="scanner plugin category requires source-backed mapping to Agent analysis, deterministic parser, or explicit removal",
             extra={"blocker_code": "SCANNER_PLUGIN_MAPPING_REQUIRED"},
+        )
+    if file_name in {"application/billing/billing_service.py"}:
+        return removed_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason="Stripe/customer/subscription billing workflows do not exist in the Agent target runtime by explicit user decision.",
+            target_modules=[],
+            tests=["tests/test_docs_contract.py"],
+        )
+    if file_name in {"infrastructure/persistence/billing_repository.py"}:
+        return removed_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason="Billing repository persistence is removed because billing does not exist in the Agent target runtime.",
+            target_modules=[],
+            tests=["tests/test_docs_contract.py"],
+        )
+    if file_name in {"application/services/budget_guard_service.py", "application/services/budget_service_adapter.py"}:
+        return removed_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason="Budget guard and usage recording are removed because the Agent target runtime has no budget or usage subsystem.",
+            target_modules=[],
+            tests=["tests/test_docs_contract.py"],
+        )
+    if file_name in {"application/services/budget_factory.py", "application/services/cost_estimation_service.py"}:
+        return removed_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason="Claude pricing/model cost estimation is removed because the Agent target runtime has no budget, usage or external AI cost accounting.",
+            target_modules=[],
+            tests=["tests/test_docs_contract.py"],
+        )
+    if file_name in {"application/tenant/usage_service.py"}:
+        return removed_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason="Tenant usage accounting is removed because the Agent target runtime has no usage subsystem.",
+            target_modules=[],
+            tests=["tests/test_docs_contract.py"],
+        )
+    if file_name in {"infrastructure/persistence/models/budget.py", "infrastructure/persistence/models/usage.py"}:
+        return removed_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason="Budget and usage models are removed because the Agent target runtime has no budget or usage subsystem.",
+            target_modules=[],
+            tests=["tests/test_docs_contract.py"],
         )
     if file_name in {"application/auth/role_service.py"}:
         return blocked_entry(
@@ -159,6 +223,31 @@ def blocked_entry(*, kind: str, source: str, name: str, reason: str, extra: dict
         "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
         "target_modules": [],
         "tests": [],
+    }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def removed_entry(
+    *,
+    kind: str,
+    source: str,
+    name: str,
+    reason: str,
+    target_modules: list[str],
+    tests: list[str],
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "kind": kind,
+        "source": source,
+        "name": name,
+        "status": "removed",
+        "reason": reason,
+        "target_modules": target_modules,
+        "tests": tests,
+        "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage.",
     }
     if extra:
         payload.update(extra)
