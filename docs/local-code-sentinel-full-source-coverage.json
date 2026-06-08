@@ -1043,103 +1043,144 @@
       "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.messaging.__init__",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "messaging package exports are adapted to explicit MCP state tool entrypoints and autonomous cycle helpers",
       "source": "infrastructure/messaging/__init__.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.messaging.event_bus",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "domain event publish/subscribe is adapted to explicit state mutations plus audit event append/list evidence",
       "source": "infrastructure/messaging/event_bus.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_audit_events.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.messaging.event_handlers",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "event handlers for task, PR and scan changes are adapted to deterministic task transitions, pr_state and cycle next steps",
       "source": "infrastructure/messaging/event_handlers.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/cycle.py",
+        "src/code_sentinel_agent/task_workflow.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_autonomous_cycle.py",
+        "tests/test_task_workflow.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.messaging.event_router",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "event routing and delivery guarantees are adapted to explicit MCP tool names, blocker payloads and persisted state instead of channel routing",
       "source": "infrastructure/messaging/event_router.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/output_contract.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.messaging.pr_queue",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "PR monitor queue is adapted to pr_state set/get and report readback instead of Redis PR queue workers",
       "source": "infrastructure/messaging/pr_queue.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.messaging.redis_idempotency_store",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Redis idempotency store is adapted to deterministic IDs, finding signatures and dedupe constraints in Agent state",
       "source": "infrastructure/messaging/redis_idempotency_store.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/task_creation.py",
+        "src/code_sentinel_agent/scan_findings.py",
+        "src/code_sentinel_agent/qg_workflow.py"
+      ],
+      "tests": [
+        "tests/test_task_creation.py",
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_qg_workflow.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.messaging.scan_queue",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "scan queue behavior is adapted to scan_job lifecycle and autonomous cycle selection instead of Redis queues",
       "source": "infrastructure/messaging/scan_queue.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/scan_jobs.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.messaging.signal_handlers",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Redis signal handlers are adapted to Agent-owned analysis, QG workflow processing and cycle state transitions",
       "source": "infrastructure/messaging/signal_handlers.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/analysis_workflow.py",
+        "src/code_sentinel_agent/qg_workflow.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_agent_analysis.py",
+        "tests/test_qg_workflow.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.messaging.signal_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Redis signal publishing is adapted to controlled MCP state tools and next_autonomous_step persistence",
       "source": "infrastructure/messaging/signal_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -1175,37 +1216,46 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.archive_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "archive repository persistence is adapted to task status and audit events rather than tenant/project soft-delete tables",
       "source": "infrastructure/persistence/archive_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/task_workflow.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_task_workflow.py",
+        "tests/test_audit_events.py"
+      ]
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.audit_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "audit repository is adapted to append/list audit_events in the Agent SQLite state",
       "source": "infrastructure/persistence/audit_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_audit_events.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.base",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SQLAlchemy declarative base is adapted to explicit SQLite migrations and schema bootstrap",
       "source": "infrastructure/persistence/base.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/db.py",
+        "migrations/001_init.sql"
+      ],
+      "tests": [
+        "tests/test_db_schema.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -1220,103 +1270,143 @@
       "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.claude_session_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "Claude session repository is adapted to Agent-native execution session persistence",
       "source": "infrastructure/persistence/claude_session_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/execution_sessions.py"
+      ],
+      "tests": [
+        "tests/test_execution_sessions.py"
+      ]
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.contact_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "Contact/sales persistence is removed with the SaaS product shell.",
       "source": "infrastructure/persistence/contact_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.event_replay",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "event replay and projection rebuilds are adapted to report readback and audit event evidence instead of event-sourced replay",
       "source": "infrastructure/persistence/event_replay.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_cli_contract.py",
+        "tests/test_audit_events.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.event_store",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "event store is adapted to direct state mutations and audit_events rather than generic event sourcing tables",
       "source": "infrastructure/persistence/event_store.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_audit_events.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.event_upcaster",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "event upcasting is adapted to stable JSON output contracts and explicit state-tool payload versions",
       "source": "infrastructure/persistence/event_upcaster.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/output_contract.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_cli_contract.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.file_analysis_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "file analysis repository is adapted to file inventory checks and Agent-supplied analysis persistence",
       "source": "infrastructure/persistence/file_analysis_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/file_inventory.py",
+        "src/code_sentinel_agent/analysis_workflow.py"
+      ],
+      "tests": [
+        "tests/test_agent_analysis.py",
+        "tests/test_scan_runtime_helpers.py"
+      ]
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.git_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "tracked PR repository behavior is adapted to pr_state tools and approval evidence",
       "source": "infrastructure/persistence/git_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/approvals.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py"
+      ]
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.github_app_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "GitHub App installation persistence is removed; repo/PR operations use MCP/GitHub tools plus pr_state evidence.",
       "source": "infrastructure/persistence/github_app_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.health_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "health repository readback is adapted to project context and report evidence",
       "source": "infrastructure/persistence/health_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -1337,15 +1427,22 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.logging_config_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "SaaS logging configuration persistence is removed; Agent runtime uses audit/report evidence.",
       "source": "infrastructure/persistence/logging_config_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
       "kind": "runtime_module",
@@ -1366,15 +1463,17 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.audit_log",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "audit log model is adapted to the Agent audit_events table",
       "source": "infrastructure/persistence/models/audit_log.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_audit_events.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -1389,70 +1488,96 @@
       "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.claude_session_model",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Claude session model is adapted to Agent-native execution sessions",
       "source": "infrastructure/persistence/models/claude_session_model.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/execution_sessions.py"
+      ],
+      "tests": [
+        "tests/test_execution_sessions.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.contact",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Contact and sales lead models are removed with the SaaS product shell.",
       "source": "infrastructure/persistence/models/contact.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.file_analysis_model",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "file analysis model is adapted to file inventory and Agent analysis state",
       "source": "infrastructure/persistence/models/file_analysis_model.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/file_inventory.py",
+        "src/code_sentinel_agent/analysis_workflow.py"
+      ],
+      "tests": [
+        "tests/test_agent_analysis.py",
+        "tests/test_scan_runtime_helpers.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.file_check",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "file check model is adapted to Agent file_checks state",
       "source": "infrastructure/persistence/models/file_check.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/file_inventory.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.github_app_installation",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "GitHub App installation models are removed; repository and PR state are represented through MCP/GitHub tools and pr_state.",
       "source": "infrastructure/persistence/models/github_app_installation.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.helpers",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "CUID/helper generation is adapted to deterministic stable IDs and digests",
       "source": "infrastructure/persistence/models/helpers.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_creation.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_task_creation.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -1473,81 +1598,106 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.logging_config",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Logging config model is removed from the Agent runtime.",
       "source": "infrastructure/persistence/models/logging_config.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.plugin_execution_model",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "plugin execution model is adapted to plugin_executions table",
       "source": "infrastructure/persistence/models/plugin_execution_model.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/plugin_executions.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.project",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "project model is adapted to projects state table and state_project_get",
       "source": "infrastructure/persistence/models/project.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/db.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_db_schema.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.qg_workflow",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "QG workflow model is adapted to qg_workflows and cycle state",
       "source": "infrastructure/persistence/models/qg_workflow.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/qg_workflow.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_qg_workflow.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.quality_gate",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "quality gate models are adapted to QA gate normalization and workflow persistence",
       "source": "infrastructure/persistence/models/quality_gate.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/qa_gates.py",
+        "src/code_sentinel_agent/qg_workflow.py"
+      ],
+      "tests": [
+        "tests/test_qg_workflow.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.scan_finding",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "scan finding model is adapted to scan_findings state",
       "source": "infrastructure/persistence/models/scan_finding.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/scan_findings.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.scan_job",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "scan job model is adapted to scan_jobs state",
       "source": "infrastructure/persistence/models/scan_job.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/scan_jobs.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -1568,26 +1718,33 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.state",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "state model is adapted to memories, runs, locks and MCP state tools",
       "source": "infrastructure/persistence/models/state.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/memory.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.task",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "task model is adapted to tasks, subtasks, progress and workflow helpers",
       "source": "infrastructure/persistence/models/task.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/task_creation.py",
+        "src/code_sentinel_agent/task_workflow.py"
+      ],
+      "tests": [
+        "tests/test_task_creation.py",
+        "tests/test_task_workflow.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -1608,15 +1765,17 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.tracked_pr",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "tracked PR model is adapted to pr_state set/get tools",
       "source": "infrastructure/persistence/models/tracked_pr.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -1649,37 +1808,50 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.models.webhook",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Webhook configuration and delivery models are removed from the Agent runtime.",
       "source": "infrastructure/persistence/models/webhook.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.plugin_execution_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "plugin execution repository is adapted to Agent plugin_executions persistence",
       "source": "infrastructure/persistence/plugin_execution_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/plugin_executions.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py"
+      ]
     },
     {
-      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.persistence.project_repository",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "reason": "project repository is adapted to projects table bootstrap and state_project_get contract",
       "source": "infrastructure/persistence/project_repository.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/db.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_db_schema.py"
+      ]
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -2801,17 +2973,17 @@
   "inventory_source": "docs/local-code-sentinel-source-inventory.json",
   "source_root": "/home/pika/projekte/code-sentinel",
   "summary": {
-    "blocked_total": 86,
+    "blocked_total": 44,
     "entries_total": 199,
     "kind_counts": {
       "runtime_module": 166,
       "table": 33
     },
     "status_counts": {
-      "adapted": 42,
-      "blocked": 86,
+      "adapted": 77,
+      "blocked": 44,
       "migrated": 7,
-      "removed": 64
+      "removed": 71
     }
   }
 }

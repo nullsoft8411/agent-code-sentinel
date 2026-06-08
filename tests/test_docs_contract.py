@@ -254,6 +254,52 @@ def test_full_source_coverage_maps_services_execution_messaging_slice() -> None:
         assert "not the local FastAPI SaaS product shell" in by_name[table_name]["user_acceptance"]
 
 
+def test_full_source_coverage_maps_messaging_and_persistence_slice() -> None:
+    coverage = json.loads((ROOT / "docs/local-code-sentinel-full-source-coverage.json").read_text())
+    entries = {(entry["kind"], entry["source"]): entry for entry in coverage["entries"]}
+
+    adapted_sources = {
+        "infrastructure/messaging/event_bus.py": "audit event append/list",
+        "infrastructure/messaging/event_handlers.py": "deterministic task transitions",
+        "infrastructure/messaging/event_router.py": "explicit MCP tool names",
+        "infrastructure/messaging/pr_queue.py": "pr_state set/get",
+        "infrastructure/messaging/redis_idempotency_store.py": "deterministic IDs",
+        "infrastructure/messaging/scan_queue.py": "scan_job lifecycle",
+        "infrastructure/messaging/signal_handlers.py": "Agent-owned analysis",
+        "infrastructure/messaging/signal_service.py": "controlled MCP state tools",
+        "infrastructure/persistence/audit_repository.py": "Agent SQLite state",
+        "infrastructure/persistence/base.py": "explicit SQLite migrations",
+        "infrastructure/persistence/claude_session_repository.py": "Agent-native execution session",
+        "infrastructure/persistence/event_store.py": "direct state mutations",
+        "infrastructure/persistence/file_analysis_repository.py": "file inventory checks",
+        "infrastructure/persistence/project_repository.py": "state_project_get",
+        "infrastructure/persistence/models/task.py": "workflow helpers",
+        "infrastructure/persistence/models/scan_job.py": "scan_jobs state",
+        "infrastructure/persistence/models/scan_finding.py": "scan_findings state",
+        "infrastructure/persistence/models/plugin_execution_model.py": "plugin_executions table",
+        "infrastructure/persistence/models/tracked_pr.py": "pr_state set/get",
+    }
+    for source, reason_fragment in adapted_sources.items():
+        entry = entries[("runtime_module", source)]
+        assert entry["status"] == "adapted"
+        assert reason_fragment in entry["reason"]
+        assert entry["target_modules"]
+        assert entry["tests"]
+
+    for source in [
+        "infrastructure/persistence/contact_repository.py",
+        "infrastructure/persistence/github_app_repository.py",
+        "infrastructure/persistence/logging_config_repository.py",
+        "infrastructure/persistence/models/contact.py",
+        "infrastructure/persistence/models/github_app_installation.py",
+        "infrastructure/persistence/models/logging_config.py",
+        "infrastructure/persistence/models/webhook.py",
+    ]:
+        entry = entries[("runtime_module", source)]
+        assert entry["status"] == "removed"
+        assert "not the local FastAPI SaaS product shell" in entry["user_acceptance"]
+
+
 def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     readme = (ROOT / "README.md").read_text()
     plan = (ROOT / "docs/agent-native-code-sentinel-migration-plan.md").read_text()

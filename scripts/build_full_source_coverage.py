@@ -117,6 +117,27 @@ MODULE_RULES: list[tuple[str, str, list[str], list[str], str]] = [
     ("application/services/stats_service.py", "adapted", ["src/code_sentinel_agent/reports.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_cli_contract.py", "tests/test_mcp_state.py"], "dashboard statistics are adapted to report readback counters and read-only state tools"),
     ("application/ports/idempotency_store.py", "adapted", ["src/code_sentinel_agent/task_creation.py", "src/code_sentinel_agent/scan_findings.py", "src/code_sentinel_agent/qg_workflow.py"], ["tests/test_task_creation.py", "tests/test_scan_runtime_helpers.py", "tests/test_qg_workflow.py"], "idempotency is adapted to deterministic IDs, finding signatures and task/finding dedupe rather than a generic command idempotency port"),
     ("application/diagnostics/health_check_service.py", "adapted", ["src/code_sentinel_agent/project_context.py", "src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/reports.py"], ["tests/test_project_context.py", "tests/test_mcp_state.py", "tests/test_cli_contract.py"], "health checks are adapted to project preflight, DB/backend detection and report readback instead of SaaS API health endpoints"),
+    ("infrastructure/messaging/__init__.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "messaging package exports are adapted to explicit MCP state tool entrypoints and autonomous cycle helpers"),
+    ("infrastructure/messaging/event_bus.py", "adapted", ["src/code_sentinel_agent/audit_events.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_audit_events.py", "tests/test_mcp_state.py"], "domain event publish/subscribe is adapted to explicit state mutations plus audit event append/list evidence"),
+    ("infrastructure/messaging/event_handlers.py", "adapted", ["src/code_sentinel_agent/cycle.py", "src/code_sentinel_agent/task_workflow.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_autonomous_cycle.py", "tests/test_task_workflow.py"], "event handlers for task, PR and scan changes are adapted to deterministic task transitions, pr_state and cycle next steps"),
+    ("infrastructure/messaging/event_router.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/output_contract.py"], ["tests/test_mcp_state.py", "tests/test_cli_contract.py"], "event routing and delivery guarantees are adapted to explicit MCP tool names, blocker payloads and persisted state instead of channel routing"),
+    ("infrastructure/messaging/pr_queue.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/reports.py"], ["tests/test_mcp_state.py", "tests/test_cli_contract.py"], "PR monitor queue is adapted to pr_state set/get and report readback instead of Redis PR queue workers"),
+    ("infrastructure/messaging/redis_idempotency_store.py", "adapted", ["src/code_sentinel_agent/task_creation.py", "src/code_sentinel_agent/scan_findings.py", "src/code_sentinel_agent/qg_workflow.py"], ["tests/test_task_creation.py", "tests/test_scan_runtime_helpers.py", "tests/test_qg_workflow.py"], "Redis idempotency store is adapted to deterministic IDs, finding signatures and dedupe constraints in Agent state"),
+    ("infrastructure/messaging/scan_queue.py", "adapted", ["src/code_sentinel_agent/scan_jobs.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_scan_runtime_helpers.py", "tests/test_autonomous_cycle.py"], "scan queue behavior is adapted to scan_job lifecycle and autonomous cycle selection instead of Redis queues"),
+    ("infrastructure/messaging/signal_handlers.py", "adapted", ["src/code_sentinel_agent/analysis_workflow.py", "src/code_sentinel_agent/qg_workflow.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_agent_analysis.py", "tests/test_qg_workflow.py", "tests/test_autonomous_cycle.py"], "Redis signal handlers are adapted to Agent-owned analysis, QG workflow processing and cycle state transitions"),
+    ("infrastructure/messaging/signal_service.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "Redis signal publishing is adapted to controlled MCP state tools and next_autonomous_step persistence"),
+    ("infrastructure/persistence/archive_repository.py", "adapted", ["src/code_sentinel_agent/task_workflow.py", "src/code_sentinel_agent/audit_events.py"], ["tests/test_task_workflow.py", "tests/test_audit_events.py"], "archive repository persistence is adapted to task status and audit events rather than tenant/project soft-delete tables"),
+    ("infrastructure/persistence/audit_repository.py", "adapted", ["src/code_sentinel_agent/audit_events.py"], ["tests/test_audit_events.py"], "audit repository is adapted to append/list audit_events in the Agent SQLite state"),
+    ("infrastructure/persistence/base.py", "adapted", ["src/code_sentinel_agent/db.py", "migrations/001_init.sql"], ["tests/test_db_schema.py"], "SQLAlchemy declarative base is adapted to explicit SQLite migrations and schema bootstrap"),
+    ("infrastructure/persistence/claude_session_repository.py", "adapted", ["src/code_sentinel_agent/execution_sessions.py"], ["tests/test_execution_sessions.py"], "Claude session repository is adapted to Agent-native execution session persistence"),
+    ("infrastructure/persistence/event_replay.py", "adapted", ["src/code_sentinel_agent/reports.py", "src/code_sentinel_agent/audit_events.py"], ["tests/test_cli_contract.py", "tests/test_audit_events.py"], "event replay and projection rebuilds are adapted to report readback and audit event evidence instead of event-sourced replay"),
+    ("infrastructure/persistence/event_store.py", "adapted", ["src/code_sentinel_agent/audit_events.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_audit_events.py", "tests/test_mcp_state.py"], "event store is adapted to direct state mutations and audit_events rather than generic event sourcing tables"),
+    ("infrastructure/persistence/event_upcaster.py", "adapted", ["src/code_sentinel_agent/output_contract.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_cli_contract.py", "tests/test_mcp_state.py"], "event upcasting is adapted to stable JSON output contracts and explicit state-tool payload versions"),
+    ("infrastructure/persistence/file_analysis_repository.py", "adapted", ["src/code_sentinel_agent/file_inventory.py", "src/code_sentinel_agent/analysis_workflow.py"], ["tests/test_agent_analysis.py", "tests/test_scan_runtime_helpers.py"], "file analysis repository is adapted to file inventory checks and Agent-supplied analysis persistence"),
+    ("infrastructure/persistence/git_repository.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/approvals.py"], ["tests/test_mcp_state.py", "tests/test_write_guard.py"], "tracked PR repository behavior is adapted to pr_state tools and approval evidence"),
+    ("infrastructure/persistence/health_repository.py", "adapted", ["src/code_sentinel_agent/project_context.py", "src/code_sentinel_agent/reports.py"], ["tests/test_project_context.py", "tests/test_cli_contract.py"], "health repository readback is adapted to project context and report evidence"),
+    ("infrastructure/persistence/plugin_execution_repository.py", "adapted", ["src/code_sentinel_agent/plugin_executions.py"], ["tests/test_scan_runtime_helpers.py"], "plugin execution repository is adapted to Agent plugin_executions persistence"),
+    ("infrastructure/persistence/project_repository.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/db.py"], ["tests/test_mcp_state.py", "tests/test_db_schema.py"], "project repository is adapted to projects table bootstrap and state_project_get contract"),
     ("infrastructure/execution/qg_test_runner.py", "adapted", ["src/code_sentinel_agent/validation_runner.py"], ["tests/test_qg_workflow.py"], "validation output is normalized without importing production runner dependencies"),
     ("infrastructure/execution/claude_executor.py", "removed", ["src/code_sentinel_agent/execution_sessions.py"], ["tests/test_docs_contract.py", "tests/test_execution_sessions.py"], "external AI executor is intentionally replaced by Workspace Agent task takeover"),
     ("infrastructure/messaging/stream_service.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "Redis stream delivery is represented by locks, runs, events and next_autonomous_step"),
@@ -140,6 +161,13 @@ SAAS_APP_INFRA_REMOVED_MODULES = {
     "application/services/__init__.py": "Application service export/lazy-loader has no runtime responsibility in the Agent package.",
     "application/services/notification_service.py": "Redis-backed per-user in-app notifications are removed; operator visibility is provided by Agent response, reports and audit events.",
     "application/services/system_admin_service.py": "System-admin tenant/API-key SaaS workflows are removed with the SaaS identity layer.",
+    "infrastructure/persistence/contact_repository.py": "Contact/sales persistence is removed with the SaaS product shell.",
+    "infrastructure/persistence/github_app_repository.py": "GitHub App installation persistence is removed; repo/PR operations use MCP/GitHub tools plus pr_state evidence.",
+    "infrastructure/persistence/logging_config_repository.py": "SaaS logging configuration persistence is removed; Agent runtime uses audit/report evidence.",
+    "infrastructure/persistence/models/contact.py": "Contact and sales lead models are removed with the SaaS product shell.",
+    "infrastructure/persistence/models/github_app_installation.py": "GitHub App installation models are removed; repository and PR state are represented through MCP/GitHub tools and pr_state.",
+    "infrastructure/persistence/models/logging_config.py": "Logging config model is removed from the Agent runtime.",
+    "infrastructure/persistence/models/webhook.py": "Webhook configuration and delivery models are removed from the Agent runtime.",
 }
 
 REMOVED_APP_TABLES = {
@@ -150,6 +178,23 @@ REMOVED_APP_TABLES = {
     "logging_configs": "SaaS logging configuration table is removed; Agent runtime stores audit/report evidence instead.",
     "webhook_configs": "Outbound webhook configuration is removed from the Agent runtime.",
     "webhook_deliveries": "Webhook delivery queue is removed from the Agent runtime.",
+}
+
+PERSISTENCE_MODEL_RULES: dict[str, tuple[str, list[str], list[str], str]] = {
+    "infrastructure/persistence/models/audit_log.py": ("adapted", ["src/code_sentinel_agent/audit_events.py"], ["tests/test_audit_events.py"], "audit log model is adapted to the Agent audit_events table"),
+    "infrastructure/persistence/models/claude_session_model.py": ("adapted", ["src/code_sentinel_agent/execution_sessions.py"], ["tests/test_execution_sessions.py"], "Claude session model is adapted to Agent-native execution sessions"),
+    "infrastructure/persistence/models/file_analysis_model.py": ("adapted", ["src/code_sentinel_agent/file_inventory.py", "src/code_sentinel_agent/analysis_workflow.py"], ["tests/test_agent_analysis.py", "tests/test_scan_runtime_helpers.py"], "file analysis model is adapted to file inventory and Agent analysis state"),
+    "infrastructure/persistence/models/file_check.py": ("adapted", ["src/code_sentinel_agent/file_inventory.py"], ["tests/test_scan_runtime_helpers.py"], "file check model is adapted to Agent file_checks state"),
+    "infrastructure/persistence/models/helpers.py": ("adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/task_creation.py"], ["tests/test_mcp_state.py", "tests/test_task_creation.py"], "CUID/helper generation is adapted to deterministic stable IDs and digests"),
+    "infrastructure/persistence/models/plugin_execution_model.py": ("adapted", ["src/code_sentinel_agent/plugin_executions.py"], ["tests/test_scan_runtime_helpers.py"], "plugin execution model is adapted to plugin_executions table"),
+    "infrastructure/persistence/models/project.py": ("adapted", ["src/code_sentinel_agent/db.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_db_schema.py", "tests/test_mcp_state.py"], "project model is adapted to projects state table and state_project_get"),
+    "infrastructure/persistence/models/qg_workflow.py": ("adapted", ["src/code_sentinel_agent/qg_workflow.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_qg_workflow.py", "tests/test_autonomous_cycle.py"], "QG workflow model is adapted to qg_workflows and cycle state"),
+    "infrastructure/persistence/models/quality_gate.py": ("adapted", ["src/code_sentinel_agent/qa_gates.py", "src/code_sentinel_agent/qg_workflow.py"], ["tests/test_qg_workflow.py"], "quality gate models are adapted to QA gate normalization and workflow persistence"),
+    "infrastructure/persistence/models/scan_finding.py": ("adapted", ["src/code_sentinel_agent/scan_findings.py"], ["tests/test_scan_runtime_helpers.py", "tests/test_mcp_state.py"], "scan finding model is adapted to scan_findings state"),
+    "infrastructure/persistence/models/scan_job.py": ("adapted", ["src/code_sentinel_agent/scan_jobs.py"], ["tests/test_scan_runtime_helpers.py"], "scan job model is adapted to scan_jobs state"),
+    "infrastructure/persistence/models/state.py": ("adapted", ["src/code_sentinel_agent/memory.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_mcp_state.py"], "state model is adapted to memories, runs, locks and MCP state tools"),
+    "infrastructure/persistence/models/task.py": ("adapted", ["src/code_sentinel_agent/task_creation.py", "src/code_sentinel_agent/task_workflow.py"], ["tests/test_task_creation.py", "tests/test_task_workflow.py"], "task model is adapted to tasks, subtasks, progress and workflow helpers"),
+    "infrastructure/persistence/models/tracked_pr.py": ("adapted", ["src/code_sentinel_agent/mcp_state.py"], ["tests/test_mcp_state.py"], "tracked PR model is adapted to pr_state set/get tools"),
 }
 
 
@@ -325,6 +370,17 @@ def classify_module(module: dict[str, Any]) -> dict[str, Any]:
             tests=["tests/test_docs_contract.py", "tests/test_audit_events.py", "tests/test_cli_contract.py"],
             user_acceptance=SAAS_APP_INFRA_ACCEPTANCE,
         )
+    if file_name in PERSISTENCE_MODEL_RULES:
+        status, target_modules, tests, reason = PERSISTENCE_MODEL_RULES[file_name]
+        return {
+            "kind": "runtime_module",
+            "source": file_name,
+            "name": module["module"],
+            "status": status,
+            "target_modules": target_modules,
+            "tests": tests,
+            "reason": reason,
+        }
     if file_name.startswith("application/auth/") or "auth" in file_name:
         return blocked_entry(
             kind="runtime_module",
