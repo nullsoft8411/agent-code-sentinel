@@ -921,9 +921,9 @@ Current local progress:
 - Next open implementation slice: Postgres parity remains intentionally open.
   Implement every state tool used by the local E2E for the Postgres backend, or
   keep explicit blocker evidence per tool without claiming parity.
-- Postgres unsupported-tool evidence is now narrowed to the still-open
-  `state_run_cycle` backend gap. `state_analyze_to_state` is no longer treated
-  as unsupported once its Postgres write path is implemented.
+- Postgres no longer treats local E2E state tools as generically unsupported.
+  Remaining gaps must be scoped to specific advanced inputs instead of whole
+  tool names.
 - Postgres `state_memory_get` is now implemented as the first expanded
   Postgres state-tool parity slice. `postgres_memory_get` reads the latest
   `memories` row by `project_id`, returns `memory`, `latest_ref`,
@@ -943,9 +943,20 @@ Current local progress:
   standalone `tasks`, and returns selected-task takeover context without
   invoking Claude/Codex/tmux/external executors. The SQL contract is covered by
   `tests/test_mcp_state.py::test_postgres_analyze_to_state_builds_agent_findings_tasks_query`.
+- Postgres `state_run_cycle` now has the Agent-owned core cycle path: it
+  acquires project state lock, starts/resumes the run, selects the next
+  runnable task, updates run focus/next step, records an
+  `agent_execution_sessions` cycle marker and `audit_events` entry, returns
+  report counts and releases the lock. Advanced execution inputs
+  (`project_path`, `validation_result`, `task_execution_result`,
+  `write_request`) still return a precise
+  `POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED` blocker rather than
+  pretending full parity. The SQL contract is covered by
+  `tests/test_mcp_state.py::test_postgres_run_cycle_builds_task_takeover_query`.
 - Next open implementation slice: continue section 2.6 with the next uncovered
-  runtime responsibility, currently Postgres `state_run_cycle`, without
-  claiming full Postgres parity.
+  runtime responsibility, currently Postgres project-evidence/file-inventory
+  readback for advanced `state_run_cycle`, without claiming full Postgres
+  parity.
 - AN-3 parent/subtask status coverage is now locally proven for completed,
   blocked and failed-validation transitions. `tests/test_task_creation.py::test_task_status_updates_parent_progress`
   proves completed subtasks complete the parent, and

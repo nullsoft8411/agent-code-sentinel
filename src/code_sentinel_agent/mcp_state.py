@@ -22,6 +22,7 @@ from .postgres_state import (
     postgres_memory_get,
     postgres_project_get,
     postgres_report_get,
+    postgres_run_cycle,
     postgres_run_start,
 )
 from .qg_workflow import process_quality_gate_payload
@@ -779,6 +780,11 @@ def call_postgres_tool(dsn: str, tool_name: str, payload: dict[str, Any]) -> tup
         if code != 0:
             return code, init_payload
         return postgres_analyze_to_state(dsn, unwrap_tool_payload(payload))
+    if tool_name == "state_run_cycle":
+        code, init_payload = initialize_postgres_database(dsn)
+        if code != 0:
+            return code, init_payload
+        return postgres_run_cycle(dsn, unwrap_tool_payload(payload))
     return postgres_not_ready(tool_name, {"type": "postgres", "dsn": dsn, "driver_available": postgres_driver_available()})
 
 

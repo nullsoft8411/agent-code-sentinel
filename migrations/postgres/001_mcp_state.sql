@@ -136,6 +136,48 @@ on scan_findings(scan_job_id);
 create index if not exists idx_scan_findings_file_path
 on scan_findings(file_path);
 
+create table if not exists agent_execution_sessions (
+  id text primary key,
+  run_id text not null references runs(id) on delete cascade,
+  project_id text not null references projects(id) on delete cascade,
+  task_id text references tasks(id) on delete set null,
+  session_type text not null,
+  script_name text not null,
+  execution_method text not null,
+  command text not null,
+  status text not null,
+  output_json jsonb not null default '{}'::jsonb,
+  error_summary text,
+  files_modified_json jsonb not null default '[]'::jsonb,
+  attempt_log_json jsonb not null default '[]'::jsonb,
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_agent_execution_sessions_run
+on agent_execution_sessions(run_id);
+
+create index if not exists idx_agent_execution_sessions_task
+on agent_execution_sessions(task_id);
+
+create index if not exists idx_agent_execution_sessions_project_status
+on agent_execution_sessions(project_id, status);
+
+create table if not exists audit_events (
+  id text primary key,
+  run_id text references runs(id) on delete cascade,
+  project_id text not null references projects(id) on delete cascade,
+  event_type text not null,
+  summary text not null,
+  payload_json jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_audit_events_project_run
+on audit_events(project_id, run_id);
+
 create table if not exists qa_gate_results (
   id text primary key,
   run_id text not null references runs(id) on delete cascade,

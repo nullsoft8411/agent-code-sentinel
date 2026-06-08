@@ -204,15 +204,28 @@ select coalesce(
       'findings', (select count(*) from findings where run_id = :run_id),
       'tasks', (select count(*) from tasks where run_id = :run_id),
       'validation_attempts', 0,
-      'execution_sessions', 0
+      'execution_sessions', (select count(*) from agent_execution_sessions where run_id = :run_id)
     ),
     'unsupported_counts', json_build_array(
-      'validation_attempts',
-      'execution_sessions'
+      'validation_attempts'
     ),
     'qa_review_outcomes', json_build_array(),
     'missing_review_outcomes', json_build_array(),
-    'execution_sessions', json_build_array(),
+    'execution_sessions', coalesce(
+      (select json_agg(json_build_object(
+        'id', id,
+        'task_id', task_id,
+        'session_type', session_type,
+        'script_name', script_name,
+        'execution_method', execution_method,
+        'status', status,
+        'output_json', output_json,
+        'attempt_log_json', attempt_log_json
+      ) order by created_at)
+      from agent_execution_sessions
+      where run_id = :run_id),
+      json_build_array()
+    ),
     'selected_task_for_agent_takeover', null
   )
   from runs
@@ -482,6 +495,288 @@ commit;
                 "latest_ref": latest_ref,
                 "findings_json": findings_json,
                 "analysis_json": analysis_json,
+            },
+        ),
+    )
+
+
+def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
+    unsupported_inputs = [
+        key
+        for key in ("project_path", "validation_result", "task_execution_result", "write_request")
+        if payload.get(key)
+    ]
+    if unsupported_inputs:
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED",
+            "state_backend": "postgres",
+            "unsupported_inputs": unsupported_inputs,
+            "reason": "Postgres run-cycle currently covers Agent-owned state takeover only; project evidence, validation, task execution and write approvals are separate migration slices",
+            "next_action": "run state_analyze_to_state first, then call state_run_cycle without advanced execution payloads",
+        }
+
+    project_id = str(payload.get("project_id") or "").strip()
+    run_id = str(payload.get("run_id") or "").strip()
+    latest_ref = str(payload.get("latest_ref") or "current ref")
+    owner = str(payload.get("owner") or "workspace-agent-cycle")
+    if not project_id or not run_id:
+        return 2, {
+            "status": "blocked",
+            "blocker_code": "INVALID_RUN_CYCLE_INPUT",
+            "state_backend": "postgres",
+            "reason": "project_id and run_id are required",
+        }
+
+    sql = """
+begin;
+select case when pg_try_advisory_xact_lock(hashtext(:project_id))
+then json_build_object('advisory_lock', 'taken')
+else json_build_object(
+  'status', 'blocked',
+  'blocker_code', 'STATE_ADVISORY_LOCK_HELD',
+  'state_backend', 'postgres',
+  'project_id', :project_id,
+  'reason', 'another transaction owns the project advisory lock'
+) end;
+update state_locks
+set status = 'expired', released_at = now(), updated_at = now()
+where status = 'active' and released_at is null and expires_at is not null and expires_at <= now();
+insert into state_locks(id, project_id, run_id, owner, status, acquired_at, expires_at)
+select :lock_id, :project_id, :run_id, :owner, 'active', now(), now() + interval '15 minutes'
+where exists (select 1 from projects where id = :project_id)
+  and not exists (
+    select 1 from state_locks
+    where project_id = :project_id
+      and status = 'active'
+      and released_at is null
+      and (run_id <> :run_id or owner <> :owner)
+  )
+on conflict (id) do update set
+  status = 'active',
+  acquired_at = now(),
+  expires_at = now() + interval '15 minutes',
+  released_at = null,
+  updated_at = now();
+insert into runs(id, project_id, status, current_focus, next_autonomous_step)
+select
+  :run_id,
+  :project_id,
+  'in_progress',
+  'autonomous_cycle',
+  'preflight ' || :latest_ref || ' before continuing: ' || coalesce(
+    (select nullif(memory_json->>'next_autonomous_step', '')
+     from memories
+     where project_id = :project_id
+     order by created_at desc
+     limit 1),
+    'run repository preflight'
+  )
+where exists (select 1 from projects where id = :project_id)
+  and exists (
+    select 1 from state_locks
+    where project_id = :project_id
+      and run_id = :run_id
+      and owner = :owner
+      and status = 'active'
+      and released_at is null
+  )
+on conflict (id) do nothing;
+with selected_task as (
+  select *
+  from tasks
+  where project_id = :project_id
+    and run_id = :run_id
+    and task_type != 'parent'
+    and status in ('pending', 'assigned_to_agent', 'in_progress', 'failed_validation')
+    and attempt_count < max_attempts
+  order by
+    case status
+      when 'in_progress' then 1
+      when 'assigned_to_agent' then 2
+      when 'failed_validation' then 3
+      else 4
+    end,
+    priority desc,
+    subtask_order,
+    created_at,
+    id
+  limit 1
+),
+run_update as (
+  update runs
+  set
+    current_focus = case
+      when exists (select 1 from selected_task) then 'task_takeover'
+      else 'analysis'
+    end,
+    next_autonomous_step = coalesce(
+      (select 'take over ' || task_type || ' ' || id || ': ' || title from selected_task),
+      'analyze project context and create findings/tasks before editing'
+    ),
+    updated_at = now()
+  where id = :run_id
+    and exists (
+      select 1 from state_locks
+      where project_id = :project_id
+        and run_id = :run_id
+        and owner = :owner
+        and status = 'active'
+        and released_at is null
+    )
+  returning id
+),
+session_insert as (
+  insert into agent_execution_sessions(
+    id, run_id, project_id, task_id, session_type, script_name,
+    execution_method, command, status, output_json, files_modified_json,
+    attempt_log_json, completed_at
+  )
+  select
+    'cycle-' || :run_id,
+    :run_id,
+    :project_id,
+    (select id from selected_task),
+    'autonomous_cycle',
+    'run-cycle',
+    'agent_runtime_cli',
+    'cs-agent run-cycle',
+    'passed',
+    jsonb_build_object(
+      'latest_ref', :latest_ref,
+      'selected_task_id', (select id from selected_task),
+      'project_evidence_status', 'not_requested'
+    ),
+    '[]'::jsonb,
+    jsonb_build_array(
+      jsonb_build_object('step', 'lock_acquired', 'status', 'passed'),
+      jsonb_build_object('step', 'run_state_loaded', 'status', 'passed'),
+      jsonb_build_object('step', 'project_evidence', 'status', 'not_requested'),
+      jsonb_build_object('step', 'selected_task', 'status', case when exists (select 1 from selected_task) then 'passed' else 'not_available' end)
+    ),
+    now()
+  where exists (select 1 from run_update)
+  on conflict (id) do update set
+    task_id = excluded.task_id,
+    status = excluded.status,
+    output_json = excluded.output_json,
+    attempt_log_json = excluded.attempt_log_json,
+    completed_at = excluded.completed_at,
+    updated_at = now()
+  returning id, task_id, status, output_json, attempt_log_json
+),
+audit_insert as (
+  insert into audit_events(id, run_id, project_id, event_type, summary, payload_json)
+  select
+    'audit-cycle-' || :run_id,
+    :run_id,
+    :project_id,
+    'autonomous_cycle',
+    'Cycle exited with status passed',
+    jsonb_build_object(
+      'latest_ref', :latest_ref,
+      'selected_task_id', (select id from selected_task),
+      'current_focus', case when exists (select 1 from selected_task) then 'task_takeover' else 'analysis' end,
+      'project_evidence_status', 'not_requested'
+    )
+  where exists (select 1 from run_update)
+  on conflict (id) do update set
+    summary = excluded.summary,
+    payload_json = excluded.payload_json
+  returning id, event_type, summary, payload_json
+),
+lock_release as (
+  update state_locks
+  set status = 'released', released_at = now(), updated_at = now()
+  where project_id = :project_id
+    and run_id = :run_id
+    and owner = :owner
+    and status = 'active'
+    and released_at is null
+  returning id
+)
+select coalesce(
+  (select json_build_object(
+    'status', 'passed',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'run_id', :run_id,
+    'latest_ref', :latest_ref,
+    'loaded_memory', (select memory_json from memories where project_id = :project_id order by created_at desc limit 1),
+    'stale_memory_decision', coalesce((select stale_memory_decision from memories where project_id = :project_id order by created_at desc limit 1), 'not_applicable'),
+    'repository_delta', 'repository truth must be checked before trusting memory',
+    'selected_task_for_agent_takeover',
+      (select json_build_object(
+        'id', id,
+        'finding_id', finding_id,
+        'run_id', run_id,
+        'project_id', project_id,
+        'status', status,
+        'priority', priority,
+        'title', title,
+        'affected_file', affected_file,
+        'task_type', task_type,
+        'task_signature', task_signature,
+        'progress', progress_json
+      ) from selected_task),
+    'validation_result', null,
+    'task_execution_result', null,
+    'project_evidence', json_build_object('status', 'not_requested', 'project_path', null, 'file_checks_count', 0),
+    'improvement_work_package', null,
+    'cycle_session', (select json_build_object('id', id, 'task_id', task_id, 'status', status, 'output_json', output_json, 'attempt_log_json', attempt_log_json) from session_insert),
+    'audit_event', (select json_build_object('id', id, 'event_type', event_type, 'summary', summary, 'payload_json', payload_json) from audit_insert),
+    'report', json_build_object(
+      'status', 'passed',
+      'run', json_build_object('id', runs.id, 'status', runs.status, 'current_focus', runs.current_focus, 'next_autonomous_step', runs.next_autonomous_step),
+      'project', json_build_object('id', projects.id, 'target', projects.target),
+      'counts', json_build_object(
+        'findings', (select count(*) from findings where run_id = :run_id),
+        'tasks', (select count(*) from tasks where run_id = :run_id),
+        'qa_gates', (select count(*) from qa_gate_results where run_id = :run_id),
+        'validation_attempts', 0,
+        'execution_sessions', (select count(*) from agent_execution_sessions where run_id = :run_id)
+      ),
+      'selected_task_for_agent_takeover', (select json_build_object('id', id, 'title', title, 'affected_file', affected_file, 'task_type', task_type, 'task_signature', task_signature) from selected_task)
+    ),
+    'next_autonomous_step', runs.next_autonomous_step,
+    'lock_released', exists (select 1 from lock_release)
+  )
+  from runs
+  join projects on projects.id = runs.project_id
+  where runs.id = :run_id
+    and exists (select 1 from run_update)),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'STATE_LOCK_HELD',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'reason', 'another run owns the active project state lock',
+    'active_lock', json_build_object('id', id, 'run_id', run_id, 'owner', owner, 'status', status)
+  )
+  from state_locks
+  where project_id = :project_id and status = 'active' and released_at is null
+  order by acquired_at desc
+  limit 1),
+  (select json_build_object(
+    'status', 'blocked',
+    'blocker_code', 'PROJECT_NOT_FOUND',
+    'state_backend', 'postgres',
+    'project_id', :project_id,
+    'reason', 'initialize project state before running a cycle'
+  ))
+);
+commit;
+"""
+    return run_psql_json(
+        dsn,
+        bind_literals(
+            sql,
+            {
+                "project_id": project_id,
+                "run_id": run_id,
+                "latest_ref": latest_ref,
+                "owner": owner,
+                "lock_id": f"{project_id}:{run_id}:{owner}",
             },
         ),
     )
