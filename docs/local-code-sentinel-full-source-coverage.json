@@ -102,15 +102,21 @@
       "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.commands.command_bus",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "CQRS command dispatch is adapted to explicit MCP tool contracts, structured payload validation and deterministic cycle state instead of an in-process command bus",
       "source": "application/commands/command_bus.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/cycle.py",
+        "src/code_sentinel_agent/output_contract.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_autonomous_cycle.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -131,26 +137,38 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.commands.task_commands",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "task command intent is represented by finding-to-task creation, task status transitions, task selection and validated task execution result persistence",
       "source": "application/commands/task_commands.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/task_creation.py",
+        "src/code_sentinel_agent/task_workflow.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_task_creation.py",
+        "tests/test_task_workflow.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.diagnostics.health_check_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "health checks are adapted to project preflight, DB/backend detection and report readback instead of SaaS API health endpoints",
       "source": "application/diagnostics/health_check_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -168,48 +186,71 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.ports.idempotency_store",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "idempotency is adapted to deterministic IDs, finding signatures and task/finding dedupe rather than a generic command idempotency port",
       "source": "application/ports/idempotency_store.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/task_creation.py",
+        "src/code_sentinel_agent/scan_findings.py",
+        "src/code_sentinel_agent/qg_workflow.py"
+      ],
+      "tests": [
+        "tests/test_task_creation.py",
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_qg_workflow.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.ports.resilience",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Circuit-breaker/WebSocket resilience was only needed for the removed daemon terminal path; Agent runtime returns structured blockers and state evidence instead.",
       "source": "application/ports/resilience.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.queries.interfaces",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "query service interfaces are adapted to read-only MCP state tools and report readback contracts",
       "source": "application/queries/interfaces.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.queries.task_queries",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "task list/detail/count query DTO behavior is represented by state_tasks_list, next runnable task selection and report counters",
       "source": "application/queries/task_queries.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_workflow.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_task_workflow.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -267,26 +308,34 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.audit_logger",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "audit logging is adapted to append/list audit events in shared Agent state",
       "source": "application/services/audit_logger.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_audit_events.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.audit_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "audit service workflows are adapted to event append, report readback and cycle evidence without user/tenant audit APIs",
       "source": "application/services/audit_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_audit_events.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -325,26 +374,40 @@
       "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.code_scanner_orchestrator",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "scanner orchestration is adapted to Agent-supplied analysis, scan job progress, plugin execution evidence and file inventory state",
       "source": "application/services/code_scanner_orchestrator.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/analysis_workflow.py",
+        "src/code_sentinel_agent/scan_jobs.py",
+        "src/code_sentinel_agent/plugin_executions.py",
+        "src/code_sentinel_agent/file_inventory.py"
+      ],
+      "tests": [
+        "tests/test_agent_analysis.py",
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.config_provisioner_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Config provisioning writes are removed; the Agent analyzes existing repo configuration and requests explicit approved edits when needed.",
       "source": "application/services/config_provisioner_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
       "kind": "runtime_module",
@@ -359,15 +422,22 @@
       "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.daemon_client",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Daemon WebSocket terminal streaming is removed with tmux/external executor flow; the Agent executes and reports task results natively.",
       "source": "application/services/daemon_client.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -472,26 +542,37 @@
       "tests": []
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.project_upload_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "SaaS project upload/extract workflow is removed because the Agent runtime works from cloned repositories through MCP/Git tools.",
       "source": "application/services/project_upload_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.qg_workflow_lock_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "workflow locking is adapted to project-scoped state locks with explicit owner, expiry and release evidence",
       "source": "application/services/qg_workflow_lock_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -507,37 +588,51 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.quality_gate_lifecycle_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "quality-gate lifecycle state is adapted to local QA gate normalization and workflow persistence",
       "source": "application/services/quality_gate_lifecycle_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/qa_gates.py",
+        "src/code_sentinel_agent/qg_workflow.py"
+      ],
+      "tests": [
+        "tests/test_qg_workflow.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.quality_gate_workflow_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "multi-stage QG workflow is adapted to validation payload processing, finding/task creation and Agent task takeover without model selection or external execution",
       "source": "application/services/quality_gate_workflow_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/qg_workflow.py",
+        "src/code_sentinel_agent/validation_runner.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_qg_workflow.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.queue_state_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "queue state is adapted to persisted runs, next_autonomous_step, selected tasks and report counters instead of a separate queue projection service",
       "source": "application/services/queue_state_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/cycle.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_autonomous_cycle.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -2537,17 +2632,17 @@
   "inventory_source": "docs/local-code-sentinel-source-inventory.json",
   "source_root": "/home/pika/projekte/code-sentinel",
   "summary": {
-    "blocked_total": 133,
+    "blocked_total": 116,
     "entries_total": 199,
     "kind_counts": {
       "runtime_module": 166,
       "table": 33
     },
     "status_counts": {
-      "adapted": 15,
-      "blocked": 133,
+      "adapted": 28,
+      "blocked": 116,
       "migrated": 7,
-      "removed": 44
+      "removed": 48
     }
   }
 }

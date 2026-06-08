@@ -72,6 +72,10 @@ SAAS_IDENTITY_ACCEPTANCE = (
     "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; "
     "the Agent must migrate work logic, not the SaaS human-identity layer."
 )
+NON_AGENT_INFRA_ACCEPTANCE = (
+    "User explicitly directed that the Agent works from the runtime repository and MCP state, "
+    "without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
+)
 
 
 MODULE_RULES: list[tuple[str, str, list[str], list[str], str]] = [
@@ -82,11 +86,31 @@ MODULE_RULES: list[tuple[str, str, list[str], list[str], str]] = [
     ("application/scanner_service.py", "adapted", ["src/code_sentinel_agent/analysis_workflow.py", "src/code_sentinel_agent/scan_jobs.py"], ["tests/test_agent_analysis.py", "tests/test_scan_runtime_helpers.py"], "scanner orchestration becomes Agent-supplied analysis plus deterministic state persistence"),
     ("application/services/scan_execution_service.py", "adapted", ["src/code_sentinel_agent/scan_jobs.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_scan_runtime_helpers.py", "tests/test_autonomous_cycle.py"], "scan execution lifecycle is represented in local scan job and cycle evidence"),
     ("application/services/qg_workflow_orchestrator.py", "adapted", ["src/code_sentinel_agent/qg_workflow.py"], ["tests/test_qg_workflow.py"], "QG orchestration is represented by local validation and task takeover workflow"),
+    ("application/commands/command_bus.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/cycle.py", "src/code_sentinel_agent/output_contract.py"], ["tests/test_mcp_state.py", "tests/test_autonomous_cycle.py", "tests/test_cli_contract.py"], "CQRS command dispatch is adapted to explicit MCP tool contracts, structured payload validation and deterministic cycle state instead of an in-process command bus"),
+    ("application/commands/task_commands.py", "adapted", ["src/code_sentinel_agent/task_creation.py", "src/code_sentinel_agent/task_workflow.py", "src/code_sentinel_agent/task_execution.py"], ["tests/test_task_creation.py", "tests/test_task_workflow.py", "tests/test_mcp_state.py"], "task command intent is represented by finding-to-task creation, task status transitions, task selection and validated task execution result persistence"),
+    ("application/queries/interfaces.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/reports.py"], ["tests/test_mcp_state.py", "tests/test_cli_contract.py"], "query service interfaces are adapted to read-only MCP state tools and report readback contracts"),
+    ("application/queries/task_queries.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/task_workflow.py", "src/code_sentinel_agent/reports.py"], ["tests/test_mcp_state.py", "tests/test_task_workflow.py", "tests/test_cli_contract.py"], "task list/detail/count query DTO behavior is represented by state_tasks_list, next runnable task selection and report counters"),
+    ("application/services/audit_logger.py", "adapted", ["src/code_sentinel_agent/audit_events.py", "src/code_sentinel_agent/mcp_state.py"], ["tests/test_audit_events.py", "tests/test_mcp_state.py"], "audit logging is adapted to append/list audit events in shared Agent state"),
+    ("application/services/audit_service.py", "adapted", ["src/code_sentinel_agent/audit_events.py", "src/code_sentinel_agent/reports.py"], ["tests/test_audit_events.py", "tests/test_autonomous_cycle.py"], "audit service workflows are adapted to event append, report readback and cycle evidence without user/tenant audit APIs"),
+    ("application/services/code_scanner_orchestrator.py", "adapted", ["src/code_sentinel_agent/analysis_workflow.py", "src/code_sentinel_agent/scan_jobs.py", "src/code_sentinel_agent/plugin_executions.py", "src/code_sentinel_agent/file_inventory.py"], ["tests/test_agent_analysis.py", "tests/test_scan_runtime_helpers.py", "tests/test_autonomous_cycle.py"], "scanner orchestration is adapted to Agent-supplied analysis, scan job progress, plugin execution evidence and file inventory state"),
+    ("application/services/quality_gate_lifecycle_service.py", "adapted", ["src/code_sentinel_agent/qa_gates.py", "src/code_sentinel_agent/qg_workflow.py"], ["tests/test_qg_workflow.py"], "quality-gate lifecycle state is adapted to local QA gate normalization and workflow persistence"),
+    ("application/services/quality_gate_workflow_service.py", "adapted", ["src/code_sentinel_agent/qg_workflow.py", "src/code_sentinel_agent/validation_runner.py", "src/code_sentinel_agent/task_execution.py"], ["tests/test_qg_workflow.py", "tests/test_mcp_state.py"], "multi-stage QG workflow is adapted to validation payload processing, finding/task creation and Agent task takeover without model selection or external execution"),
+    ("application/services/qg_workflow_lock_service.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "workflow locking is adapted to project-scoped state locks with explicit owner, expiry and release evidence"),
+    ("application/services/queue_state_service.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/cycle.py", "src/code_sentinel_agent/reports.py"], ["tests/test_mcp_state.py", "tests/test_autonomous_cycle.py", "tests/test_cli_contract.py"], "queue state is adapted to persisted runs, next_autonomous_step, selected tasks and report counters instead of a separate queue projection service"),
+    ("application/ports/idempotency_store.py", "adapted", ["src/code_sentinel_agent/task_creation.py", "src/code_sentinel_agent/scan_findings.py", "src/code_sentinel_agent/qg_workflow.py"], ["tests/test_task_creation.py", "tests/test_scan_runtime_helpers.py", "tests/test_qg_workflow.py"], "idempotency is adapted to deterministic IDs, finding signatures and task/finding dedupe rather than a generic command idempotency port"),
+    ("application/diagnostics/health_check_service.py", "adapted", ["src/code_sentinel_agent/project_context.py", "src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/reports.py"], ["tests/test_project_context.py", "tests/test_mcp_state.py", "tests/test_cli_contract.py"], "health checks are adapted to project preflight, DB/backend detection and report readback instead of SaaS API health endpoints"),
     ("infrastructure/execution/qg_test_runner.py", "adapted", ["src/code_sentinel_agent/validation_runner.py"], ["tests/test_qg_workflow.py"], "validation output is normalized without importing production runner dependencies"),
     ("infrastructure/execution/claude_executor.py", "removed", ["src/code_sentinel_agent/execution_sessions.py"], ["tests/test_docs_contract.py", "tests/test_execution_sessions.py"], "external AI executor is intentionally replaced by Workspace Agent task takeover"),
     ("infrastructure/messaging/stream_service.py", "adapted", ["src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/cycle.py"], ["tests/test_mcp_state.py", "tests/test_autonomous_cycle.py"], "Redis stream delivery is represented by locks, runs, events and next_autonomous_step"),
     ("application/git_service.py", "adapted", ["src/code_sentinel_agent/approvals.py", "src/code_sentinel_agent/task_execution.py"], ["tests/test_write_guard.py", "tests/test_autonomous_cycle.py"], "Git write behavior is mediated by MCP/GitHub tools and approval records"),
 ]
+
+NON_AGENT_INFRA_REMOVED_MODULES = {
+    "application/ports/resilience.py": "Circuit-breaker/WebSocket resilience was only needed for the removed daemon terminal path; Agent runtime returns structured blockers and state evidence instead.",
+    "application/services/daemon_client.py": "Daemon WebSocket terminal streaming is removed with tmux/external executor flow; the Agent executes and reports task results natively.",
+    "application/services/project_upload_service.py": "SaaS project upload/extract workflow is removed because the Agent runtime works from cloned repositories through MCP/Git tools.",
+    "application/services/config_provisioner_service.py": "Config provisioning writes are removed; the Agent analyzes existing repo configuration and requests explicit approved edits when needed.",
+}
 
 
 def classify_table(table: dict[str, Any]) -> dict[str, Any]:
@@ -229,6 +253,16 @@ def classify_module(module: dict[str, Any]) -> dict[str, Any]:
             target_modules=["src/code_sentinel_agent/approvals.py", "src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/audit_events.py"],
             tests=["tests/test_docs_contract.py", "tests/test_mcp_state.py", "tests/test_write_guard.py"],
             user_acceptance=SAAS_IDENTITY_ACCEPTANCE,
+        )
+    if file_name in NON_AGENT_INFRA_REMOVED_MODULES:
+        return removed_entry(
+            kind="runtime_module",
+            source=file_name,
+            name=module["module"],
+            reason=NON_AGENT_INFRA_REMOVED_MODULES[file_name],
+            target_modules=["src/code_sentinel_agent/project_context.py", "src/code_sentinel_agent/mcp_state.py", "src/code_sentinel_agent/task_execution.py"],
+            tests=["tests/test_project_context.py", "tests/test_mcp_state.py", "tests/test_docs_contract.py"],
+            user_acceptance=NON_AGENT_INFRA_ACCEPTANCE,
         )
     if file_name.startswith("application/auth/") or "auth" in file_name:
         return blocked_entry(

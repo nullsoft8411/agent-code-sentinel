@@ -264,8 +264,9 @@ Initial full source coverage evidence:
 - Current gate_status: blocked
 - Current coverage count: 199 source responsibilities, including 33 tables and
   166 runtime modules
-- Current blocker count: 133 blocked entries after Auth/RBAC, SaaS identity and
-  Budget/Billing/Usage classification passes
+- Current blocker count: 116 blocked entries after Auth/RBAC, SaaS identity,
+  Budget/Billing/Usage and Command/Query/Service-Orchestration classification
+  passes
 - First coverage reduction: application/auth/authorization_service.py and
   application/auth/exceptions.py are adapted to project-scoped MCP tools,
   explicit per-run approvals, state locks, audit evidence and structured
@@ -279,6 +280,13 @@ Initial full source coverage evidence:
   target runtime by explicit user decision: the Agent has no budget or usage
   subsystem. Do not replace this with generic attempt-limit, quota, usage or
   cost-estimation claims.
+- Command/query/task/audit/QG/queue orchestration is source-reviewed and
+  adapted to explicit MCP tool contracts, deterministic state transitions,
+  Agent-owned analysis, task takeover, validation payloads, report readback and
+  project-scoped locks. Daemon WebSocket/tmux streaming, project uploads and
+  config provisioning are source-reviewed and removed because the Agent works
+  from cloned repositories and MCP state, with edits only through explicit
+  approval.
 - Consequence: AN-9, Slack, Agent Studio, schedule and connector tests remain
   blocked until every entry is migrated, adapted, blocked with a concrete owner
   and implementation task, or removed with explicit user acceptance.

@@ -155,6 +155,41 @@ def test_full_source_coverage_has_specific_budget_billing_mapping() -> None:
         assert "kein budget oder usage" in by_name[table_name]["user_acceptance"]
 
 
+def test_full_source_coverage_maps_command_query_and_orchestration_slice() -> None:
+    coverage = json.loads((ROOT / "docs/local-code-sentinel-full-source-coverage.json").read_text())
+    entries = {entry["source"]: entry for entry in coverage["entries"]}
+
+    adapted_sources = {
+        "application/commands/command_bus.py": "explicit MCP tool contracts",
+        "application/commands/task_commands.py": "task command intent",
+        "application/queries/interfaces.py": "read-only MCP state tools",
+        "application/queries/task_queries.py": "state_tasks_list",
+        "application/services/audit_logger.py": "append/list audit events",
+        "application/services/audit_service.py": "event append",
+        "application/services/code_scanner_orchestrator.py": "Agent-supplied analysis",
+        "application/services/quality_gate_lifecycle_service.py": "quality-gate lifecycle",
+        "application/services/quality_gate_workflow_service.py": "Agent task takeover",
+        "application/services/qg_workflow_lock_service.py": "project-scoped state locks",
+        "application/services/queue_state_service.py": "next_autonomous_step",
+        "application/ports/idempotency_store.py": "deterministic IDs",
+        "application/diagnostics/health_check_service.py": "project preflight",
+    }
+    for source, reason_fragment in adapted_sources.items():
+        assert entries[source]["status"] == "adapted"
+        assert reason_fragment in entries[source]["reason"]
+        assert entries[source]["target_modules"]
+        assert entries[source]["tests"]
+
+    for source in [
+        "application/ports/resilience.py",
+        "application/services/daemon_client.py",
+        "application/services/project_upload_service.py",
+        "application/services/config_provisioner_service.py",
+    ]:
+        assert entries[source]["status"] == "removed"
+        assert "without tmux, daemon terminal streaming" in entries[source]["user_acceptance"]
+
+
 def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     readme = (ROOT / "README.md").read_text()
     plan = (ROOT / "docs/agent-native-code-sentinel-migration-plan.md").read_text()
