@@ -1,0 +1,2312 @@
+{
+  "blocking_rule": "AN-9 and managed Agent testing remain blocked while blocked_total > 0.",
+  "entries": [
+    {
+      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.auth.authorization_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "source": "application/auth/authorization_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.auth.exceptions",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "source": "application/auth/exceptions.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.auth.role_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "source": "application/auth/role_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.auth.sso_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "source": "application/auth/sso_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.auth.system_user_handlers",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "source": "application/auth/system_user_handlers.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.billing.billing_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/billing/billing_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.commands.command_bus",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/commands/command_bus.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.commands.system_user_commands",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/commands/system_user_commands.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.commands.task_commands",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/commands/task_commands.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.diagnostics.health_check_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/diagnostics/health_check_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "kind": "runtime_module",
+      "name": "application.git_service",
+      "reason": "Git write behavior is mediated by MCP/GitHub tools and approval records",
+      "source": "application/git_service.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_write_guard.py",
+        "tests/test_autonomous_cycle.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.ports.idempotency_store",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/ports/idempotency_store.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.ports.resilience",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/ports/resilience.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.queries.interfaces",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/queries/interfaces.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.queries.task_queries",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/queries/task_queries.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "kind": "runtime_module",
+      "name": "application.scanner_service",
+      "reason": "scanner orchestration becomes Agent-supplied analysis plus deterministic state persistence",
+      "source": "application/scanner_service.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/analysis_workflow.py",
+        "src/code_sentinel_agent/scan_jobs.py"
+      ],
+      "tests": [
+        "tests/test_agent_analysis.py",
+        "tests/test_scan_runtime_helpers.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.__init__",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/__init__.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.api_key_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/api_key_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.archive_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/archive_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.audit_logger",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/audit_logger.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.audit_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/audit_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.budget_factory",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/budget_factory.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.budget_guard_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/budget_guard_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.budget_service_adapter",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/budget_service_adapter.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.code_scanner_orchestrator",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/code_scanner_orchestrator.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.config_provisioner_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/config_provisioner_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.cost_estimation_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/cost_estimation_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.daemon_client",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/daemon_client.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.dependency_analysis_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/dependency_analysis_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.github_app_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/github_app_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.model_selector",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/model_selector.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.notification_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/notification_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "AUTH_RBAC_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.oauth_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "auth/RBAC behavior must be mapped to Agent project isolation, approval and audit rules before AN-9",
+      "source": "application/services/oauth_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.permission_checker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/permission_checker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.phase_registry_adapter",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/phase_registry_adapter.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.plugin_executor_adapter",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/plugin_executor_adapter.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.project_upload_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/project_upload_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.qg_workflow_lock_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/qg_workflow_lock_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "kind": "runtime_module",
+      "name": "application.services.qg_workflow_orchestrator",
+      "reason": "QG orchestration is represented by local validation and task takeover workflow",
+      "source": "application/services/qg_workflow_orchestrator.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/qg_workflow.py"
+      ],
+      "tests": [
+        "tests/test_qg_workflow.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.quality_gate_lifecycle_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/quality_gate_lifecycle_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.quality_gate_workflow_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/quality_gate_workflow_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.queue_state_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/queue_state_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.recovery_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/recovery_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "kind": "runtime_module",
+      "name": "application.services.scan_execution_service",
+      "reason": "scan execution lifecycle is represented in local scan job and cycle evidence",
+      "source": "application/services/scan_execution_service.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/scan_jobs.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_autonomous_cycle.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.scan_phase_registry",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/scan_phase_registry.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.service_account_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/service_account_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.session_attachment_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/session_attachment_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.session_registry",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/session_registry.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.stats_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/stats_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.services.system_admin_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/services/system_admin_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "kind": "runtime_module",
+      "name": "application.services.task_creation_service",
+      "reason": "finding-to-task grouping and dedupe are implemented locally",
+      "source": "application/services/task_creation_service.py",
+      "status": "migrated",
+      "target_modules": [
+        "src/code_sentinel_agent/task_creation.py"
+      ],
+      "tests": [
+        "tests/test_task_creation.py"
+      ]
+    },
+    {
+      "kind": "runtime_module",
+      "name": "application.task_service",
+      "reason": "task service behavior is represented as local workflow helpers and cycle state",
+      "source": "application/task_service.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/task_workflow.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_task_workflow.py",
+        "tests/test_autonomous_cycle.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.tenant.commands",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/tenant/commands.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.tenant.dtos",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/tenant/dtos.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.tenant.tenant_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/tenant/tenant_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.tenant.tenant_stats_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/tenant/tenant_stats_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.tenant.tenant_user_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/tenant/tenant_user_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "application.tenant.usage_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "application/tenant/usage_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.execution.circuit_breaker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/execution/circuit_breaker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "kind": "runtime_module",
+      "name": "infrastructure.execution.claude_executor",
+      "reason": "external AI executor is intentionally replaced by Workspace Agent task takeover",
+      "source": "infrastructure/execution/claude_executor.py",
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/execution_sessions.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_execution_sessions.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.execution.factory",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/execution/factory.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "kind": "runtime_module",
+      "name": "infrastructure.execution.qg_test_runner",
+      "reason": "validation output is normalized without importing production runner dependencies",
+      "source": "infrastructure/execution/qg_test_runner.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/validation_runner.py"
+      ],
+      "tests": [
+        "tests/test_qg_workflow.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.execution.workspace",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/execution/workspace.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.execution.workspace_manager",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/execution/workspace_manager.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.__init__",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/messaging/__init__.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.event_bus",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/messaging/event_bus.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.event_handlers",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/messaging/event_handlers.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.event_router",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/messaging/event_router.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.pr_queue",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/messaging/pr_queue.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.redis_idempotency_store",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/messaging/redis_idempotency_store.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.scan_queue",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/messaging/scan_queue.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.signal_handlers",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/messaging/signal_handlers.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.signal_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/messaging/signal_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "kind": "runtime_module",
+      "name": "infrastructure.messaging.stream_service",
+      "reason": "Redis stream delivery is represented by locks, runs, events and next_autonomous_step",
+      "source": "infrastructure/messaging/stream_service.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_autonomous_cycle.py"
+      ]
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.api_key_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/api_key_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.archive_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/archive_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.audit_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/audit_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.base",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/base.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.billing_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/billing_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.claude_session_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/claude_session_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.contact_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/contact_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.event_replay",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/event_replay.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.event_store",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/event_store.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.event_upcaster",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/event_upcaster.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.file_analysis_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/file_analysis_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.git_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/git_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.github_app_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/github_app_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.health_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/health_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.invitation_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/invitation_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.logging_config_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/logging_config_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.api_key",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/api_key.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.audit_log",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/audit_log.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.budget",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/budget.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.claude_session_model",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/claude_session_model.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.contact",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/contact.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.file_analysis_model",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/file_analysis_model.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.file_check",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/file_check.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.github_app_installation",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/github_app_installation.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.helpers",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/helpers.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.invitation",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/invitation.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.logging_config",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/logging_config.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.plugin_execution_model",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/plugin_execution_model.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.project",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/project.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.qg_workflow",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/qg_workflow.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.quality_gate",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/quality_gate.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.scan_finding",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/scan_finding.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.scan_job",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/scan_job.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.service_account",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/service_account.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.state",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/state.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.task",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/task.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.tenant",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/tenant.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.tracked_pr",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/tracked_pr.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.usage",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/usage.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.user",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/user.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.models.webhook",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/models/webhook.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.plugin_execution_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/plugin_execution_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.project_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/project_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.projections.project_stats_projector",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/projections/project_stats_projector.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.projections.task_detail_projector",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/projections/task_detail_projector.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.projections.task_list_projector",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/projections/task_list_projector.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.qg_workflow_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/qg_workflow_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.quality_gate_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/quality_gate_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.query_optimizer",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/query_optimizer.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.query_service",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/query_service.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.read_models",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/read_models.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.realtime_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/realtime_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.rls.postgres_rls",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/rls/postgres_rls.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.rls.rls_mixin",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/rls/rls_mixin.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.rls.session_middleware",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/rls/session_middleware.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.rls.tenant_filter",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/rls/tenant_filter.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.scan_finding_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/scan_finding_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.scan_job_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/scan_job_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.scanner_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/scanner_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.service_account_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/service_account_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.session",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/session.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.snapshot_store",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/snapshot_store.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.state_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/state_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.stats_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/stats_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.system_admin_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/system_admin_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.task_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/task_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.tenant_aware_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/tenant_aware_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.tenant_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/tenant_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.types",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/types.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.unit_of_work",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "runtime module has not yet received source-backed migration classification",
+      "source": "infrastructure/persistence/unit_of_work.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.user_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/user_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "REPOSITORY_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "infrastructure.persistence.webhook_repository",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "repository contract must be mapped to SQLite/Postgres adapter helpers or explicit removal",
+      "source": "infrastructure/persistence/webhook_repository.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.__init__",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/__init__.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.__main__",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/__main__.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.archive_cleanup_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/archive_cleanup_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.cleanup_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/cleanup_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.cli.commands",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/cli/commands.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.cli.utils",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/cli/utils.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.connectivity_health_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/connectivity_health_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.pr_monitor_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/pr_monitor_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.pr_poller",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/pr_poller.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.pr_tracker_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/pr_tracker_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.preconditions",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/preconditions.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.projection_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/projection_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.scan_coordinator",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/scan_coordinator.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.scan_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/scan_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.session_cleanup_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/session_cleanup_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.signal_subscription_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/signal_subscription_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.stream_task_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/stream_task_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.task_processing_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/task_processing_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.webhook_delivery_worker",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/webhook_delivery_worker.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "WORKER_MAPPING_REQUIRED",
+      "kind": "runtime_module",
+      "name": "workers.worker_registry",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "worker lifecycle must be mapped to MCP state, schedule, cleanup, retry, projection or explicit removal",
+      "source": "workers/worker_registry.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "ApiKeyModel",
+      "kind": "table",
+      "name": "api_keys",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/api_key.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "class_name": "AuditLog",
+      "kind": "table",
+      "name": "audit_logs",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/audit_log.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py"
+      ],
+      "tests": [
+        "tests/test_audit_events.py",
+        "tests/test_autonomous_cycle.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "BudgetLimitModel",
+      "kind": "table",
+      "name": "budget_limits",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/budget.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "UsageRecordModel",
+      "kind": "table",
+      "name": "usage_records",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/budget.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "class_name": "ClaudeSessionModel",
+      "kind": "table",
+      "name": "health_bot_claude_sessions",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/claude_session_model.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/execution_sessions.py"
+      ],
+      "tests": [
+        "tests/test_execution_sessions.py",
+        "tests/test_docs_contract.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "ContactMessage",
+      "kind": "table",
+      "name": "contact_messages",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/contact.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "SalesLead",
+      "kind": "table",
+      "name": "sales_leads",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/contact.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "FileAnalysisModel",
+      "kind": "table",
+      "name": "health_bot_file_analyses",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/file_analysis_model.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "FileCheckModel",
+      "kind": "table",
+      "name": "health_bot_file_checks",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/file_check.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "GitHubAppInstallationModel",
+      "kind": "table",
+      "name": "github_app_installations",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/github_app_installation.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "GitHubAppRepositoryModel",
+      "kind": "table",
+      "name": "github_app_repositories",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/github_app_installation.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "TenantInvitationModel",
+      "kind": "table",
+      "name": "tenant_invitations",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/invitation.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "LoggingConfig",
+      "kind": "table",
+      "name": "logging_configs",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/logging_config.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "PluginExecutionModel",
+      "kind": "table",
+      "name": "health_bot_plugin_executions",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/plugin_execution_model.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "class_name": "Project",
+      "kind": "table",
+      "name": "projects",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/project.py",
+      "status": "migrated",
+      "target_modules": [
+        "src/code_sentinel_agent/db.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py"
+      ]
+    },
+    {
+      "class_name": "QGWorkflowModel",
+      "kind": "table",
+      "name": "qg_workflows",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/qg_workflow.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/qg_workflow.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_qg_workflow.py",
+        "tests/test_autonomous_cycle.py"
+      ]
+    },
+    {
+      "class_name": "QualityGateFixSession",
+      "kind": "table",
+      "name": "quality_gate_fix_sessions",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/quality_gate.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/execution_sessions.py",
+        "src/code_sentinel_agent/qg_workflow.py"
+      ],
+      "tests": [
+        "tests/test_execution_sessions.py",
+        "tests/test_qg_workflow.py"
+      ]
+    },
+    {
+      "class_name": "QualityGateRun",
+      "kind": "table",
+      "name": "quality_gate_runs",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/quality_gate.py",
+      "status": "migrated",
+      "target_modules": [
+        "src/code_sentinel_agent/qg_workflow.py",
+        "src/code_sentinel_agent/qa_gates.py"
+      ],
+      "tests": [
+        "tests/test_qg_workflow.py"
+      ]
+    },
+    {
+      "class_name": "QualityGateState",
+      "kind": "table",
+      "name": "quality_gate_states",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/quality_gate.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/qa_gates.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_qg_workflow.py"
+      ]
+    },
+    {
+      "class_name": "ScanFindingModel",
+      "kind": "table",
+      "name": "health_bot_scan_findings",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/scan_finding.py",
+      "status": "migrated",
+      "target_modules": [
+        "src/code_sentinel_agent/scan_findings.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_mcp_state.py"
+      ]
+    },
+    {
+      "class_name": "ScanJobModel",
+      "kind": "table",
+      "name": "health_bot_scan_jobs",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/scan_job.py",
+      "status": "migrated",
+      "target_modules": [
+        "src/code_sentinel_agent/scan_jobs.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_autonomous_cycle.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "ServiceAccountModel",
+      "kind": "table",
+      "name": "service_accounts",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/service_account.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "class_name": "StateModel",
+      "kind": "table",
+      "name": "health_bot_state",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/state.py",
+      "status": "migrated",
+      "target_modules": [
+        "src/code_sentinel_agent/memory.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "TaskHistoryModel",
+      "kind": "table",
+      "name": "health_bot_task_history",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/task.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "TaskLogModel",
+      "kind": "table",
+      "name": "health_bot_task_logs",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/task.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "class_name": "TaskModel",
+      "kind": "table",
+      "name": "health_bot_tasks",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/task.py",
+      "status": "migrated",
+      "target_modules": [
+        "src/code_sentinel_agent/task_creation.py",
+        "src/code_sentinel_agent/task_workflow.py"
+      ],
+      "tests": [
+        "tests/test_task_creation.py",
+        "tests/test_task_workflow.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "TenantUsageRecord",
+      "kind": "table",
+      "name": "tenant_usage_records",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/tenant.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "TenantModel",
+      "kind": "table",
+      "name": "tenants",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/tenant.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "class_name": "TrackedPR",
+      "kind": "table",
+      "name": "tracked_prs",
+      "reason": "covered by the current agent runtime state model",
+      "source": "infrastructure/persistence/models/tracked_pr.py",
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py"
+      ]
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "UsageModel",
+      "kind": "table",
+      "name": "health_bot_usage",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/usage.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "UserModel",
+      "kind": "table",
+      "name": "users",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/user.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "WebhookConfig",
+      "kind": "table",
+      "name": "webhook_configs",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/webhook.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    },
+    {
+      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
+      "class_name": "WebhookDeliveryModel",
+      "kind": "table",
+      "name": "webhook_deliveries",
+      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
+      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "source": "infrastructure/persistence/models/webhook.py",
+      "status": "blocked",
+      "target_modules": [],
+      "tests": []
+    }
+  ],
+  "gate_status": "blocked",
+  "generated_by": "scripts/build_full_source_coverage.py",
+  "inventory_source": "docs/local-code-sentinel-source-inventory.json",
+  "source_root": "/home/pika/projekte/code-sentinel",
+  "summary": {
+    "blocked_total": 178,
+    "entries_total": 199,
+    "kind_counts": {
+      "runtime_module": 166,
+      "table": 33
+    },
+    "status_counts": {
+      "adapted": 13,
+      "blocked": 178,
+      "migrated": 7,
+      "removed": 1
+    }
+  }
+}

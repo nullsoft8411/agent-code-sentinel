@@ -64,6 +64,37 @@ def test_local_code_sentinel_source_inventory_covers_core_runtime() -> None:
         assert modules[module_path] is True
 
 
+def test_full_source_coverage_gate_classifies_every_inventory_entry() -> None:
+    readme = (ROOT / "README.md").read_text()
+    inventory = json.loads((ROOT / "docs/local-code-sentinel-source-inventory.json").read_text())
+    coverage = json.loads((ROOT / "docs/local-code-sentinel-full-source-coverage.json").read_text())
+
+    assert "docs/local-code-sentinel-full-source-coverage.json" in readme
+    assert coverage["generated_by"] == "scripts/build_full_source_coverage.py"
+    assert coverage["inventory_source"] == "docs/local-code-sentinel-source-inventory.json"
+    assert coverage["source_root"] == inventory["source_root"]
+
+    expected_entries = len(inventory["models"]["tables"]) + len(inventory["runtime_modules"])
+    assert coverage["summary"]["entries_total"] == expected_entries
+    assert coverage["summary"]["kind_counts"]["table"] == len(inventory["models"]["tables"])
+    assert coverage["summary"]["kind_counts"]["runtime_module"] == len(inventory["runtime_modules"])
+    assert len(coverage["entries"]) == expected_entries
+
+    allowed_statuses = {"migrated", "adapted", "blocked", "removed"}
+    for entry in coverage["entries"]:
+        assert entry["status"] in allowed_statuses
+        assert entry["kind"] in {"table", "runtime_module"}
+        assert entry["source"]
+        assert entry["name"]
+        if entry["status"] == "blocked":
+            assert entry["blocker_code"]
+            assert entry["next_task"]
+
+    assert coverage["gate_status"] == "blocked"
+    assert coverage["summary"]["blocked_total"] > 0
+    assert "managed Agent testing remain blocked" in coverage["blocking_rule"]
+
+
 def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     readme = (ROOT / "README.md").read_text()
     plan = (ROOT / "docs/agent-native-code-sentinel-migration-plan.md").read_text()

@@ -257,6 +257,18 @@ Code Sentinel functional surface has been reviewed.
 
 Contract statement: Full local Code Sentinel source coverage is mandatory before managed Agent testing resumes.
 
+Initial full source coverage evidence:
+
+- Generated file: docs/local-code-sentinel-full-source-coverage.json
+- Generator: scripts/build_full_source_coverage.py
+- Current gate_status: blocked
+- Current coverage count: 199 source responsibilities, including 33 tables and
+  166 runtime modules
+- Current blocker count: 178 blocked entries
+- Consequence: AN-9, Slack, Agent Studio, schedule and connector tests remain
+  blocked until every entry is migrated, adapted, blocked with a concrete owner
+  and implementation task, or removed with explicit user acceptance.
+
 ## 3. QA Gate Ownership And Task Takeover
 
 The local Code Sentinel flow uses QA gates in scanner and workflow phases:

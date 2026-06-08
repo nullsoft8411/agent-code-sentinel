@@ -26,6 +26,10 @@ write-approval checks when the Workspace Agent runtime uses it.
 - [Local Code Sentinel Source Inventory](docs/local-code-sentinel-source-inventory.json)
   is generated from the local source tree and captures SQLAlchemy table coverage
   plus runtime module coverage for migration planning.
+- [Full Local Code Sentinel Source Coverage](docs/local-code-sentinel-full-source-coverage.json)
+  is generated from the inventory and is the blocking gate before any further
+  managed Agent/Slack/Studio test. It classifies every discovered source table
+  and runtime module as migrated, adapted, blocked, or removed.
 - [Agent-Native Code Sentinel Migration Plan](docs/agent-native-code-sentinel-migration-plan.md)
   defines the required replacement for the old external Claude execution path:
   the Workspace Agent performs analysis, finding creation, task/subtask planning,
