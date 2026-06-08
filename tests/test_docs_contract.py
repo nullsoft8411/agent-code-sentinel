@@ -190,6 +190,70 @@ def test_full_source_coverage_maps_command_query_and_orchestration_slice() -> No
         assert "without tmux, daemon terminal streaming" in entries[source]["user_acceptance"]
 
 
+def test_full_source_coverage_maps_services_execution_messaging_slice() -> None:
+    coverage = json.loads((ROOT / "docs/local-code-sentinel-full-source-coverage.json").read_text())
+    entries = {entry["source"]: entry for entry in coverage["entries"]}
+    by_name = {entry["name"]: entry for entry in coverage["entries"]}
+
+    adapted_sources = {
+        "application/services/archive_service.py": "archive/restore lifecycle",
+        "application/services/dependency_analysis_service.py": "Agent-owned file/dependency findings",
+        "application/services/github_app_service.py": "repository/PR lifecycle responsibility",
+        "application/services/phase_registry_adapter.py": "scan job progress",
+        "application/services/plugin_executor_adapter.py": "deterministic plugin execution records",
+        "application/services/recovery_service.py": "resumable Agent cycles",
+        "application/services/scan_phase_registry.py": "scan job and plugin execution status",
+        "application/services/session_registry.py": "Agent-native execution sessions",
+        "application/services/stats_service.py": "report readback counters",
+    }
+    for source, reason_fragment in adapted_sources.items():
+        assert entries[source]["status"] == "adapted"
+        assert reason_fragment in entries[source]["reason"]
+        assert entries[source]["target_modules"]
+        assert entries[source]["tests"]
+
+    for source in [
+        "application/services/model_selector.py",
+        "application/services/session_attachment_service.py",
+        "infrastructure/execution/circuit_breaker.py",
+        "infrastructure/execution/factory.py",
+        "infrastructure/execution/workspace.py",
+        "infrastructure/execution/workspace_manager.py",
+    ]:
+        assert entries[source]["status"] == "removed"
+        assert "without tmux, daemon terminal streaming" in entries[source]["user_acceptance"]
+
+    for source in [
+        "application/services/__init__.py",
+        "application/services/notification_service.py",
+        "application/services/system_admin_service.py",
+    ]:
+        assert entries[source]["status"] == "removed"
+        assert "not the local FastAPI SaaS product shell" in entries[source]["user_acceptance"]
+
+    for table_name in [
+        "health_bot_file_checks",
+        "health_bot_file_analyses",
+        "health_bot_plugin_executions",
+        "health_bot_task_history",
+        "health_bot_task_logs",
+    ]:
+        assert by_name[table_name]["status"] == "adapted"
+        assert by_name[table_name]["target_modules"]
+
+    for table_name in [
+        "contact_messages",
+        "sales_leads",
+        "github_app_installations",
+        "github_app_repositories",
+        "logging_configs",
+        "webhook_configs",
+        "webhook_deliveries",
+    ]:
+        assert by_name[table_name]["status"] == "removed"
+        assert "not the local FastAPI SaaS product shell" in by_name[table_name]["user_acceptance"]
+
+
 def test_agent_native_migration_plan_replaces_external_ai_execution() -> None:
     readme = (ROOT / "README.md").read_text()
     plan = (ROOT / "docs/agent-native-code-sentinel-migration-plan.md").read_text()

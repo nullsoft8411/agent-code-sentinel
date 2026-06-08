@@ -268,15 +268,22 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.__init__",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Application service export/lazy-loader has no runtime responsibility in the Agent package.",
       "source": "application/services/__init__.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
       "kind": "runtime_module",
@@ -297,15 +304,21 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.archive_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "archive/restore lifecycle is adapted to task status, audit evidence and report visibility; tenant cascade and email notification behavior are removed with the SaaS shell",
       "source": "application/services/archive_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/task_workflow.py",
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_task_workflow.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -440,48 +453,73 @@
       "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.dependency_analysis_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "dependency analysis is adapted from Claude CLI analysis to Agent-owned file/dependency findings persisted through analyze-to-state",
       "source": "application/services/dependency_analysis_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/agent_analysis.py",
+        "src/code_sentinel_agent/analysis_workflow.py",
+        "src/code_sentinel_agent/file_inventory.py"
+      ],
+      "tests": [
+        "tests/test_agent_analysis.py",
+        "tests/test_scan_runtime_helpers.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.github_app_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "GitHub App installation/token workflows are not ported, but repository/PR lifecycle responsibility is adapted to MCP/GitHub tools, approval records and pr_state readback",
       "source": "application/services/github_app_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/approvals.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_mcp_state.py",
+        "tests/test_write_guard.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.model_selector",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Claude model selection and budget-aware model choice are removed because the Agent runtime has no external AI executor, budget or usage accounting.",
       "source": "application/services/model_selector.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.notification_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Redis-backed per-user in-app notifications are removed; operator visibility is provided by Agent response, reports and audit events.",
       "source": "application/services/notification_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
       "kind": "runtime_module",
@@ -520,26 +558,36 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.phase_registry_adapter",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "scan phase registry adapter is adapted to scan job progress and plugin execution evidence instead of daemon signal handler injection",
       "source": "application/services/phase_registry_adapter.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/plugin_executions.py",
+        "src/code_sentinel_agent/scan_jobs.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.plugin_executor_adapter",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "plugin executor adapter is adapted to deterministic plugin execution records, Agent-owned findings and validation normalization without direct daemon plugin execution",
       "source": "application/services/plugin_executor_adapter.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/plugin_executions.py",
+        "src/code_sentinel_agent/analysis_workflow.py",
+        "src/code_sentinel_agent/validation_runner.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_agent_analysis.py",
+        "tests/test_qg_workflow.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -635,15 +683,21 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.recovery_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "startup recovery is adapted to resumable Agent cycles, state locks, selected tasks and report next_autonomous_step instead of Redis stream replay",
       "source": "application/services/recovery_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/cycle.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_autonomous_cycle.py",
+        "tests/test_mcp_state.py",
+        "tests/test_cli_contract.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -661,15 +715,19 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.scan_phase_registry",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "scan phase registry is adapted to scan job and plugin execution status records",
       "source": "application/services/scan_phase_registry.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/scan_jobs.py",
+        "src/code_sentinel_agent/plugin_executions.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
       "kind": "runtime_module",
@@ -690,48 +748,70 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.session_attachment_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Human attachment to Claude/tmux admin sessions is removed; Agent-native execution sessions store evidence without terminal attachment.",
       "source": "application/services/session_attachment_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.session_registry",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "terminal session registry is adapted to Agent-native execution sessions and task execution result records",
       "source": "application/services/session_registry.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/execution_sessions.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_execution_sessions.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.stats_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "dashboard statistics are adapted to report readback counters and read-only state tools",
       "source": "application/services/stats_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_cli_contract.py",
+        "tests/test_mcp_state.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "application.services.system_admin_service",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "System-admin tenant/API-key SaaS workflows are removed with the SaaS identity layer.",
       "source": "application/services/system_admin_service.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py",
+        "src/code_sentinel_agent/mcp_state.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
       "kind": "runtime_module",
@@ -864,15 +944,22 @@
       "user_acceptance": "User explicitly stated: im agent haben wir kein budget oder usage."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.execution.circuit_breaker",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Executor circuit breaker is removed with the external Claude/tmux execution subsystem; Agent runtime uses controlled blockers and validation records.",
       "source": "infrastructure/execution/circuit_breaker.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
       "kind": "runtime_module",
@@ -889,15 +976,22 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.execution.factory",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "ClaudeExecutor factory with budget guard is removed because external AI executor and budget usage are not in the Agent runtime.",
       "source": "infrastructure/execution/factory.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
       "kind": "runtime_module",
@@ -913,26 +1007,40 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.execution.workspace",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "Parallel git-worktree execution workspace model is removed; the managed Agent works from cloned repo state through MCP/Git tools with explicit approvals.",
       "source": "infrastructure/execution/workspace.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "kind": "runtime_module",
       "name": "infrastructure.execution.workspace_manager",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "runtime module has not yet received source-backed migration classification",
+      "reason": "WorkspaceManager for multi-worker git worktrees is removed; task ownership is serialized by Agent state locks and approval-scoped edits.",
       "source": "infrastructure/execution/workspace_manager.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/project_context.py",
+        "src/code_sentinel_agent/mcp_state.py",
+        "src/code_sentinel_agent/task_execution.py"
+      ],
+      "tests": [
+        "tests/test_project_context.py",
+        "tests/test_mcp_state.py",
+        "tests/test_docs_contract.py"
+      ],
+      "user_acceptance": "User explicitly directed that the Agent works from the runtime repository and MCP state, without tmux, daemon terminal streaming, external executors or SaaS upload/provisioning flows."
     },
     {
       "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
@@ -2223,76 +2331,107 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "ContactMessage",
       "kind": "table",
       "name": "contact_messages",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Marketing/contact intake is outside the Agent runtime.",
       "source": "infrastructure/persistence/models/contact.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "SalesLead",
       "kind": "table",
       "name": "sales_leads",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Sales lead capture is outside the Agent runtime.",
       "source": "infrastructure/persistence/models/contact.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "FileAnalysisModel",
       "kind": "table",
       "name": "health_bot_file_analyses",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "covered by the current agent runtime state model",
       "source": "infrastructure/persistence/models/file_analysis_model.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/file_inventory.py",
+        "src/code_sentinel_agent/analysis_workflow.py"
+      ],
+      "tests": [
+        "tests/test_agent_analysis.py",
+        "tests/test_scan_runtime_helpers.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "FileCheckModel",
       "kind": "table",
       "name": "health_bot_file_checks",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "covered by the current agent runtime state model",
       "source": "infrastructure/persistence/models/file_check.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/file_inventory.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "GitHubAppInstallationModel",
       "kind": "table",
       "name": "github_app_installations",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "GitHub App installation persistence is removed; repository and PR operations use MCP/GitHub tools plus pr_state evidence.",
       "source": "infrastructure/persistence/models/github_app_installation.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "GitHubAppRepositoryModel",
       "kind": "table",
       "name": "github_app_repositories",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "GitHub App repository persistence is removed; repository scope is managed by MCP allowlists and GitHub tooling.",
       "source": "infrastructure/persistence/models/github_app_installation.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
       "class_name": "TenantInvitationModel",
@@ -2314,28 +2453,38 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "LoggingConfig",
       "kind": "table",
       "name": "logging_configs",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "SaaS logging configuration table is removed; Agent runtime stores audit/report evidence instead.",
       "source": "infrastructure/persistence/models/logging_config.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "PluginExecutionModel",
       "kind": "table",
       "name": "health_bot_plugin_executions",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "covered by the current agent runtime state model",
       "source": "infrastructure/persistence/models/plugin_execution_model.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/plugin_executions.py",
+        "src/code_sentinel_agent/cycle.py"
+      ],
+      "tests": [
+        "tests/test_scan_runtime_helpers.py",
+        "tests/test_autonomous_cycle.py"
+      ]
     },
     {
       "class_name": "Project",
@@ -2479,28 +2628,36 @@
       ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "TaskHistoryModel",
       "kind": "table",
       "name": "health_bot_task_history",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "covered by the current agent runtime state model",
       "source": "infrastructure/persistence/models/task.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/task_workflow.py"
+      ],
+      "tests": [
+        "tests/test_audit_events.py",
+        "tests/test_task_workflow.py"
+      ]
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "TaskLogModel",
       "kind": "table",
       "name": "health_bot_task_logs",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "covered by the current agent runtime state model",
       "source": "infrastructure/persistence/models/task.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "adapted",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/execution_sessions.py"
+      ],
+      "tests": [
+        "tests/test_audit_events.py",
+        "tests/test_execution_sessions.py"
+      ]
     },
     {
       "class_name": "TaskModel",
@@ -2603,28 +2760,40 @@
       "user_acceptance": "User explicitly stated roles, auth and SSO do not exist in the Agent runtime; the Agent must migrate work logic, not the SaaS human-identity layer."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "WebhookConfig",
       "kind": "table",
       "name": "webhook_configs",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Outbound webhook configuration is removed from the Agent runtime.",
       "source": "infrastructure/persistence/models/webhook.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     },
     {
-      "blocker_code": "FULL_SOURCE_COVERAGE_REQUIRED",
       "class_name": "WebhookDeliveryModel",
       "kind": "table",
       "name": "webhook_deliveries",
-      "next_task": "review source responsibility and classify as migrated, adapted, blocked with owner, or removed with user acceptance",
-      "reason": "table is present in local Code Sentinel but has no reviewed agent-runtime mapping yet",
+      "reason": "Webhook delivery queue is removed from the Agent runtime.",
       "source": "infrastructure/persistence/models/webhook.py",
-      "status": "blocked",
-      "target_modules": [],
-      "tests": []
+      "status": "removed",
+      "target_modules": [
+        "src/code_sentinel_agent/audit_events.py",
+        "src/code_sentinel_agent/reports.py"
+      ],
+      "tests": [
+        "tests/test_docs_contract.py",
+        "tests/test_audit_events.py",
+        "tests/test_cli_contract.py"
+      ],
+      "user_acceptance": "User target is an Agent runtime, not the local FastAPI SaaS product shell; repository cloning, GitHub actions, notifications and operator visibility are handled by MCP/GitHub tools and Agent reports."
     }
   ],
   "gate_status": "blocked",
@@ -2632,17 +2801,17 @@
   "inventory_source": "docs/local-code-sentinel-source-inventory.json",
   "source_root": "/home/pika/projekte/code-sentinel",
   "summary": {
-    "blocked_total": 116,
+    "blocked_total": 86,
     "entries_total": 199,
     "kind_counts": {
       "runtime_module": 166,
       "table": 33
     },
     "status_counts": {
-      "adapted": 28,
-      "blocked": 116,
+      "adapted": 42,
+      "blocked": 86,
       "migrated": 7,
-      "removed": 48
+      "removed": 64
     }
   }
 }

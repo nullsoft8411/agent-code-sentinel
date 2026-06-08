@@ -264,9 +264,9 @@ Initial full source coverage evidence:
 - Current gate_status: blocked
 - Current coverage count: 199 source responsibilities, including 33 tables and
   166 runtime modules
-- Current blocker count: 116 blocked entries after Auth/RBAC, SaaS identity,
-  Budget/Billing/Usage and Command/Query/Service-Orchestration classification
-  passes
+- Current blocker count: 86 blocked entries after Auth/RBAC, SaaS identity,
+  Budget/Billing/Usage, Command/Query/Service-Orchestration and
+  Services/Execution/Messaging classification passes
 - First coverage reduction: application/auth/authorization_service.py and
   application/auth/exceptions.py are adapted to project-scoped MCP tools,
   explicit per-run approvals, state locks, audit evidence and structured
@@ -287,6 +287,15 @@ Initial full source coverage evidence:
   config provisioning are source-reviewed and removed because the Agent works
   from cloned repositories and MCP state, with edits only through explicit
   approval.
+- Service/execution/messaging coverage is source-reviewed for archive,
+  dependency analysis, GitHub App repository responsibility, scan phase/plugin
+  execution, recovery, session registry and stats. These are adapted to Agent
+  reports, audit events, scan jobs, plugin executions, execution sessions,
+  MCP/GitHub tools, locks and deterministic resume state. Claude model
+  selection, ClaudeExecutor factory, terminal session attachment, worktree
+  workspace manager, SaaS notifications, system-admin workflows, contact/sales,
+  webhook and GitHub App installation persistence are removed from the Agent
+  target runtime.
 - Consequence: AN-9, Slack, Agent Studio, schedule and connector tests remain
   blocked until every entry is migrated, adapted, blocked with a concrete owner
   and implementation task, or removed with explicit user acceptance.
