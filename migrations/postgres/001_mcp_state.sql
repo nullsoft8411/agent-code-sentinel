@@ -136,6 +136,45 @@ on scan_findings(scan_job_id);
 create index if not exists idx_scan_findings_file_path
 on scan_findings(file_path);
 
+create table if not exists plugin_executions (
+  id text primary key,
+  scan_job_id text references scan_jobs(id) on delete cascade,
+  run_id text references runs(id) on delete cascade,
+  project_id text not null references projects(id) on delete cascade,
+  plugin_name text not null,
+  status text not null,
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
+  exit_code integer,
+  stdout_summary text,
+  stderr_summary text,
+  metadata_json jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_plugin_executions_scan_job
+on plugin_executions(scan_job_id);
+
+create table if not exists file_checks (
+  id text primary key,
+  scan_job_id text references scan_jobs(id) on delete cascade,
+  run_id text references runs(id) on delete cascade,
+  project_id text not null references projects(id) on delete cascade,
+  file_path text not null,
+  content_sha256 text,
+  language text,
+  status text not null,
+  checks_json jsonb not null default '[]'::jsonb,
+  metadata_json jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(project_id, scan_job_id, file_path)
+);
+
+create index if not exists idx_file_checks_project_file
+on file_checks(project_id, file_path);
+
 create table if not exists agent_execution_sessions (
   id text primary key,
   run_id text not null references runs(id) on delete cascade,

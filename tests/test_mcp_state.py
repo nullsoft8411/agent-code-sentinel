@@ -1311,13 +1311,51 @@ def test_postgres_run_cycle_builds_task_takeover_query(monkeypatch: pytest.Monke
     assert "'main@postgres'" in captured["sql"]
 
 
+def test_postgres_run_cycle_persists_project_evidence_query(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_path = create_mcp_cycle_project(tmp_path)
+    captured = capture_postgres_sql(
+        monkeypatch,
+        {
+            "status": "passed",
+            "state_backend": "postgres",
+            "project_evidence": {"status": "passed"},
+            "lock_released": True,
+        },
+    )
+
+    code, payload = postgres_state.postgres_run_cycle(
+        "postgresql://localhost/code_sentinel",
+        {
+            "project_id": "proj-devopshub",
+            "run_id": "run-postgres-evidence",
+            "latest_ref": "main@postgres-evidence",
+            "project_path": str(project_path),
+        },
+    )
+
+    assert code == 0
+    assert payload["project_evidence"]["status"] == "passed"
+    assert "insert into scan_jobs" in captured["sql"]
+    assert "insert into plugin_executions" in captured["sql"]
+    assert "insert into file_checks" in captured["sql"]
+    assert "project_context" in captured["sql"]
+    assert "file_inventory" in captured["sql"]
+    assert "src/mcp_cycle_project/app.py" in captured["sql"]
+    assert "project_evidence_status', 'passed'" in captured["sql"]
+    assert ":plugin_executions_json" not in captured["sql"]
+    assert ":file_checks_json" not in captured["sql"]
+
+
 def test_postgres_run_cycle_blocks_advanced_execution_inputs() -> None:
     code, payload = postgres_state.postgres_run_cycle(
         "postgresql://localhost/code_sentinel",
         {
             "project_id": "proj-devopshub",
             "run_id": "run-postgres",
-            "project_path": "/tmp/project",
+            "validation_result": {"gate": "tests"},
         },
     )
 
@@ -1325,7 +1363,7 @@ def test_postgres_run_cycle_blocks_advanced_execution_inputs() -> None:
     assert payload["status"] == "blocked"
     assert payload["state_backend"] == "postgres"
     assert payload["blocker_code"] == "POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED"
-    assert payload["unsupported_inputs"] == ["project_path"]
+    assert payload["unsupported_inputs"] == ["validation_result"]
 
 
 def test_postgres_psql_backend_uses_env_not_dsn_arg() -> None:
@@ -1359,6 +1397,8 @@ def test_postgres_mcp_state_schema_documents_locking_contract() -> None:
         "tasks",
         "scan_jobs",
         "scan_findings",
+        "plugin_executions",
+        "file_checks",
         "agent_execution_sessions",
         "audit_events",
         "qa_gate_results",
@@ -1369,6 +1409,8 @@ def test_postgres_mcp_state_schema_documents_locking_contract() -> None:
     assert "jsonb not null" in sql
     assert "idx_tasks_project_signature" in sql
     assert "idx_scan_findings_project_status" in sql
+    assert "idx_plugin_executions_scan_job" in sql
+    assert "idx_file_checks_project_file" in sql
     assert "idx_agent_execution_sessions_run" in sql
     assert "idx_audit_events_project_run" in sql
     assert "idx_state_locks_one_active_project" in sql

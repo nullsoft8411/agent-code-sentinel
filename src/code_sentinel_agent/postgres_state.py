@@ -11,6 +11,8 @@ from typing import Any
 from urllib.parse import urlparse, unquote
 
 from .agent_analysis import analyze_context
+from .file_inventory import build_file_inventory
+from .project_context import project_context
 
 
 POSTGRES_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "postgres" / "001_mcp_state.sql"
@@ -503,7 +505,7 @@ commit;
 def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
     unsupported_inputs = [
         key
-        for key in ("project_path", "validation_result", "task_execution_result", "write_request")
+        for key in ("validation_result", "task_execution_result", "write_request")
         if payload.get(key)
     ]
     if unsupported_inputs:
@@ -527,6 +529,20 @@ def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
             "state_backend": "postgres",
             "reason": "project_id and run_id are required",
         }
+
+    project_evidence = postgres_project_evidence(payload, project_id=project_id, run_id=run_id, latest_ref=latest_ref)
+    scan_job = project_evidence.get("scan_job") if isinstance(project_evidence.get("scan_job"), dict) else {}
+    cycle_status = "blocking" if project_evidence.get("status") == "blocking" else "passed"
+    project_evidence_next_step = (
+        f"resolve project evidence blocker: {project_evidence.get('blocker_code')}"
+        if cycle_status == "blocking"
+        else "analyze project context and create findings/tasks before editing"
+    )
+    plugin_executions = project_evidence.get("plugin_executions") if isinstance(project_evidence.get("plugin_executions"), list) else []
+    file_checks = project_evidence.get("file_checks") if isinstance(project_evidence.get("file_checks"), list) else []
+    project_evidence_json = json.dumps(project_evidence, sort_keys=True)
+    plugin_executions_json = json.dumps(plugin_executions, sort_keys=True)
+    file_checks_json = json.dumps(file_checks, sort_keys=True)
 
     sql = """
 begin;
@@ -582,7 +598,107 @@ where exists (select 1 from projects where id = :project_id)
       and released_at is null
   )
 on conflict (id) do nothing;
-with selected_task as (
+with scan_job_upsert as (
+  insert into scan_jobs(
+    id, run_id, project_id, scanner_name, scan_type, status, target_ref,
+    files_total, files_scanned, files_skipped, findings_count, error_message,
+    metadata_json, completed_at, updated_at
+  )
+  select
+    :scan_job_id,
+    :run_id,
+    :project_id,
+    'agent_autonomous_cycle',
+    'project_context',
+    :scan_job_status,
+    :latest_ref,
+    (:files_total)::integer,
+    (:files_scanned)::integer,
+    (:files_skipped)::integer,
+    0,
+    nullif(:scan_error_message, ''),
+    jsonb_build_object('project_path', nullif(:project_path, ''), 'source', 'run-cycle'),
+    now(),
+    now()
+  where nullif(:scan_job_id, '') is not null
+    and exists (select 1 from runs where id = :run_id and project_id = :project_id)
+  on conflict (id) do update set
+    status = excluded.status,
+    target_ref = excluded.target_ref,
+    files_total = excluded.files_total,
+    files_scanned = excluded.files_scanned,
+    files_skipped = excluded.files_skipped,
+    error_message = excluded.error_message,
+    metadata_json = excluded.metadata_json,
+    completed_at = excluded.completed_at,
+    updated_at = now()
+  returning id
+),
+plugin_input as (
+  select value
+  from jsonb_array_elements(:plugin_executions_json::jsonb) value
+),
+plugin_insert as (
+  insert into plugin_executions(
+    id, scan_job_id, run_id, project_id, plugin_name, status, completed_at,
+    exit_code, stdout_summary, stderr_summary, metadata_json
+  )
+  select
+    value->>'id',
+    nullif(value->>'scan_job_id', ''),
+    :run_id,
+    :project_id,
+    value->>'plugin_name',
+    value->>'status',
+    now(),
+    nullif(value->>'exit_code', '')::integer,
+    value->>'stdout_summary',
+    value->>'stderr_summary',
+    value->'metadata'
+  from plugin_input
+  where exists (select 1 from runs where id = :run_id and project_id = :project_id)
+  on conflict (id) do update set
+    status = excluded.status,
+    completed_at = excluded.completed_at,
+    exit_code = excluded.exit_code,
+    stdout_summary = excluded.stdout_summary,
+    stderr_summary = excluded.stderr_summary,
+    metadata_json = excluded.metadata_json,
+    updated_at = now()
+  returning id
+),
+file_check_input as (
+  select value
+  from jsonb_array_elements(:file_checks_json::jsonb) value
+),
+file_check_insert as (
+  insert into file_checks(
+    id, scan_job_id, run_id, project_id, file_path, content_sha256,
+    language, status, checks_json, metadata_json
+  )
+  select
+    value->>'id',
+    value->>'scan_job_id',
+    :run_id,
+    :project_id,
+    value->>'file_path',
+    value->>'content_sha256',
+    value->>'language',
+    value->>'status',
+    value->'checks',
+    value->'metadata'
+  from file_check_input
+  where exists (select 1 from runs where id = :run_id and project_id = :project_id)
+  on conflict (project_id, scan_job_id, file_path) do update set
+    content_sha256 = excluded.content_sha256,
+    language = excluded.language,
+    status = excluded.status,
+    checks_json = excluded.checks_json,
+    metadata_json = excluded.metadata_json,
+    updated_at = now()
+  returning id
+),
+selected_task as (
   select *
   from tasks
   where project_id = :project_id
@@ -607,13 +723,17 @@ run_update as (
   update runs
   set
     current_focus = case
+      when :cycle_status = 'blocking' then 'project_evidence'
       when exists (select 1 from selected_task) then 'task_takeover'
       else 'analysis'
     end,
-    next_autonomous_step = coalesce(
+    next_autonomous_step = case
+      when :cycle_status = 'blocking' then :project_evidence_next_step
+      else coalesce(
       (select 'take over ' || task_type || ' ' || id || ': ' || title from selected_task),
       'analyze project context and create findings/tasks before editing'
-    ),
+      )
+    end,
     updated_at = now()
   where id = :run_id
     and exists (
@@ -641,17 +761,19 @@ session_insert as (
     'run-cycle',
     'agent_runtime_cli',
     'cs-agent run-cycle',
-    'passed',
+    :cycle_status,
     jsonb_build_object(
       'latest_ref', :latest_ref,
       'selected_task_id', (select id from selected_task),
-      'project_evidence_status', 'not_requested'
+      'project_evidence_status', :project_evidence_status,
+      'scan_job_id', nullif(:scan_job_id, ''),
+      'file_checks_count', (:file_checks_count)::integer
     ),
     '[]'::jsonb,
     jsonb_build_array(
       jsonb_build_object('step', 'lock_acquired', 'status', 'passed'),
       jsonb_build_object('step', 'run_state_loaded', 'status', 'passed'),
-      jsonb_build_object('step', 'project_evidence', 'status', 'not_requested'),
+      jsonb_build_object('step', 'project_evidence', 'status', :project_evidence_status),
       jsonb_build_object('step', 'selected_task', 'status', case when exists (select 1 from selected_task) then 'passed' else 'not_available' end)
     ),
     now()
@@ -672,12 +794,13 @@ audit_insert as (
     :run_id,
     :project_id,
     'autonomous_cycle',
-    'Cycle exited with status passed',
+    'Cycle exited with status ' || :cycle_status,
     jsonb_build_object(
       'latest_ref', :latest_ref,
       'selected_task_id', (select id from selected_task),
-      'current_focus', case when exists (select 1 from selected_task) then 'task_takeover' else 'analysis' end,
-      'project_evidence_status', 'not_requested'
+      'current_focus', case when :cycle_status = 'blocking' then 'project_evidence' when exists (select 1 from selected_task) then 'task_takeover' else 'analysis' end,
+      'project_evidence_status', :project_evidence_status,
+      'scan_job_id', nullif(:scan_job_id, '')
     )
   where exists (select 1 from run_update)
   on conflict (id) do update set
@@ -697,7 +820,7 @@ lock_release as (
 )
 select coalesce(
   (select json_build_object(
-    'status', 'passed',
+    'status', :cycle_status,
     'state_backend', 'postgres',
     'project_id', :project_id,
     'run_id', :run_id,
@@ -721,7 +844,7 @@ select coalesce(
       ) from selected_task),
     'validation_result', null,
     'task_execution_result', null,
-    'project_evidence', json_build_object('status', 'not_requested', 'project_path', null, 'file_checks_count', 0),
+    'project_evidence', :project_evidence_json::jsonb,
     'improvement_work_package', null,
     'cycle_session', (select json_build_object('id', id, 'task_id', task_id, 'status', status, 'output_json', output_json, 'attempt_log_json', attempt_log_json) from session_insert),
     'audit_event', (select json_build_object('id', id, 'event_type', event_type, 'summary', summary, 'payload_json', payload_json) from audit_insert),
@@ -736,6 +859,8 @@ select coalesce(
         'validation_attempts', 0,
         'execution_sessions', (select count(*) from agent_execution_sessions where run_id = :run_id)
       ),
+      'plugin_executions', (select count(*) from plugin_executions where run_id = :run_id),
+      'file_checks', (select count(*) from file_checks where run_id = :run_id),
       'selected_task_for_agent_takeover', (select json_build_object('id', id, 'title', title, 'affected_file', affected_file, 'task_type', task_type, 'task_signature', task_signature) from selected_task)
     ),
     'next_autonomous_step', runs.next_autonomous_step,
@@ -767,7 +892,7 @@ select coalesce(
 );
 commit;
 """
-    return run_psql_json(
+    code, result = run_psql_json(
         dsn,
         bind_literals(
             sql,
@@ -777,9 +902,142 @@ commit;
                 "latest_ref": latest_ref,
                 "owner": owner,
                 "lock_id": f"{project_id}:{run_id}:{owner}",
+                "cycle_status": cycle_status,
+                "project_evidence_status": str(project_evidence.get("status") or "not_requested"),
+                "project_evidence_next_step": project_evidence_next_step,
+                "project_evidence_json": project_evidence_json,
+                "project_path": str(payload.get("project_path") or ""),
+                "scan_job_id": str(scan_job.get("id") or ""),
+                "scan_job_status": str(scan_job.get("status") or ""),
+                "scan_error_message": str(scan_job.get("error_message") or ""),
+                "files_total": str(scan_job.get("files_total") or 0),
+                "files_scanned": str(scan_job.get("files_scanned") or 0),
+                "files_skipped": str(scan_job.get("files_skipped") or 0),
+                "file_checks_count": str(project_evidence.get("file_checks_count") or 0),
+                "plugin_executions_json": plugin_executions_json,
+                "file_checks_json": file_checks_json,
             },
         ),
     )
+    if code == 0 and result.get("status") == "blocking":
+        return 2, result
+    return code, result
+
+
+def postgres_project_evidence(
+    payload: dict[str, Any],
+    *,
+    project_id: str,
+    run_id: str,
+    latest_ref: str,
+) -> dict[str, Any]:
+    project_path = str(payload.get("project_path") or "").strip()
+    if not project_path:
+        return {"status": "not_requested", "project_path": None, "file_checks_count": 0}
+
+    scan_job_id = stable_id("scan", run_id, project_path)
+    context_code, context_payload = project_context(project_path)
+    inventory_code, inventory_payload = build_file_inventory(project_path)
+    status = "blocking" if context_code != 0 or inventory_code != 0 else "passed"
+    blocker = (
+        context_payload.get("blocker_code")
+        or inventory_payload.get("blocker_code")
+        or ("PROJECT_EVIDENCE_BLOCKED" if status == "blocking" else None)
+    )
+
+    plugin_executions = [
+        {
+            "id": stable_id("plugin", run_id, "project_context"),
+            "project_id": project_id,
+            "run_id": run_id,
+            "scan_job_id": scan_job_id,
+            "plugin_name": "project_context",
+            "status": "passed" if context_code == 0 else "blocking",
+            "exit_code": context_code,
+            "stdout_summary": context_payload.get("status"),
+            "stderr_summary": context_payload.get("blocker_code"),
+            "metadata": {"source": "autonomous_cycle"},
+        },
+        {
+            "id": stable_id("plugin", run_id, "file_inventory"),
+            "project_id": project_id,
+            "run_id": run_id,
+            "scan_job_id": scan_job_id,
+            "plugin_name": "file_inventory",
+            "status": "passed" if inventory_code == 0 else "blocking",
+            "exit_code": inventory_code,
+            "stdout_summary": inventory_payload.get("status"),
+            "stderr_summary": inventory_payload.get("blocker_code"),
+            "metadata": {"source": "autonomous_cycle"},
+        },
+    ]
+
+    inventory_files = inventory_payload.get("files") if isinstance(inventory_payload.get("files"), list) else []
+    file_checks = [
+        {
+            "id": stable_id("file-check", run_id, scan_job_id, file_record["path"]),
+            "project_id": project_id,
+            "run_id": run_id,
+            "scan_job_id": scan_job_id,
+            "file_path": file_record["path"],
+            "content_sha256": file_record.get("content_sha256"),
+            "language": file_record.get("language"),
+            "status": "passed",
+            "checks": [{"name": "inventory", "status": "passed"}],
+            "metadata": {"bytes": file_record.get("bytes"), "source": "autonomous_cycle"},
+        }
+        for file_record in inventory_files
+        if isinstance(file_record, dict) and file_record.get("path")
+    ]
+    files_skipped = int(inventory_payload.get("skipped_count") or 0) if inventory_code == 0 else 0
+    scan_job = {
+        "id": scan_job_id,
+        "project_id": project_id,
+        "run_id": run_id,
+        "scanner_name": "agent_autonomous_cycle",
+        "scan_type": "project_context",
+        "status": "failed" if status == "blocking" else "completed",
+        "target_ref": latest_ref,
+        "files_total": len(file_checks) + files_skipped,
+        "files_scanned": len(file_checks),
+        "files_skipped": files_skipped,
+        "error_message": blocker,
+        "metadata": {"project_path": project_path, "source": "run-cycle"},
+    }
+
+    if status == "blocking":
+        return {
+            "status": "blocking",
+            "blocker_code": blocker,
+            "project_path": project_path,
+            "project_context": context_payload,
+            "file_inventory": inventory_payload,
+            "scan_job": scan_job,
+            "plugin_executions": plugin_executions,
+            "file_checks": [],
+            "file_checks_count": 0,
+        }
+
+    return {
+        "status": "passed",
+        "project_path": project_path,
+        "project_context": {
+            "context_summary": context_payload["context_summary"],
+            "project_rules": context_payload["project_rules"],
+            "check_detection": context_payload["check_detection"],
+            "git_truth": context_payload["git_truth"],
+            "next_autonomous_step": context_payload["next_autonomous_step"],
+        },
+        "file_inventory": {
+            "status": inventory_payload["status"],
+            "files_count": len(file_checks),
+            "skipped_count": files_skipped,
+        },
+        "scan_job": scan_job,
+        "plugin_executions": plugin_executions,
+        "file_checks": file_checks,
+        "file_checks_count": len(file_checks),
+    }
 
 
 def postgres_lock_acquire(
