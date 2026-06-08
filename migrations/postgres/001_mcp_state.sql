@@ -229,6 +229,18 @@ create table if not exists qa_gate_results (
   unique(run_id, gate)
 );
 
+create table if not exists validation_attempts (
+  id text primary key,
+  run_id text not null references runs(id) on delete cascade,
+  command text not null,
+  cwd text,
+  exit_code integer,
+  stdout_summary text,
+  stderr_summary text,
+  status text not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists artifacts (
   id text primary key,
   run_id text not null references runs(id) on delete cascade,

@@ -13,6 +13,7 @@ from urllib.parse import urlparse, unquote
 from .agent_analysis import analyze_context
 from .file_inventory import build_file_inventory
 from .project_context import project_context
+from .validation_runner import ValidationResult, normalize_validation_payload
 
 
 POSTGRES_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "postgres" / "001_mcp_state.sql"
@@ -205,12 +206,10 @@ select coalesce(
       'artifacts', (select count(*) from artifacts where run_id = :run_id),
       'findings', (select count(*) from findings where run_id = :run_id),
       'tasks', (select count(*) from tasks where run_id = :run_id),
-      'validation_attempts', 0,
+      'validation_attempts', (select count(*) from validation_attempts where run_id = :run_id),
       'execution_sessions', (select count(*) from agent_execution_sessions where run_id = :run_id)
     ),
-    'unsupported_counts', json_build_array(
-      'validation_attempts'
-    ),
+    'unsupported_counts', json_build_array(),
     'qa_review_outcomes', json_build_array(),
     'missing_review_outcomes', json_build_array(),
     'execution_sessions', coalesce(
@@ -505,7 +504,7 @@ commit;
 def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
     unsupported_inputs = [
         key
-        for key in ("validation_result", "task_execution_result", "write_request")
+        for key in ("task_execution_result", "write_request")
         if payload.get(key)
     ]
     if unsupported_inputs:
@@ -531,11 +530,22 @@ def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
         }
 
     project_evidence = postgres_project_evidence(payload, project_id=project_id, run_id=run_id, latest_ref=latest_ref)
+    validation_code, validation_state = postgres_validation_state(payload, project_id=project_id, run_id=run_id)
+    if validation_code != 0:
+        return validation_code, validation_state
     scan_job = project_evidence.get("scan_job") if isinstance(project_evidence.get("scan_job"), dict) else {}
-    cycle_status = "blocking" if project_evidence.get("status") == "blocking" else "passed"
+    validation_result = validation_state.get("validation_result")
+    cycle_status = (
+        "blocking"
+        if project_evidence.get("status") == "blocking"
+        or (isinstance(validation_result, dict) and validation_result.get("status") == "blocking")
+        else "passed"
+    )
     project_evidence_next_step = (
         f"resolve project evidence blocker: {project_evidence.get('blocker_code')}"
-        if cycle_status == "blocking"
+        if project_evidence.get("status") == "blocking"
+        else "create or continue the selected task for the failing gate"
+        if isinstance(validation_result, dict) and validation_result.get("status") == "blocking"
         else "analyze project context and create findings/tasks before editing"
     )
     plugin_executions = project_evidence.get("plugin_executions") if isinstance(project_evidence.get("plugin_executions"), list) else []
@@ -543,6 +553,8 @@ def postgres_run_cycle(dsn: str, payload: dict[str, Any]) -> tuple[int, dict]:
     project_evidence_json = json.dumps(project_evidence, sort_keys=True)
     plugin_executions_json = json.dumps(plugin_executions, sort_keys=True)
     file_checks_json = json.dumps(file_checks, sort_keys=True)
+    validation_result_json = json.dumps(validation_result, sort_keys=True)
+    validation_findings_json = json.dumps(validation_state.get("findings") or [], sort_keys=True)
 
     sql = """
 begin;
@@ -698,6 +710,163 @@ file_check_insert as (
     updated_at = now()
   returning id
 ),
+validation_attempt_insert as (
+  insert into validation_attempts(
+    id, run_id, command, cwd, exit_code, stdout_summary, stderr_summary, status
+  )
+  select
+    :validation_attempt_id,
+    :run_id,
+    :validation_command,
+    nullif(:validation_cwd, ''),
+    (:validation_exit_code)::integer,
+    :validation_stdout_summary,
+    :validation_stderr_summary,
+    :validation_status
+  where :validation_present = 'true'
+    and exists (select 1 from runs where id = :run_id and project_id = :project_id)
+  on conflict (id) do update set
+    command = excluded.command,
+    cwd = excluded.cwd,
+    exit_code = excluded.exit_code,
+    stdout_summary = excluded.stdout_summary,
+    stderr_summary = excluded.stderr_summary,
+    status = excluded.status
+  returning id
+),
+qa_gate_insert as (
+  insert into qa_gate_results(gate, run_id, status, evidence, why_it_matters, next_action, id)
+  select
+    :validation_gate,
+    :run_id,
+    :validation_status,
+    :validation_evidence,
+    'failed validation must become tracked findings/tasks before autonomous completion',
+    'create or continue the selected task for the failing gate',
+    :qa_gate_id
+  where :validation_present = 'true'
+    and exists (select 1 from runs where id = :run_id and project_id = :project_id)
+  on conflict(run_id, gate) do update set
+    status = excluded.status,
+    evidence = excluded.evidence,
+    why_it_matters = excluded.why_it_matters,
+    next_action = excluded.next_action
+  returning id
+),
+validation_session_insert as (
+  insert into agent_execution_sessions(
+    id, run_id, project_id, task_id, session_type, script_name,
+    execution_method, command, status, output_json, error_summary,
+    files_modified_json, attempt_log_json, completed_at
+  )
+  select
+    'exec-' || :validation_attempt_id,
+    :run_id,
+    :project_id,
+    null,
+    'validation',
+    'qg-workflow',
+    'agent_runtime_cli',
+    :validation_command,
+    :validation_status,
+    jsonb_build_object(
+      'gate', :validation_gate,
+      'exit_code', (:validation_exit_code)::integer,
+      'stdout_summary', :validation_stdout_summary,
+      'stderr_summary', :validation_stderr_summary
+    ),
+    nullif(:validation_error_summary, ''),
+    '[]'::jsonb,
+    jsonb_build_array(jsonb_build_object('step', 'validation_result_normalized', 'status', :validation_status, 'evidence', :validation_evidence)),
+    now()
+  where :validation_present = 'true'
+    and exists (select 1 from validation_attempt_insert)
+  on conflict (id) do update set
+    status = excluded.status,
+    output_json = excluded.output_json,
+    error_summary = excluded.error_summary,
+    attempt_log_json = excluded.attempt_log_json,
+    completed_at = excluded.completed_at,
+    updated_at = now()
+  returning id
+),
+validation_finding_input as (
+  select value
+  from jsonb_array_elements(:validation_findings_json::jsonb) value
+),
+validation_finding_insert as (
+  insert into findings(
+    id, run_id, project_id, signature, category, severity,
+    file_path, line_number, title, details, status
+  )
+  select
+    value->>'compatibility_finding_id',
+    :run_id,
+    :project_id,
+    value->>'signature',
+    value->>'rule_id',
+    value->>'severity',
+    nullif(value->>'file_path', ''),
+    nullif(value->>'line_number', '')::integer,
+    value->>'title',
+    value->>'message',
+    'open'
+  from validation_finding_input
+  where exists (select 1 from validation_attempt_insert)
+  on conflict (project_id, signature) do nothing
+  returning id, signature
+),
+validation_scan_finding_insert as (
+  insert into scan_findings(
+    id, scan_job_id, run_id, project_id, compatibility_finding_id,
+    scanner_name, rule_id, file_path, line_number, severity, status,
+    title, message, evidence, signature, metadata_json
+  )
+  select
+    value->>'id',
+    null,
+    :run_id,
+    :project_id,
+    value->>'compatibility_finding_id',
+    'validation_runner',
+    value->>'rule_id',
+    nullif(value->>'file_path', ''),
+    nullif(value->>'line_number', '')::integer,
+    value->>'severity',
+    'open',
+    value->>'title',
+    value->>'message',
+    value->>'evidence',
+    value->>'signature',
+    jsonb_build_object('gate', :validation_gate, 'command', :validation_command)
+  from validation_finding_input
+  where exists (select 1 from validation_attempt_insert)
+  on conflict (project_id, signature) do nothing
+  returning id, signature
+),
+validation_task_insert as (
+  insert into tasks(
+    id, finding_id, run_id, project_id, status, priority, title,
+    affected_file, task_type, task_signature, progress_json
+  )
+  select
+    value->>'task_id',
+    findings.id,
+    :run_id,
+    :project_id,
+    'pending',
+    (value->>'task_priority')::integer,
+    'Fix ' || (value->>'title'),
+    nullif(value->>'file_path', ''),
+    'standalone',
+    value->>'task_signature',
+    '{}'::jsonb
+  from validation_finding_input
+  join findings on findings.project_id = :project_id and findings.signature = value->>'signature'
+  where exists (select 1 from validation_attempt_insert)
+  on conflict (project_id, task_signature) do nothing
+  returning id
+),
 selected_task as (
   select *
   from tasks
@@ -723,7 +892,8 @@ run_update as (
   update runs
   set
     current_focus = case
-      when :cycle_status = 'blocking' then 'project_evidence'
+      when :project_evidence_status = 'blocking' then 'project_evidence'
+      when :validation_status = 'blocking' then 'qa_gate_takeover'
       when exists (select 1 from selected_task) then 'task_takeover'
       else 'analysis'
     end,
@@ -766,6 +936,7 @@ session_insert as (
       'latest_ref', :latest_ref,
       'selected_task_id', (select id from selected_task),
       'project_evidence_status', :project_evidence_status,
+      'validation_status', nullif(:validation_status, ''),
       'scan_job_id', nullif(:scan_job_id, ''),
       'file_checks_count', (:file_checks_count)::integer
     ),
@@ -774,6 +945,7 @@ session_insert as (
       jsonb_build_object('step', 'lock_acquired', 'status', 'passed'),
       jsonb_build_object('step', 'run_state_loaded', 'status', 'passed'),
       jsonb_build_object('step', 'project_evidence', 'status', :project_evidence_status),
+      jsonb_build_object('step', 'validation_result', 'status', coalesce(nullif(:validation_status, ''), 'not_available')),
       jsonb_build_object('step', 'selected_task', 'status', case when exists (select 1 from selected_task) then 'passed' else 'not_available' end)
     ),
     now()
@@ -798,8 +970,9 @@ audit_insert as (
     jsonb_build_object(
       'latest_ref', :latest_ref,
       'selected_task_id', (select id from selected_task),
-      'current_focus', case when :cycle_status = 'blocking' then 'project_evidence' when exists (select 1 from selected_task) then 'task_takeover' else 'analysis' end,
+      'current_focus', case when :cycle_status = 'blocking' and :project_evidence_status = 'blocking' then 'project_evidence' when :validation_status = 'blocking' then 'qa_gate_takeover' when exists (select 1 from selected_task) then 'task_takeover' else 'analysis' end,
       'project_evidence_status', :project_evidence_status,
+      'validation_status', nullif(:validation_status, ''),
       'scan_job_id', nullif(:scan_job_id, '')
     )
   where exists (select 1 from run_update)
@@ -842,7 +1015,7 @@ select coalesce(
         'task_signature', task_signature,
         'progress', progress_json
       ) from selected_task),
-    'validation_result', null,
+    'validation_result', :validation_result_json::jsonb,
     'task_execution_result', null,
     'project_evidence', :project_evidence_json::jsonb,
     'improvement_work_package', null,
@@ -856,7 +1029,7 @@ select coalesce(
         'findings', (select count(*) from findings where run_id = :run_id),
         'tasks', (select count(*) from tasks where run_id = :run_id),
         'qa_gates', (select count(*) from qa_gate_results where run_id = :run_id),
-        'validation_attempts', 0,
+        'validation_attempts', (select count(*) from validation_attempts where run_id = :run_id),
         'execution_sessions', (select count(*) from agent_execution_sessions where run_id = :run_id)
       ),
       'plugin_executions', (select count(*) from plugin_executions where run_id = :run_id),
@@ -916,6 +1089,24 @@ commit;
                 "file_checks_count": str(project_evidence.get("file_checks_count") or 0),
                 "plugin_executions_json": plugin_executions_json,
                 "file_checks_json": file_checks_json,
+                "validation_present": str(bool(validation_result)).lower(),
+                "validation_result_json": validation_result_json,
+                "validation_findings_json": validation_findings_json,
+                "validation_attempt_id": str(validation_state.get("validation_attempt_id") or ""),
+                "validation_gate": str(validation_result.get("gate") if isinstance(validation_result, dict) else ""),
+                "validation_command": str(validation_result.get("command") if isinstance(validation_result, dict) else ""),
+                "validation_cwd": str(validation_result.get("cwd") if isinstance(validation_result, dict) and validation_result.get("cwd") else ""),
+                "validation_exit_code": str(validation_result.get("exit_code") if isinstance(validation_result, dict) else 0),
+                "validation_stdout_summary": str(validation_result.get("stdout_summary") if isinstance(validation_result, dict) else ""),
+                "validation_stderr_summary": str(validation_result.get("stderr_summary") if isinstance(validation_result, dict) else ""),
+                "validation_status": str(validation_result.get("status") if isinstance(validation_result, dict) else ""),
+                "validation_evidence": str(validation_result.get("evidence") if isinstance(validation_result, dict) else ""),
+                "validation_error_summary": (
+                    str(validation_result.get("stderr_summary") or "")
+                    if isinstance(validation_result, dict) and validation_result.get("status") == "blocking"
+                    else ""
+                ),
+                "qa_gate_id": str(validation_state.get("qa_gate_id") or ""),
             },
         ),
     )
@@ -1038,6 +1229,85 @@ def postgres_project_evidence(
         "file_checks": file_checks,
         "file_checks_count": len(file_checks),
     }
+
+
+def postgres_validation_state(
+    payload: dict[str, Any],
+    *,
+    project_id: str,
+    run_id: str,
+) -> tuple[int, dict[str, Any]]:
+    validation_payload = payload.get("validation_result") if isinstance(payload.get("validation_result"), dict) else None
+    if not validation_payload:
+        return 0, {"validation_result": None, "findings": []}
+
+    code, normalized = normalize_validation_payload({**validation_payload, "project_id": project_id, "run_id": run_id})
+    if code != 0:
+        assert isinstance(normalized, dict)
+        return code, {**normalized, "state_backend": "postgres"}
+    assert isinstance(normalized, ValidationResult)
+
+    validation_attempt_id = "validation-" + qg_digest(
+        normalized.run_id,
+        normalized.gate,
+        normalized.command,
+        str(normalized.exit_code),
+    )
+    findings = [
+        {
+            "id": "qg-finding-" + qg_digest(normalized.run_id, normalized.gate, str(index), finding["evidence"]),
+            "compatibility_finding_id": "compat-qg-finding-" + qg_digest(
+                normalized.run_id,
+                normalized.gate,
+                str(index),
+                finding["evidence"],
+            ),
+            "signature": qg_finding_signature(normalized, finding),
+            "rule_id": finding["rule_id"],
+            "severity": finding["severity"],
+            "title": finding["title"],
+            "message": finding["message"],
+            "evidence": finding["evidence"],
+            "file_path": finding["file_path"],
+            "line_number": finding["line_number"],
+            "task_id": stable_id("task", "standalone:" + qg_finding_signature(normalized, finding)),
+            "task_signature": "standalone:" + qg_finding_signature(normalized, finding),
+            "task_priority": severity_priority(finding["severity"]),
+        }
+        for index, finding in enumerate(normalized.findings, start=1)
+    ]
+    return 0, {
+        "validation_attempt_id": validation_attempt_id,
+        "qa_gate_id": "qg-" + qg_digest(normalized.run_id, normalized.gate),
+        "validation_result": {
+            "gate": normalized.gate,
+            "command": normalized.command,
+            "exit_code": normalized.exit_code,
+            "cwd": normalized.cwd,
+            "stdout_summary": normalized.stdout_summary,
+            "stderr_summary": normalized.stderr_summary,
+            "status": normalized.status,
+            "evidence": normalized.evidence,
+            "secret_redaction_applied": normalized.secret_redaction_applied,
+        },
+        "findings": findings,
+    }
+
+
+def qg_finding_signature(result: ValidationResult, finding: dict[str, Any]) -> str:
+    return "finding:qg:" + qg_digest(
+        result.project_id,
+        result.run_id,
+        result.gate,
+        result.command,
+        finding["file_path"],
+        str(finding["line_number"]),
+        finding["message"],
+    )
+
+
+def qg_digest(*parts: str) -> str:
+    return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()[:16]
 
 
 def postgres_lock_acquire(

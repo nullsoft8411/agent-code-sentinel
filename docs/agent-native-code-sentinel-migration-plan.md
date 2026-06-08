@@ -934,8 +934,8 @@ Current local progress:
 - Postgres `state_report_get` is now implemented as a partial readback over
   the current Postgres schema. `postgres_report_get` returns run/project data,
   QA-gate, artifact, finding, task and execution-session counts, and explicitly
-  marks validation attempts as `unsupported_counts` instead of faking full
-  report parity. The SQL contract is covered by
+  includes validation-attempt counts instead of faking full report parity. The
+  SQL contract is covered by
   `tests/test_mcp_state.py::test_postgres_report_get_builds_partial_report_readback_query`.
 - Postgres `state_analyze_to_state` now has the first Agent-owned analysis
   write path: it reuses the Agent finding normalization contract, writes
@@ -950,16 +950,20 @@ Current local progress:
   report counts and releases the lock. It also accepts `project_path`, runs the
   local project-context and file-inventory evidence collectors, and persists
   Postgres `scan_jobs`, `plugin_executions` and `file_checks` for the cycle.
-  Advanced execution inputs (`validation_result`, `task_execution_result`,
-  `write_request`) still return a precise
+  It now accepts `validation_result`, normalizes the supplied validation result,
+  persists `validation_attempts`, `qa_gate_results`, validation execution
+  sessions, validation findings and deduped takeover tasks, and returns blocking
+  status on failing gates while releasing the project lock. Advanced execution
+  inputs (`task_execution_result`, `write_request`) still return a precise
   `POSTGRES_RUN_CYCLE_ADVANCED_INPUT_NOT_IMPLEMENTED` blocker rather than
   pretending full parity. The SQL contract is covered by
-  `tests/test_mcp_state.py::test_postgres_run_cycle_builds_task_takeover_query`
+  `tests/test_mcp_state.py::test_postgres_run_cycle_builds_task_takeover_query`,
+  `tests/test_mcp_state.py::test_postgres_run_cycle_persists_project_evidence_query`,
   and
-  `tests/test_mcp_state.py::test_postgres_run_cycle_persists_project_evidence_query`.
+  `tests/test_mcp_state.py::test_postgres_run_cycle_persists_validation_result_query`.
 - Next open implementation slice: continue section 2.6 with the next uncovered
-  runtime responsibility, currently Postgres validation-result processing inside
-  advanced `state_run_cycle`, without claiming full Postgres parity.
+  runtime responsibility, currently Postgres task-execution-result processing
+  inside advanced `state_run_cycle`, without claiming full Postgres parity.
 - AN-3 parent/subtask status coverage is now locally proven for completed,
   blocked and failed-validation transitions. `tests/test_task_creation.py::test_task_status_updates_parent_progress`
   proves completed subtasks complete the parent, and
